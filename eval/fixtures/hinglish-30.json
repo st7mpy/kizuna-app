@@ -1,0 +1,172 @@
+{
+  "today": "2026-10-26",
+  "weekday": "Monday",
+  "knownPeople": [
+    { "name": "Mum", "aliases": ["mum", "ma", "mummy", "mom"], "relation": "parent" },
+    { "name": "Papa", "aliases": ["papa", "dad"], "relation": "parent" },
+    { "name": "Riya", "aliases": ["riya"], "relation": "sibling" },
+    { "name": "Kabir", "aliases": ["kabir"], "relation": "friend" }
+  ],
+  "notes": "offset = event day minus today in days; a list means any of them is right; null = no day expected. kinds: any listed kind counts.",
+  "cases": [
+    {
+      "id": "h01",
+      "text": "Mum ka knee appointment Thursday hai, Kabir ne naya job join kiya, should call him, and Riya wants to do something for Papa's birthday.",
+      "expect": {
+        "people": ["Mum", "Kabir", "Riya", "Papa"],
+        "events": [
+          { "kinds": ["appointment"], "offset": 3 },
+          { "kinds": ["milestone"], "offset": null },
+          { "kinds": ["birthday"], "offset": null }
+        ],
+        "promises": 1,
+        "sensitive": true
+      }
+    },
+    {
+      "id": "h02",
+      "text": "Kal Ishaan ke saath movie dekhne ja raha hoon",
+      "expect": { "people": ["Ishaan"], "events": [{ "kinds": ["plan"], "offset": 1 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h03",
+      "text": "Ma ne bola parso Nani aa rahi hain ghar pe",
+      "expect": { "people": ["Mum", "Nani"], "events": [{ "kinds": ["plan", "trip", "other"], "offset": 2 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h04",
+      "text": "Meera had her baby last week, a little girl. I should send something nice.",
+      "expect": { "people": ["Meera"], "events": [{ "kinds": ["milestone"], "offset": null }], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h05",
+      "text": "Need to call the bank about the loan EMI tomorrow, they charged me twice.",
+      "expect": { "people": [], "events": [], "promises": 0, "sensitive": true }
+    },
+    {
+      "id": "h06",
+      "text": "Papa ka birthday 12 Nov ko hai, Riya aur main surprise plan kar rahe hain",
+      "expect": { "people": ["Papa", "Riya"], "events": [{ "kinds": ["birthday"], "offset": 17 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h07",
+      "text": "Kabir se Saturday ko milna hai, chai pe, uski new job ke baare mein poochna hai",
+      "expect": { "people": ["Kabir"], "events": [{ "kinds": ["plan"], "offset": 5 }], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h08",
+      "text": "Riya had a big fight with her boss today, she sounded really upset on the phone.",
+      "expect": { "people": ["Riya"], "events": [], "promises": 0, "sensitive": true }
+    },
+    {
+      "id": "h09",
+      "text": "Agle hafte Wednesday ko Goa ki flight hai, subah 6 baje",
+      "expect": { "people": [], "events": [{ "kinds": ["trip"], "offset": 9 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h10",
+      "text": "Nani ko call karna hai, she loves it when I call her",
+      "expect": { "people": ["Nani"], "events": [], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h11",
+      "text": "Ishaan is moving out at the end of the month, need to find a new flatmate.",
+      "expect": { "people": ["Ishaan"], "events": [{ "kinds": ["milestone", "other", "plan"], "offset": null }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h12",
+      "text": "Aaj office mein Neha ne bataya ki uski shaadi fix ho gayi, December mein hai",
+      "expect": { "people": ["Neha"], "events": [{ "kinds": ["milestone", "plan", "other"], "offset": null }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h13",
+      "text": "Mummy ki BP ki dawai khatam ho gayi, kal la ke deni hai",
+      "expect": { "people": ["Mum"], "events": [], "promises": 1, "sensitive": true }
+    },
+    {
+      "id": "h14",
+      "text": "Dentist appointment on Friday at 4",
+      "expect": { "people": [], "events": [{ "kinds": ["appointment"], "offset": 4 }], "promises": 0, "sensitive": true }
+    },
+    {
+      "id": "h15",
+      "text": "Called Kabir yesterday, he's loving the new job.",
+      "expect": { "people": ["Kabir"], "events": [], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h16",
+      "text": "Riya ka exam result parso aayega, bahut tension mein hai",
+      "expect": { "people": ["Riya"], "events": [{ "kinds": ["milestone", "other"], "offset": 2 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h17",
+      "text": "Should check on Meera, haven't heard from her since the baby came.",
+      "expect": { "people": ["Meera"], "events": [], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h18",
+      "text": "Papa ko retirement party ke liye naya suit chahiye, this weekend shopping chalte hain saath mein",
+      "expect": { "people": ["Papa"], "events": [{ "kinds": ["plan"], "offset": [5, 6] }], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h19",
+      "text": "Arjun bhaiya ki engagement 15 Nov ko hai Jaipur mein",
+      "expect": { "people": ["Arjun"], "events": [{ "kinds": ["milestone", "plan", "other"], "offset": 20 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h20",
+      "text": "Kal raat Mum se lambi baat hui, Diwali pe ghar aane ka plan bana rahe hain",
+      "expect": { "people": ["Mum"], "events": [{ "kinds": ["trip", "plan"], "offset": null }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h21",
+      "text": "Ishaan ko 5000 diye the last month, abhi tak wapas nahi kiye, awkward hai",
+      "expect": { "people": ["Ishaan"], "events": [], "promises": 0, "sensitive": true }
+    },
+    {
+      "id": "h22",
+      "text": "Zoya's birthday is tomorrow, don't forget to wish her.",
+      "expect": { "people": ["Zoya"], "events": [{ "kinds": ["birthday"], "offset": 1 }], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h23",
+      "text": "Thursday ko team dinner hai, Rohan organise kar raha hai",
+      "expect": { "people": ["Rohan"], "events": [{ "kinds": ["plan"], "offset": 3 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h24",
+      "text": "Mujhe gym join karna hai, kal se pakka",
+      "expect": { "people": [], "events": [], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h25",
+      "text": "Nani's cataract surgery is on 2 Nov, Mum is going with her.",
+      "expect": { "people": ["Nani", "Mum"], "events": [{ "kinds": ["appointment"], "offset": 7 }], "promises": 0, "sensitive": true }
+    },
+    {
+      "id": "h26",
+      "text": "Kabir ke saath Lonavala trip plan karna hai, maybe agle mahine",
+      "expect": { "people": ["Kabir"], "events": [{ "kinds": ["trip", "plan"], "offset": null }], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h27",
+      "text": "Riya and Papa are fighting again about her moving to Bangalore.",
+      "expect": { "people": ["Riya", "Papa"], "events": [], "promises": 0, "sensitive": true }
+    },
+    {
+      "id": "h28",
+      "text": "Aaj shaam 7 baje Ishaan ke saath dinner",
+      "expect": { "people": ["Ishaan"], "events": [{ "kinds": ["plan"], "offset": 0 }], "promises": 0, "sensitive": false }
+    },
+    {
+      "id": "h29",
+      "text": "Remind me to send Meera the baby clothes parso",
+      "expect": { "people": ["Meera"], "events": [], "promises": 1, "sensitive": false }
+    },
+    {
+      "id": "h30",
+      "text": "Somvar ko Papa ka check-up hai, unko le jaana hai",
+      "expect": { "people": ["Papa"], "events": [{ "kinds": ["appointment"], "offset": [0, 7] }], "promises": 1, "sensitive": true }
+    }
+  ]
+}

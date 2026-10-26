@@ -1,0 +1,17 @@
+{
+  "name": "@kizuna/eval",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "eval": "node --experimental-strip-types run.ts",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@kizuna/shared": "*"
+  },
+  "devDependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "vitest": "^4.1.8"
+  }
+}
