@@ -1,8 +1,10 @@
 // "Try with sample life": three weeks of fictional notes, already understood,
 // written through the same paths as live capture so every screen has something real.
-import type { ExtractOutput, Fragment, Source, WeaveOutput } from '@kizuna/shared';
-import { resolveRelDay } from '@kizuna/shared';
-import { db, defaultSettings, newId, readSettings } from '../db.ts';
+import type { CircleEntry, CircleStatus, ExtractOutput, Fragment, Source, WeaveOutput } from '@kizuna/shared';
+import { resolveRelDay, zonedIso, zonedToUtc } from '@kizuna/shared';
+import { db, defaultSettings, newId, readSettings, type MemberRow } from '../db.ts';
+import { SAMPLE_CIRCLE_ID } from './circle.ts';
+import { weekendRange } from './weekend.ts';
 import { addDays, dayToDate, localDay } from './days.ts';
 import { applyExtract } from './capture.ts';
 import { matchPerson } from './people.ts';
@@ -23,6 +25,54 @@ export interface SampleLife {
 	phones?: Record<string, string>;
 	/** Optional: names to keep in the circle right away (default: all weave suggestions but one). */
 	circle?: string[];
+	/** Optional: people to offer as "keep in your circle?", with the reason shown. */
+	suggest?: Record<string, string>;
+	/** Optional: circle members as if they had replied, for the map (written on the phone only). */
+	members?: SampleMember[];
+}
+
+export interface SampleMember {
+	name: string;
+	tz: string;
+	status: CircleStatus | null;
+	via?: 'app' | 'page';
+	reply?: string;
+	/** Times on the coming weekend, in the member's own zone. */
+	windows: { day: 'sat' | 'sun'; start: string; end: string }[];
+}
+
+const mins = (hhmm: string) => {
+	const [h, m] = hhmm.split(':').map(Number);
+	return h * 60 + (m || 0);
+};
+
+/** Pure: sample members as cached entries, windows on the coming weekend, status good for 12 h. */
+export function sampleMembers(list: SampleMember[], now: Date): Omit<MemberRow, 'personId'>[] {
+	const range = weekendRange(now, true)!;
+	const days = { sat: range.saturday, sun: addDays(range.saturday, 1) };
+	const at = now.toISOString();
+	return list.map((m, i) => {
+		const windows = m.windows
+			.map((w) => {
+				const s = zonedToUtc(days[w.day], mins(w.start), m.tz);
+				const e = zonedToUtc(days[w.day], mins(w.end), m.tz);
+				return s != null && e != null && e > now.getTime() ? { start: zonedIso(Math.max(s, now.getTime()), m.tz), end: zonedIso(e, m.tz) } : null;
+			})
+			.filter((w): w is { start: string; end: string } => !!w);
+		const entry: CircleEntry = {
+			v: 1,
+			name: m.name,
+			tz: m.tz,
+			status: m.status,
+			statusUntil: m.status ? new Date(now.getTime() + 12 * 3600_000).toISOString() : null,
+			windows,
+			quietStart: '22:00',
+			quietEnd: '08:00',
+			via: m.via ?? 'app',
+			updatedAt: at
+		};
+		return { memberId: `sample-${String(i).padStart(5, '0')}`, entry, fetchedAt: at, ...(m.reply ? { reply: m.reply } : {}) };
+	});
 }
 
 // Optional at build time: an empty glob just means the fixture isn't there yet.
@@ -44,8 +94,8 @@ export function resolveExtract(x: ExtractOutput, today: string): ExtractOutput {
 }
 
 async function clearAll(): Promise<void> {
-	await db.transaction('rw', [db.fragments, db.people, db.events, db.threads, db.prompts, db.settings], async () => {
-		await Promise.all([db.fragments.clear(), db.people.clear(), db.events.clear(), db.threads.clear(), db.prompts.clear(), db.settings.clear()]);
+	await db.transaction('rw', db.tables, async () => {
+		await Promise.all(db.tables.map((t) => t.clear()));
 	});
 	clearBusyCache();
 }
@@ -71,7 +121,7 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 		(id) => fragIds[Number(id)]
 	);
 
-	await db.transaction('rw', [db.people, db.settings], async () => {
+	await db.transaction('rw', [db.people, db.settings, db.members], async () => {
 		const people = await db.people.toArray();
 		for (const [name, phone] of Object.entries(data.phones ?? {})) {
 			const p = matchPerson(people, name);
@@ -84,14 +134,27 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 			const p = matchPerson(people, name);
 			if (p) p.circle = 'in';
 		}
+		for (const [name, why] of Object.entries(data.suggest ?? {})) {
+			const p = matchPerson(people, name);
+			if (p && p.circle !== 'in') Object.assign(p, { circle: 'suggested', why });
+		}
 		for (const p of people) await db.people.put(p);
+		// The map: members as if they had replied (no network), linked to their people.
+		const now = new Date();
+		for (const m of sampleMembers(data.members ?? [], now)) {
+			await db.members.put({ ...m, personId: matchPerson(people, m.entry.name)?.id ?? null, linkedBy: 'auto' });
+		}
 		await db.settings.put({
 			...defaultSettings(),
 			relayUrl: keep.relayUrl,
 			icalUrl: keep.icalUrl,
 			myName: data.myName,
 			lastWeaveAt: new Date().toISOString(),
-			notesSinceWeave: 0
+			notesSinceWeave: 0,
+			// A local circle so the map glows without a server; sample life also shows the weekend card any day.
+			...(data.members?.length
+				? { circle: { id: SAMPLE_CIRCLE_ID, key: '', memberId: 'sample-me000', share: true, freeToday: true, paused: false }, forceWeekend: true }
+				: {})
 		});
 	});
 }

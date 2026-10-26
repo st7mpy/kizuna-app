@@ -15,7 +15,7 @@ const tiny: SampleLife = {
 		{
 			daysAgo: 20, time: '08:40', source: 'voice',
 			text: 'Nani se baat hui, Sunday ko phir call karna hai',
-			extract: { language: 'mixed', sensitive: false, people: [{ name: 'Nani', relation: 'family' }], events: [], promises: [], threads: [] }
+			extract: { language: 'mixed', sensitive: false, people: [{ name: 'Nani', relation: 'family' }], events: [], promises: [], threads: [], gift_hints: [] }
 		},
 		{
 			daysAgo: 2, time: '21:10', source: 'voice',
@@ -28,7 +28,8 @@ const tiny: SampleLife = {
 					{ what: 'started new job', kind: 'milestone', people: ['Kabir'], date: 'rel:-1', time: null, date_text: null }
 				],
 				promises: [{ what: 'Call Kabir', person: 'Kabir', date_text: null }],
-				threads: []
+				threads: [],
+				gift_hints: []
 			}
 		},
 		{
@@ -39,7 +40,8 @@ const tiny: SampleLife = {
 				people: [{ name: 'Mummy', relation: 'parent' }, { name: 'Ishaan', relation: 'friend' }],
 				events: [],
 				promises: [],
-				threads: [{ title: 'Goa trip', kind: 'plan', people: ['Ishaan'] }]
+				threads: [{ title: 'Goa trip', kind: 'plan', people: ['Ishaan'] }],
+				gift_hints: []
 			}
 		}
 	],
@@ -121,8 +123,45 @@ describe('sample life', () => {
 		await setRoom('lots');
 		const cards = await todayCards();
 		expect(cards.filter((c) => c.kind === 'person').length).toBeGreaterThanOrEqual(3);
-		expect(cards.map((c) => c.kind)).toEqual(['person', 'person', 'person', 'suggest_circle', 'thread']);
+		// the weekend card and Papa's gift card come first and take two of the five places
+		const { todayExtras } = await import('./today.ts');
+		const extras = await todayExtras();
+		expect(extras.weekend).not.toBeNull();
+		expect(extras.gifts.map((g) => g.hint.what)).toEqual(['a brighter reading lamp']);
+		expect(cards.map((c) => c.kind)).toEqual(['person', 'person', 'person']);
+		expect(cards.map((c) => c.title)).not.toContain('Papa');
 		expect(cards.map((c) => c.reason).join(' ')).not.toMatch(/\d+ days?/);
+	});
+
+	it('sample life fills the map: six people, zones, glows, Diwali, a gift and a weekend plan on a weekday', async () => {
+		const life = await fetchSampleLife();
+		vi.setSystemTime(new Date(2026, 9, 27, 12, 0)); // Tuesday
+		await loadSampleLifeFrom(life);
+		const { buildMapView } = await import('./map.ts');
+		const map = await buildMapView();
+		expect(map.sharing).toBe(true);
+		expect(map.people.map((p) => p.person.name).sort()).toEqual(['Kabir', 'Meera', 'Mum', 'Nani', 'Papa', 'Riya']);
+		const by = (n: string) => map.people.find((p) => p.person.name === n)!;
+		expect(by('Mum')).toMatchObject({ ring: 'inner', tz: 'Asia/Kolkata', glow: 'open' });
+		expect(by('Riya').glow).toBe('maybe');
+		expect(by('Kabir')).toMatchObject({ ring: 'outer', tz: 'America/Toronto', glow: null });
+		expect(by('Meera').tz).toBe('Europe/London');
+		expect(by('Papa').hasGift).toBe(true);
+		expect(by('Papa').occasion?.name).toBe("Papa's birthday");
+		expect(by('Nani').windows.length).toBe(1);
+		const nani = (await db.members.toArray()).find((m) => m.entry.name === 'Nani')!;
+		expect(nani.reply).toBe('Haan beta, Sunday ko free hoon');
+		expect(map.occasions.map((o) => o.name)).toContain('Diwali');
+
+		const { weekendCard } = await import('./weekend.ts');
+		const card = (await weekendCard())!;
+		expect(card).not.toBeNull();
+		const names = (ids: string[]) => ids.map((id) => map.people.find((p) => p.person.id === id)!.person.name).sort();
+		expect(names(card.personIds).length).toBeGreaterThanOrEqual(1);
+		const { giftCards } = await import('./gifts.ts');
+		const [gift] = await giftCards();
+		expect(gift.daysLeft).toBe(9);
+		expect(names([gift.withPersonId!])).toEqual(['Riya']);
 	});
 
 	it('exports notes as markdown by day', async () => {

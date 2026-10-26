@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { liveQuery } from 'dexie';
-	import type { Card, Person, Room, Settings } from '@kizuna/shared';
-	import { answerCard, loadSampleLife, setRoom, todayCards } from '#lib/core/index.js';
+	import type { Card, GiftCard as Gift, Person, Room, Settings, WeekendCard as Weekend } from '@kizuna/shared';
+	import { answerCard, loadSampleLife, setRoom, todayCards, todayExtras } from '#lib/core/index.js';
 	import { allPeople, db, hasAnyData, settingsLive } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { dayKey, greeting } from '#lib/ui/format.js';
@@ -12,6 +12,8 @@
 	import TimeSheet from '#lib/ui/TimeSheet.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { hueFor } from '#lib/ui/hue.js';
+	import WeekendCard from '#lib/ui/WeekendCard.svelte';
+	import GiftCard from '#lib/ui/GiftCard.svelte';
 
 	const settings = watch<Settings | undefined>(() => settingsLive(), undefined);
 	const hasData = watch(() => hasAnyData(), false);
@@ -30,6 +32,8 @@
 	);
 
 	let cards: Card[] = $state([]);
+	let weekend = $state<Weekend | null>(null);
+	let gifts = $state<Gift[]>([]);
 	let loaded = $state(false);
 	let failed = $state(false);
 	let sampling = $state(false);
@@ -52,6 +56,14 @@
 			failed = true;
 		} finally {
 			loaded = true;
+		}
+		// The weekend plan and gift ideas sit above the person cards; quiet if they fail.
+		try {
+			const extras = await todayExtras();
+			weekend = extras.weekend;
+			gifts = extras.gifts;
+		} catch {
+			/* nothing extra today */
 		}
 	}
 
@@ -169,6 +181,21 @@
 			/>
 		</section>
 
+		{#if weekend || gifts.length}
+			<section class="extras" aria-label="This weekend">
+				{#if weekend}
+					<div out:fold in:soft>
+						<WeekendCard card={weekend} people={byId} ondismiss={() => (weekend = null)} />
+					</div>
+				{/if}
+				{#each gifts as g (g.hint.id)}
+					<div out:fold in:soft>
+						<GiftCard card={g} people={byId} ondismiss={() => (gifts = gifts.filter((x) => x.hint.id !== g.hint.id))} />
+					</div>
+				{/each}
+			</section>
+		{/if}
+
 		<section class="moments" aria-label="For today" aria-live="polite">
 			{#each cards as card (card.promptId)}
 				<article class="moment" class:thread={card.kind === 'thread'} out:fold in:soft>
@@ -209,7 +236,7 @@
 				</article>
 			{/each}
 
-			{#if loaded && cards.length === 0}
+			{#if loaded && cards.length === 0 && !weekend && !gifts.length}
 				<div class="empty" in:soft>
 					{#if failed}
 						<p class="calm">Today is still <em>waking up</em>.</p>
@@ -290,6 +317,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+		margin-top: -4px;
+	}
+	.extras {
+		display: flex;
+		flex-direction: column;
 		margin-top: -4px;
 	}
 	.moments {

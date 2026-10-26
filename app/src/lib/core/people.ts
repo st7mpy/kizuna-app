@@ -96,7 +96,7 @@ const later = (a?: string, b?: string) => (!a ? b : !b ? a : a > b ? a : b);
 /** Same person under two records: keep one, move everything from the other. */
 export async function mergePeople(keepId: string, dropId: string): Promise<void> {
 	if (keepId === dropId) return;
-	await db.transaction('rw', [db.people, db.events, db.threads, db.fragments, db.prompts], async () => {
+	await db.transaction('rw', [db.people, db.events, db.threads, db.fragments, db.prompts, db.gifts, db.members, db.occasions], async () => {
 		const [keep, drop] = await Promise.all([db.people.get(keepId), db.people.get(dropId)]);
 		if (!keep || !drop) return;
 		const circleRank = { in: 3, out: 2, suggested: 1, none: 0 } as const;
@@ -125,6 +125,15 @@ export async function mergePeople(keepId: string, dropId: string): Promise<void>
 		await db.prompts.where('personId').equals(dropId).modify((p) => {
 			p.personId = keepId;
 		});
+		await db.gifts.where('personId').equals(dropId).modify((g) => {
+			g.personId = keepId;
+		});
+		await db.members.where('personId').equals(dropId).modify((m) => {
+			m.personId = keepId;
+		});
+		await db.occasions.where('personIds').equals(dropId).modify((o) => {
+			o.personIds = swap(o.personIds, dropId, keepId);
+		});
 		await db.people.delete(dropId);
 	});
 }
@@ -138,7 +147,7 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
 
 /** Forget a person. Their notes stay; events only about them go. */
 export async function removePerson(id: string): Promise<void> {
-	await db.transaction('rw', [db.people, db.events, db.threads, db.fragments, db.prompts], async () => {
+	await db.transaction('rw', [db.people, db.events, db.threads, db.fragments, db.prompts, db.gifts, db.members, db.occasions], async () => {
 		const without = (ids: string[]) => ids.filter((x) => x !== id);
 		await db.events.where('personIds').equals(id).modify((e, ref) => {
 			e.personIds = without(e.personIds);
@@ -151,6 +160,15 @@ export async function removePerson(id: string): Promise<void> {
 			f.personIds = without(f.personIds ?? []);
 		});
 		await db.prompts.where('personId').equals(id).delete();
+		await db.gifts.where('personId').equals(id).delete();
+		await db.members.where('personId').equals(id).modify((m) => {
+			m.personId = null;
+		});
+		// A birthday belongs to one person; a shared occasion just loses them.
+		await db.occasions.where('personIds').equals(id).modify((o, ref) => {
+			o.personIds = without(o.personIds);
+			if (!o.personIds.length) delete (ref as { value?: unknown }).value;
+		});
 		await db.people.delete(id);
 	});
 }

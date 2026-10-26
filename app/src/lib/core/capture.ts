@@ -1,9 +1,10 @@
 // Talk -> Remember: save the note at once, understand it in the background.
-import type { ExtractOutput, Fragment, KEvent, Person, Source, Thread } from '@kizuna/shared';
+import type { ExtractOutput, Fragment, GiftHint, KEvent, Person, Source, Thread } from '@kizuna/shared';
 import { guardDate } from '@kizuna/shared';
 import { db, newId, readSettings } from '../db.ts';
 import { localDay, weekdayName } from './days.ts';
 import { upsertPerson } from './people.ts';
+import { looksSensitive } from './poke.ts';
 import { RelayError, isOnline, spark } from './relay.ts';
 import { runWeave, weaveDue } from './weave.ts';
 
@@ -48,6 +49,23 @@ export async function saveFragment(text: string, source: Source): Promise<Fragme
 	return f;
 }
 
+/** A thought noted on a person's page: a normal note, tagged to them, understood like any other. */
+export async function noteThought(personId: string, text: string, source: Source = 'typed'): Promise<Fragment> {
+	const f: Fragment = {
+		id: newId(),
+		text: text.trim(),
+		createdAt: new Date().toISOString(),
+		source,
+		status: 'new',
+		tries: 0,
+		personIds: [personId]
+	};
+	await db.fragments.add(f);
+	hookOnline();
+	void processPending().catch(() => {});
+	return f;
+}
+
 /** Date guard, but never let a guard failure lose an event. */
 function safeGuard(modelDay: string | null, dateText: string | null, today: string): Pick<KEvent, 'day' | 'dateConfidence'> {
 	try {
@@ -72,7 +90,7 @@ export interface ApplyOptions {
  */
 export async function applyExtract(f: Fragment, out: ExtractOutput, opts: ApplyOptions = {}): Promise<void> {
 	const today = localDay(f.createdAt);
-	await db.transaction('rw', [db.people, db.events, db.threads, db.fragments], async () => {
+	await db.transaction('rw', [db.people, db.events, db.threads, db.fragments, db.gifts, db.occasions], async () => {
 		const people = await db.people.toArray();
 		const ids = new Map<string, string>(); // lower name in this note -> person id
 		const idFor = async (name: string, relation: Person['relation'] = 'unknown') => {
@@ -120,6 +138,33 @@ export async function applyExtract(f: Fragment, out: ExtractOutput, opts: ApplyO
 			};
 			existing.push(ev);
 			await db.events.add(ev);
+			// A dated birthday becomes an occasion for the person it is about (the first named).
+			if (e.kind === 'birthday' && ev.day && personIds[0] && ev.dateConfidence !== 'none') {
+				const who = people.find((p) => p.id === personIds[0]);
+				if (who) {
+					await db.occasions.put({
+						id: `birthday:${who.id}`,
+						day: ev.day,
+						name: `${who.name}'s birthday`,
+						kind: 'birthday',
+						personIds: [who.id],
+						fragmentId: f.id
+					});
+				}
+			}
+		}
+
+		// Gift hints, matched to people like events are. Never money or health.
+		const hints = await db.gifts.where('status').equals('open').toArray();
+		for (const g of out.gift_hints ?? []) {
+			const what = (g.what ?? '').trim().replace(/[.\s]+$/, '');
+			if (!what || what.length > 120 || looksSensitive(what) || /(₹|\brs\.?\s?\d|\brupees?\b|\bprice\b|\bcost\b|https?:)/i.test(what)) continue;
+			const personId = g.person ? await idFor(g.person) : null;
+			if (!personId) continue;
+			if (hints.some((h) => h.personId === personId && norm(h.what) === norm(what))) continue;
+			const hint: GiftHint = { id: newId(), personId, what, fragmentId: f.id, createdAt: f.createdAt, status: 'open' };
+			hints.push(hint);
+			await db.gifts.add(hint);
 		}
 
 		// Threads: promises and the rest, merged with an open thread of the same title
@@ -164,7 +209,8 @@ export async function applyExtract(f: Fragment, out: ExtractOutput, opts: ApplyO
 			status: 'done',
 			language: out.language,
 			sensitive: !!out.sensitive,
-			personIds: mentioned
+			// keep a person the note was tagged to (a thought noted on someone's page)
+			personIds: [...new Set([...(f.personIds ?? []), ...mentioned])]
 		});
 	});
 }

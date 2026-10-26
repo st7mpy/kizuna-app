@@ -1,5 +1,6 @@
 // The nudge engine. Pure: give it the state and a clock, it says which cards to show.
-// Rules: a person card needs a reason AND a free window; none in quiet hours; a weekly cap;
+// Rules: a person card needs a reason AND a free window; a weekly cap (cards first shown in
+// quiet hours don't count, and their time is the next morning or later);
 // "not now" hides a person for 3 days; no person twice; people first, then threads.
 import type { KEvent, Person, Prompt, ReasonKind, Room, Settings, Slot, Thread } from '@kizuna/shared';
 import { addDays, dayDiff, dayPhrase, inQuietHours, localDay, slotPhrase } from './days.ts';
@@ -204,10 +205,15 @@ function threadReason(t: Thread, today: string): string {
 	}
 }
 
-/** Person nudges already used this week (re-showing a prompt does not count again). */
-export function capUsed(state: NudgeState): number {
+/** Person nudges already used this week (re-showing a prompt does not count again; quiet-hours ones never count). */
+export function capUsed(state: Pick<NudgeState, 'now' | 'prompts' | 'settings'>): number {
+	const { quietStart, quietEnd } = state.settings;
 	return state.prompts.filter(
-		(p) => p.personId && p.reason !== 'suggest_circle' && ago(state.now, p.shownAt) < 7
+		(p) =>
+			p.personId &&
+			p.reason !== 'suggest_circle' &&
+			ago(state.now, p.shownAt) < 7 &&
+			!(quietStart && quietEnd && inQuietHours(new Date(p.shownAt), quietStart, quietEnd))
 	).length;
 }
 
@@ -247,16 +253,18 @@ export function planToday(state: NudgeState, cands: Candidate[], order?: string[
 		if (c.personId) used.add(c.personId);
 	};
 
-	if (!quiet) {
-		// People: need a free window, and room under the weekly cap
-		if (state.freeSlot) {
+	{
+		// People: need a free window, and room under the weekly cap. In quiet hours cards still show
+		// (the free window is the next morning or later) but nothing new is counted.
+		const slotOk = !!state.freeSlot && !inQuietHours(new Date(state.freeSlot.start), state.settings.quietStart, state.settings.quietEnd);
+		if (slotOk) {
 			let budget = Math.max(0, state.settings.weeklyCap - capUsed(state));
 			for (const c of sort(cands.filter((c) => c.kind === 'person'))) {
 				if (picks.length >= Math.min(n, MAX_PEOPLE_PER_DAY)) break;
 				if (used.has(c.personId!)) continue;
 				const reshow = todays.has(c.key);
 				if (!reshow && budget <= 0) continue;
-				if (!reshow) budget--;
+				if (!reshow && !quiet) budget--;
 				take(c);
 			}
 		}

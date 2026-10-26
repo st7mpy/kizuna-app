@@ -10,7 +10,8 @@
 			label: 'Today',
 			match: (p) => p === '/' || p.startsWith('/threads') || p.startsWith('/settings')
 		},
-		{ href: '/circle', label: 'Circle', match: (p) => p.startsWith('/circle') }
+		{ href: '/circle', label: 'Circle', match: (p) => p.startsWith('/circle') },
+		{ href: '/map', label: 'Map', match: (p) => p.startsWith('/map') }
 	];
 
 	const path = $derived(page.url.pathname);
@@ -69,9 +70,9 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
-		min-width: 76px;
+		min-width: 64px;
 		min-height: 56px;
-		padding: 0 12px;
+		padding: 0 10px;
 		border-radius: 12px;
 		transition: color var(--dur) var(--ease);
 	}
@@ -91,7 +92,7 @@
 	.tab::after {
 		content: '';
 		position: absolute;
-		left: 12px;
+		left: 10px;
 		bottom: 8px;
 		width: 18px;
 		height: 2px;

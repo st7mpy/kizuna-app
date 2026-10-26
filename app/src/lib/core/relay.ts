@@ -59,7 +59,9 @@ export const TASK_TIMEOUTS: Record<TaskName, number> = {
 	weave: 120_000,
 	draft: 15_000,
 	plan: 30_000,
-	rank: 10_000
+	rank: 10_000,
+	windows: 15_000,
+	weekend: 45_000
 };
 
 async function baseUrl(): Promise<string> {

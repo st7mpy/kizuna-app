@@ -3,13 +3,14 @@
   "notes": [
     {
       "daysAgo": 20, "time": "08:40", "source": "voice",
-      "text": "Kabir ka message aaya, he got the job at that design studio in Pune. Joining in two weeks. Should call him properly this weekend.",
+      "text": "Kabir ka message aaya, he got the job at that design studio in Toronto. Joining in two weeks. Should call him properly this weekend.",
       "extract": {
         "language": "mixed", "sensitive": false,
         "people": [{ "name": "Kabir", "relation": "friend" }],
-        "events": [{ "what": "joins design studio in Pune", "kind": "milestone", "people": ["Kabir"], "date": "rel:-6", "time": null, "date_text": "in two weeks" }],
+        "events": [{ "what": "joins design studio in Toronto", "kind": "milestone", "people": ["Kabir"], "date": "rel:-6", "time": null, "date_text": "in two weeks" }],
         "promises": [{ "what": "call Kabir properly", "person": "Kabir", "date_text": "this weekend" }],
-        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }]
+        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }],
+        "gift_hints": []
       }
     },
     {
@@ -20,7 +21,8 @@
         "people": [{ "name": "Riya", "relation": "sibling" }, { "name": "Papa", "relation": "parent" }],
         "events": [{ "what": "Papa's 60th birthday", "kind": "birthday", "people": ["Papa"], "date": null, "time": null, "date_text": "next month" }],
         "promises": [],
-        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }]
+        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }],
+        "gift_hints": []
       }
     },
     {
@@ -31,7 +33,8 @@
         "people": [{ "name": "Mum", "relation": "parent" }],
         "events": [],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -42,7 +45,8 @@
         "people": [{ "name": "Ishaan", "relation": "friend" }],
         "events": [{ "what": "moving to Hyderabad", "kind": "milestone", "people": ["Ishaan"], "date": null, "time": null, "date_text": null }],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -51,7 +55,8 @@
       "extract": {
         "language": "en", "sensitive": false,
         "people": [], "events": [], "promises": [],
-        "threads": [{ "title": "Plant watering app", "kind": "idea", "people": [] }]
+        "threads": [{ "title": "Plant watering app", "kind": "idea", "people": [] }],
+        "gift_hints": []
       }
     },
     {
@@ -62,7 +67,8 @@
         "people": [{ "name": "Meera", "relation": "friend" }],
         "events": [{ "what": "baby due soon", "kind": "milestone", "people": ["Meera"], "date": null, "time": null, "date_text": null }],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -71,7 +77,8 @@
       "extract": {
         "language": "en", "sensitive": false,
         "people": [], "events": [], "promises": [],
-        "threads": [{ "title": "Renew passport", "kind": "errand", "people": [] }]
+        "threads": [{ "title": "Renew passport", "kind": "errand", "people": [] }],
+        "gift_hints": []
       }
     },
     {
@@ -82,7 +89,8 @@
         "people": [{ "name": "Nani", "relation": "family" }],
         "events": [],
         "promises": [{ "what": "visit Nani more often", "person": "Nani", "date_text": null }],
-        "threads": [{ "title": "Visit Nani", "kind": "promise", "people": ["Nani"] }]
+        "threads": [{ "title": "Visit Nani", "kind": "promise", "people": ["Nani"] }],
+        "gift_hints": []
       }
     },
     {
@@ -93,7 +101,8 @@
         "people": [{ "name": "Riya", "relation": "sibling" }, { "name": "Papa", "relation": "parent" }],
         "events": [{ "what": "family lunch for Papa's 60th", "kind": "plan", "people": ["Papa", "Riya"], "date": null, "time": null, "date_text": null }],
         "promises": [],
-        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }]
+        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }],
+        "gift_hints": []
       }
     },
     {
@@ -104,7 +113,8 @@
         "people": [{ "name": "Kabir", "relation": "friend" }],
         "events": [{ "what": "Goa trip", "kind": "trip", "people": ["Kabir"], "date": null, "time": null, "date_text": "agle mahine ka second week" }],
         "promises": [],
-        "threads": [{ "title": "Goa trip", "kind": "plan", "people": ["Kabir"] }]
+        "threads": [{ "title": "Goa trip", "kind": "plan", "people": ["Kabir"] }],
+        "gift_hints": []
       }
     },
     {
@@ -115,7 +125,8 @@
         "people": [{ "name": "Mum", "relation": "parent" }, { "name": "Papa", "relation": "parent" }],
         "events": [{ "what": "knee appointment", "kind": "appointment", "people": ["Mum"], "date": null, "time": null, "date_text": "early next month" }],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -126,7 +137,8 @@
         "people": [{ "name": "Ishaan", "relation": "friend" }],
         "events": [{ "what": "Ishaan moves out", "kind": "milestone", "people": ["Ishaan"], "date": "rel:5", "time": null, "date_text": "end of the month" }],
         "promises": [],
-        "threads": [{ "title": "Find a new flatmate", "kind": "errand", "people": [] }]
+        "threads": [{ "title": "Find a new flatmate", "kind": "errand", "people": [] }],
+        "gift_hints": []
       }
     },
     {
@@ -137,7 +149,8 @@
         "people": [{ "name": "Kabir", "relation": "friend" }],
         "events": [],
         "promises": [{ "what": "chai with Kabir", "person": "Kabir", "date_text": "next time" }],
-        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }]
+        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }],
+        "gift_hints": []
       }
     },
     {
@@ -148,7 +161,8 @@
         "people": [{ "name": "Meera", "relation": "friend" }, { "name": "Anaya", "relation": "other" }],
         "events": [{ "what": "baby girl Anaya born", "kind": "milestone", "people": ["Meera", "Anaya"], "date": "rel:-14", "time": null, "date_text": "today" }],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -159,7 +173,8 @@
         "people": [{ "name": "Anaya", "relation": "other" }, { "name": "Mum", "relation": "parent" }, { "name": "Meera", "relation": "friend" }],
         "events": [],
         "promises": [{ "what": "get a gift for Anaya", "person": "Meera", "date_text": null }],
-        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera", "Mum"] }]
+        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera", "Mum"] }],
+        "gift_hints": []
       }
     },
     {
@@ -170,7 +185,8 @@
         "people": [{ "name": "Papa", "relation": "parent" }, { "name": "Riya", "relation": "sibling" }],
         "events": [],
         "promises": [{ "what": "tell Riya the lunch plan is fine", "person": "Riya", "date_text": null }],
-        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }]
+        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }],
+        "gift_hints": []
       }
     },
     {
@@ -181,7 +197,8 @@
         "people": [{ "name": "Dev", "relation": "colleague" }],
         "events": [],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -192,7 +209,8 @@
         "people": [{ "name": "Ishaan", "relation": "friend" }, { "name": "Kabir", "relation": "friend" }],
         "events": [{ "what": "farewell dinner for Ishaan", "kind": "plan", "people": ["Ishaan", "Kabir"], "date": null, "time": null, "date_text": null }],
         "promises": [],
-        "threads": [{ "title": "Ishaan's farewell dinner", "kind": "plan", "people": ["Ishaan", "Kabir"] }]
+        "threads": [{ "title": "Ishaan's farewell dinner", "kind": "plan", "people": ["Ishaan", "Kabir"] }],
+        "gift_hints": []
       }
     },
     {
@@ -203,7 +221,8 @@
         "people": [{ "name": "Nani", "relation": "family" }, { "name": "Meera", "relation": "friend" }],
         "events": [],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -214,7 +233,8 @@
         "people": [],
         "events": [{ "what": "passport appointment", "kind": "appointment", "people": [], "date": "rel:-5", "time": "10:30", "date_text": "6 days from now" }],
         "promises": [],
-        "threads": [{ "title": "Renew passport", "kind": "errand", "people": [] }]
+        "threads": [{ "title": "Renew passport", "kind": "errand", "people": [] }],
+        "gift_hints": []
       }
     },
     {
@@ -223,9 +243,10 @@
       "extract": {
         "language": "mixed", "sensitive": false,
         "people": [{ "name": "Riya", "relation": "sibling" }, { "name": "Papa", "relation": "parent" }],
-        "events": [{ "what": "birthday lunch for Papa", "kind": "birthday", "people": ["Papa", "Riya"], "date": "rel:6", "time": "13:00", "date_text": "Papa ke birthday pe" }],
+        "events": [{ "what": "birthday lunch for Papa", "kind": "birthday", "people": ["Papa", "Riya"], "date": "rel:9", "time": "13:00", "date_text": "Papa ke birthday pe" }],
         "promises": [],
-        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }]
+        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Riya", "Papa"] }],
+        "gift_hints": []
       }
     },
     {
@@ -234,18 +255,20 @@
       "extract": {
         "language": "en", "sensitive": false,
         "people": [], "events": [], "promises": [],
-        "threads": [{ "title": "Plant watering app", "kind": "idea", "people": [] }]
+        "threads": [{ "title": "Plant watering app", "kind": "idea", "people": [] }],
+        "gift_hints": []
       }
     },
     {
       "daysAgo": 9, "time": "09:00", "source": "voice",
-      "text": "Ma bol rahi thi Papa ko shak ho raha hai, lol. Birthday 15 din baad hai, he thinks we forgot.",
+      "text": "Ma bol rahi thi Papa ko shak ho raha hai, lol. Birthday 18 din baad hai, he thinks we forgot.",
       "extract": {
         "language": "mixed", "sensitive": false,
         "people": [{ "name": "Mum", "relation": "parent" }, { "name": "Papa", "relation": "parent" }],
-        "events": [{ "what": "Papa's 60th birthday", "kind": "birthday", "people": ["Papa"], "date": "rel:6", "time": null, "date_text": "15 din baad" }],
+        "events": [{ "what": "Papa's 60th birthday", "kind": "birthday", "people": ["Papa"], "date": "rel:9", "time": null, "date_text": "18 din baad" }],
         "promises": [],
-        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Mum", "Papa"] }]
+        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Mum", "Papa"] }],
+        "gift_hints": []
       }
     },
     {
@@ -256,7 +279,8 @@
         "people": [{ "name": "Kabir", "relation": "friend" }],
         "events": [{ "what": "starts new job", "kind": "milestone", "people": ["Kabir"], "date": "rel:-6", "time": null, "date_text": "in 3 days" }],
         "promises": [{ "what": "call Kabir", "person": "Kabir", "date_text": "before that" }],
-        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }]
+        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }],
+        "gift_hints": []
       }
     },
     {
@@ -267,7 +291,8 @@
         "people": [{ "name": "Meera", "relation": "friend" }, { "name": "Mum", "relation": "parent" }],
         "events": [],
         "promises": [{ "what": "send a gift for Meera's daughter", "person": "Meera", "date_text": null }],
-        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera"] }]
+        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera"] }],
+        "gift_hints": []
       }
     },
     {
@@ -276,7 +301,8 @@
       "extract": {
         "language": "mixed", "sensitive": false,
         "people": [{ "name": "Ishaan", "relation": "friend" }],
-        "events": [], "promises": [], "threads": []
+        "events": [], "promises": [], "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -287,7 +313,8 @@
         "people": [{ "name": "Kabir", "relation": "friend" }, { "name": "Sana", "relation": "friend" }, { "name": "Varun", "relation": "friend" }],
         "events": [{ "what": "Goa trip", "kind": "trip", "people": ["Sana", "Varun"], "date": null, "time": null, "date_text": null }],
         "promises": [],
-        "threads": [{ "title": "Goa trip", "kind": "plan", "people": ["Sana", "Varun"] }]
+        "threads": [{ "title": "Goa trip", "kind": "plan", "people": ["Sana", "Varun"] }],
+        "gift_hints": []
       }
     },
     {
@@ -298,7 +325,8 @@
         "people": [{ "name": "Nani", "relation": "family" }],
         "events": [],
         "promises": [{ "what": "call Nani", "person": "Nani", "date_text": "is Sunday" }],
-        "threads": [{ "title": "Sunday call with Nani", "kind": "promise", "people": ["Nani"] }]
+        "threads": [{ "title": "Sunday call with Nani", "kind": "promise", "people": ["Nani"] }],
+        "gift_hints": []
       }
     },
     {
@@ -309,7 +337,8 @@
         "people": [{ "name": "Kabir", "relation": "friend" }],
         "events": [{ "what": "first day at new job", "kind": "milestone", "people": ["Kabir"], "date": "rel:-6", "time": null, "date_text": "aaj" }],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -320,7 +349,8 @@
         "people": [{ "name": "Anaya", "relation": "other" }, { "name": "Mum", "relation": "parent" }, { "name": "Meera", "relation": "friend" }],
         "events": [],
         "promises": [],
-        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera"] }]
+        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera"] }],
+        "gift_hints": []
       }
     },
     {
@@ -331,7 +361,8 @@
         "people": [{ "name": "Papa", "relation": "parent" }, { "name": "Riya", "relation": "sibling" }],
         "events": [],
         "promises": [{ "what": "get the photo album printed", "person": "Papa", "date_text": null }],
-        "threads": [{ "title": "Photo album for Papa", "kind": "errand", "people": ["Papa", "Riya"] }]
+        "threads": [{ "title": "Photo album for Papa", "kind": "errand", "people": ["Papa", "Riya"] }],
+        "gift_hints": []
       }
     },
     {
@@ -342,7 +373,8 @@
         "people": [{ "name": "Ishaan", "relation": "friend" }, { "name": "Kabir", "relation": "friend" }],
         "events": [{ "what": "Ishaan's farewell dinner", "kind": "plan", "people": ["Ishaan", "Kabir"], "date": "rel:-3", "time": null, "date_text": "parso" }],
         "promises": [],
-        "threads": [{ "title": "Ishaan's farewell dinner", "kind": "plan", "people": ["Ishaan", "Kabir"] }]
+        "threads": [{ "title": "Ishaan's farewell dinner", "kind": "plan", "people": ["Ishaan", "Kabir"] }],
+        "gift_hints": []
       }
     },
     {
@@ -351,7 +383,8 @@
       "extract": {
         "language": "en", "sensitive": false,
         "people": [], "events": [], "promises": [],
-        "threads": [{ "title": "Renew passport", "kind": "errand", "people": [] }]
+        "threads": [{ "title": "Renew passport", "kind": "errand", "people": [] }],
+        "gift_hints": []
       }
     },
     {
@@ -361,18 +394,20 @@
         "language": "mixed", "sensitive": false,
         "people": [{ "name": "Meera", "relation": "friend" }, { "name": "Anaya", "relation": "other" }],
         "events": [], "promises": [],
-        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera"] }]
+        "threads": [{ "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera"] }],
+        "gift_hints": []
       }
     },
     {
       "daysAgo": 3, "time": "22:15", "source": "voice",
-      "text": "Farewell dinner tonight was so good. Kabir couldn't make it, office mein late ho gaya. Should call Kabir this week, properly.",
+      "text": "Farewell dinner tonight was so good. Kabir couldn't make it, he's in Toronto now. Should call Kabir this week, properly.",
       "extract": {
         "language": "mixed", "sensitive": false,
         "people": [{ "name": "Ishaan", "relation": "friend" }, { "name": "Kabir", "relation": "friend" }],
         "events": [{ "what": "Ishaan's farewell dinner", "kind": "plan", "people": ["Ishaan"], "date": "rel:-3", "time": null, "date_text": "tonight" }],
         "promises": [{ "what": "call Kabir properly", "person": "Kabir", "date_text": "this week" }],
-        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }]
+        "threads": [{ "title": "Call Kabir", "kind": "promise", "people": ["Kabir"] }],
+        "gift_hints": []
       }
     },
     {
@@ -383,7 +418,8 @@
         "people": [{ "name": "Ishaan", "relation": "friend" }],
         "events": [{ "what": "Ishaan moves out", "kind": "milestone", "people": ["Ishaan"], "date": "rel:5", "time": null, "date_text": "next week" }],
         "promises": [],
-        "threads": [{ "title": "Find a new flatmate", "kind": "errand", "people": [] }]
+        "threads": [{ "title": "Find a new flatmate", "kind": "errand", "people": [] }],
+        "gift_hints": []
       }
     },
     {
@@ -394,7 +430,8 @@
         "people": [{ "name": "Mum", "relation": "parent" }, { "name": "Papa", "relation": "parent" }],
         "events": [{ "what": "knee appointment", "kind": "appointment", "people": ["Mum", "Papa"], "date": "rel:2", "time": "11:00", "date_text": "3 din baad" }],
         "promises": [],
-        "threads": []
+        "threads": [],
+        "gift_hints": []
       }
     },
     {
@@ -403,9 +440,10 @@
       "extract": {
         "language": "mixed", "sensitive": false,
         "people": [{ "name": "Nani", "relation": "family" }, { "name": "Papa", "relation": "parent" }, { "name": "Riya", "relation": "sibling" }],
-        "events": [{ "what": "Nani comes for Papa's birthday", "kind": "plan", "people": ["Nani", "Papa", "Riya"], "date": "rel:6", "time": null, "date_text": "Papa ke birthday pe" }],
+        "events": [{ "what": "Nani comes for Papa's birthday", "kind": "plan", "people": ["Nani", "Papa", "Riya"], "date": "rel:9", "time": null, "date_text": "Papa ke birthday pe" }],
         "promises": [],
-        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Nani", "Riya", "Papa"] }]
+        "threads": [{ "title": "Papa's 60th", "kind": "plan", "people": ["Nani", "Riya", "Papa"] }],
+        "gift_hints": []
       }
     },
     {
@@ -416,7 +454,8 @@
         "people": [{ "name": "Papa", "relation": "parent" }, { "name": "Riya", "relation": "sibling" }],
         "events": [],
         "promises": [{ "what": "order an eggless cake", "person": "Papa", "date_text": null }],
-        "threads": [{ "title": "Order Papa's cake", "kind": "errand", "people": ["Papa"] }]
+        "threads": [{ "title": "Order Papa's cake", "kind": "errand", "people": ["Papa"] }],
+        "gift_hints": []
       }
     },
     {
@@ -425,11 +464,23 @@
       "extract": {
         "language": "mixed", "sensitive": false,
         "people": [], "events": [], "promises": [],
-        "threads": [{ "title": "Plant watering app", "kind": "idea", "people": [] }]
+        "threads": [{ "title": "Plant watering app", "kind": "idea", "people": [] }],
+        "gift_hints": []
+      }
+    },
+    {
+      "daysAgo": 0, "time": "09:00", "source": "voice",
+      "text": "Papa ki reading lamp bahut dim ho gayi hai, newspaper padhte waqt shikayat karte hain. Birthday ke liye a brighter reading lamp would be perfect.",
+      "extract": {
+        "language": "mixed", "sensitive": false,
+        "people": [{ "name": "Papa", "relation": "parent" }],
+        "events": [], "promises": [], "threads": [],
+        "gift_hints": [{ "person": "Papa", "what": "a brighter reading lamp" }]
       }
     }
   ],
   "weave": {
+
     "people": [
       { "id": null, "name": "Mum", "aliases": ["mum", "ma", "mummy"], "merge_ids": [], "relation": "parent", "closeness": "inner", "suggest_circle": true,
         "why": "You talk about her most weeks, and she has an appointment coming up.", "summary": "Has an appointment in a couple of days" },
@@ -438,7 +489,7 @@
       { "id": null, "name": "Riya", "aliases": ["riya"], "merge_ids": [], "relation": "sibling", "closeness": "inner", "suggest_circle": true,
         "why": "Your sister and partner in Papa's birthday plans.", "summary": "Planning Papa's 60th with you" },
       { "id": null, "name": "Kabir", "aliases": ["kabir"], "merge_ids": [], "relation": "friend", "closeness": "close", "suggest_circle": true,
-        "why": "A close friend with big news, and you keep meaning to call him.", "summary": "Just started a new job at a design studio in Pune" },
+        "why": "A close friend with big news, and you keep meaning to call him.", "summary": "Just started a new job at a design studio in Toronto" },
       { "id": null, "name": "Meera", "aliases": ["meera"], "merge_ids": [], "relation": "friend", "closeness": "close", "suggest_circle": true,
         "why": "She just became a mum and you have been thinking of her.", "summary": "New baby girl, Anaya" },
       { "id": null, "name": "Nani", "aliases": ["nani"], "merge_ids": [], "relation": "family", "closeness": "inner", "suggest_circle": true,
@@ -455,7 +506,7 @@
         "why": "Part of the Goa trip plan.", "summary": "Going on the Goa trip" }
     ],
     "threads": [
-      { "title": "Papa's 60th", "kind": "plan", "people": ["Papa", "Riya", "Mum", "Nani"], "note_ids": ["1", "8", "15", "20", "22", "37"], "status": "open" },
+      { "title": "Papa's 60th", "kind": "plan", "people": ["Papa", "Riya", "Mum", "Nani"], "note_ids": ["1", "8", "15", "20", "22", "37", "40"], "status": "open" },
       { "title": "Call Kabir", "kind": "promise", "people": ["Kabir"], "note_ids": ["0", "12", "23", "34"], "status": "open" },
       { "title": "Gift for Meera's baby", "kind": "errand", "people": ["Meera"], "note_ids": ["14", "24", "29", "33"], "status": "done" },
       { "title": "Photo album for Papa", "kind": "errand", "people": ["Papa", "Riya"], "note_ids": ["30"], "status": "open" },
@@ -468,6 +519,18 @@
       { "title": "Plant watering app", "kind": "idea", "people": [], "note_ids": ["4", "21", "39"], "status": "open" }
     ]
   },
+  "circle": ["Mum", "Papa", "Riya", "Kabir", "Meera", "Nani"],
+  "suggest": { "Ishaan": "Your flatmate, moving to Hyderabad soon." },
+  "members": [
+    { "name": "Mum", "tz": "Asia/Kolkata", "status": "free", "windows": [{ "day": "sun", "start": "10:00", "end": "13:00" }] },
+    { "name": "Papa", "tz": "Asia/Kolkata", "status": "free", "windows": [{ "day": "sun", "start": "10:00", "end": "13:00" }] },
+    { "name": "Nani", "tz": "Asia/Kolkata", "status": null, "via": "page", "reply": "Haan beta, Sunday ko free hoon",
+      "windows": [{ "day": "sun", "start": "10:00", "end": "13:00" }] },
+    { "name": "Riya", "tz": "Asia/Kolkata", "status": "maybe",
+      "windows": [{ "day": "sat", "start": "18:00", "end": "21:30" }, { "day": "sun", "start": "10:00", "end": "12:30" }] },
+    { "name": "Kabir", "tz": "America/Toronto", "status": null, "windows": [{ "day": "sat", "start": "08:30", "end": "11:00" }] },
+    { "name": "Meera", "tz": "Europe/London", "status": null, "windows": [{ "day": "sat", "start": "13:30", "end": "17:30" }] }
+  ],
   "phones": {
     "Mum": "919800000002",
     "Papa": "919800000003",

@@ -2,12 +2,13 @@
 // the app never sends free-form prompts, so the API key can't be used as a general proxy.
 
 import type { EventKind, Language, Relation, Slot, ThreadKind, Window } from './types.ts';
+import type { WeekendInput, WeekendOutput, WindowsInput, WindowsOutput } from './circle.ts';
 
 export const SPARK_MODEL = 'muse-spark-1.3';
 export const ASR_MODEL = 'muse-voice-transcribe-1.0';
 export const META_BASE_URL = 'https://api.meta.ai/v1';
 
-export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank';
+export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank' | 'windows' | 'weekend';
 
 // ---------- extract: one note -> people, events, promises, threads ----------
 export interface ExtractInput {
@@ -30,6 +31,8 @@ export interface ExtractOutput {
 	}[];
 	promises: { what: string; person: string | null; date_text: string | null }[];
 	threads: { title: string; kind: ThreadKind; people: string[] }[];
+	/** Things someone would like ("Papa wants a brighter reading lamp"). Never prices or money. */
+	gift_hints: { person: string; what: string }[];
 }
 
 // ---------- weave: everything so far -> circle, merged names, threads ----------
@@ -97,6 +100,8 @@ export interface TaskIO {
 	draft: { input: DraftInput; output: DraftOutput };
 	plan: { input: PlanInput; output: PlanOutput };
 	rank: { input: RankInput; output: RankOutput };
+	windows: { input: WindowsInput; output: WindowsOutput };
+	weekend: { input: WeekendInput; output: WeekendOutput };
 }
 
 /** POST /api/spark body */

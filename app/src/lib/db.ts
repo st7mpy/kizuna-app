@@ -1,6 +1,24 @@
 // The phone's database. Notes and people never leave the device except as task inputs.
 import { Dexie, liveQuery, type EntityTable } from 'dexie';
-import type { Fragment, KEvent, Person, Prompt, Settings, Thread, Window } from '@kizuna/shared';
+import type { CircleEntry, Fragment, GiftHint, KEvent, Occasion, Person, Prompt, Settings, Thread, Window } from '@kizuna/shared';
+import { buildMapView, type MapView } from './core/map.ts';
+export type { MapView, MapPerson } from './core/map.ts';
+
+/** A circle member as last fetched (opened on the phone). Mine is never stored here. */
+export interface MemberRow {
+	memberId: string;
+	personId: string | null; // the Person this member is, once linked
+	linkedBy?: 'auto' | 'user';
+	entry: CircleEntry;
+	fetchedAt: string;
+	reply?: string; // the words they replied with, when known (e.g. a WhatsApp reply)
+}
+
+/** A personal occasion heard in notes (birthdays); festivals live in a fixed table. */
+export interface StoredOccasion extends Occasion {
+	id: string;
+	fragmentId?: string;
+}
 
 export class KizunaDB extends Dexie {
 	fragments!: EntityTable<Fragment, 'id'>;
@@ -9,6 +27,9 @@ export class KizunaDB extends Dexie {
 	threads!: EntityTable<Thread, 'id'>;
 	prompts!: EntityTable<Prompt, 'id'>;
 	settings!: EntityTable<Settings, 'id'>;
+	gifts!: EntityTable<GiftHint, 'id'>;
+	members!: EntityTable<MemberRow, 'memberId'>;
+	occasions!: EntityTable<StoredOccasion, 'id'>;
 
 	constructor() {
 		super('kizuna');
@@ -19,6 +40,11 @@ export class KizunaDB extends Dexie {
 			threads: 'id, status, kind, *personIds, updatedAt',
 			prompts: 'id, shownAt, personId, threadId',
 			settings: 'id'
+		});
+		this.version(2).stores({
+			gifts: 'id, personId, status',
+			members: 'memberId, personId',
+			occasions: 'id, day, *personIds'
 		});
 	}
 }
@@ -118,3 +144,40 @@ export const fragment = (id: string) => liveQuery(() => db.fragments.get(id));
 
 /** True once there is any note (for first-run screens). */
 export const hasAnyData = () => liveQuery(async () => (await db.fragments.count()) > 0);
+
+// ---------- the Kizuna map ----------
+
+/** Circle members as last fetched. */
+export const circleMembers = () => liveQuery(() => db.members.toArray());
+
+/** Gift hints for one person (open first, newest first). */
+export const giftsFor = (personId: string) =>
+	liveQuery(async () =>
+		(await db.gifts.where('personId').equals(personId).toArray()).sort(
+			(a, b) => Number(b.status === 'open') - Number(a.status === 'open') || b.createdAt.localeCompare(a.createdAt)
+		)
+	);
+
+/**
+ * The map: updates on any change, and once a minute so local times and glows stay right.
+ * Works as a Svelte store ($map) and as an observable.
+ */
+export function mapLive(): { subscribe(next: ((v: MapView) => void) | { next: (v: MapView) => void }): { unsubscribe(): void } } {
+	return {
+		subscribe(observer) {
+			const next = typeof observer === 'function' ? observer : (v: MapView) => observer.next(v);
+			let closed = false;
+			const sub = liveQuery(() => buildMapView()).subscribe({ next: (v) => !closed && next(v), error: () => {} });
+			const timer = setInterval(() => {
+				void buildMapView().then((v) => !closed && next(v)).catch(() => {});
+			}, 60_000);
+			return {
+				unsubscribe() {
+					closed = true;
+					clearInterval(timer);
+					sub.unsubscribe();
+				}
+			};
+		}
+	};
+}

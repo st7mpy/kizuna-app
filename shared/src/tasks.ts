@@ -5,15 +5,22 @@
 //   1. The first line of the system message is always `kizuna-task: <task>`.
 //      `taskFromMessages(messages)` reads it back.
 //   2. For json_schema tasks, `schema.name` equals the task name ('extract' | 'weave' | 'draft' | 'rank').
-//   3. Only 'plan' has `tools` (free_slots + finish); it never has a schema.
+//   3. Only 'plan' and 'weekend' have `tools`; they never have a schema.
 //
 // Plan loop (run by the relay): the model calls `free_slots` (args FreeSlotsArgs); the relay fills
 // now/timeZone/freeHours/busy/durationMinutes from PlanInput, runs freeSlots() and answers with a role
 // 'tool' message whose content is JSON {slots:[{id,start,end,label}], total}. The model ends by
 // calling `finish` (args FinishArgs) with up to two slot ids, best first.
+//
+// Weekend loop (run by the relay, stateless): tools get_windows / get_occasions / get_local_time /
+// get_reasons answer from WeekendInput only; the model may call several in one turn. get_windows
+// returns candidate slots with ids; `finish` (args WeekendFinishArgs) names one by id, or null.
 import type { DraftInput, ExtractInput, PlanInput, RankInput, TaskIO, TaskName, WeaveInput } from './api.ts';
+import type { WeekendInput, WindowsInput } from './circle.ts';
 import { SCHEMAS } from './schemas.ts';
 import { shiftDay, weekdayOfDay } from './dates.ts';
+import { zonedDay } from './slots.ts';
+import { comingWeekend } from './weekend.ts';
 
 export interface ChatMessage { role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_call_id?: string }
 
@@ -28,7 +35,7 @@ export interface BuiltTask {
 }
 
 export const TASK_MARKER = 'kizuna-task:';
-const TASK_NAMES: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank'];
+const TASK_NAMES: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend'];
 
 /** Reads the task back from the marker on the first line of the system message. */
 export function taskFromMessages(messages: { role: string; content?: unknown }[]): TaskName | null {
@@ -75,6 +82,8 @@ Events (things with a time, past or future): appointments, birthdays, milestones
 Promises: something the user means to do for or with someone: "should call Kabir", "Kabir ko phone karna hai", "Riya ko gift bhejna hai", "need to check on Meera". A plan the user merely mentions is an event, not a promise; an intention of theirs is a promise. person is the name from your people list, or null.
 
 Threads: the user's own open loops, worth seeing again: an idea, a plan being made, a promise, an errand ("buy a gift for Papa", "book Goa tickets", "app idea for plants"). Short title in the note's language. Skip small talk.
+
+Gift hints: things someone in the note wants, needs or would like to have ("Papa wants a brighter reading lamp", "Riya ko naya yoga mat chahiye", "Mum said she'd love a good pressure cooker"). person is the name from your people list; what is the thing itself, 2 to 8 words ("a brighter reading lamp"). Never include prices, money, budgets, shops or links, and nothing about health (no medicines, no medical devices). A thing the user wants for themself is not a gift hint. Empty if none.
 
 sensitive: true if the note mentions health (illness, surgery, appointments with a doctor, injuries, pregnancy complications, mental health), money (loans, debt, salary troubles) or conflict (fights, breakups, someone upset). Otherwise false.
 
@@ -270,6 +279,196 @@ Calendar:
 ${calendarLines(today, 0, 21)}`;
 }
 
+// ---------------------------------------------------------------- windows
+export const WINDOWS_PROMPT = `You read a short reply from a family member or friend saying when they are free for a call, and turn it into at most three time windows in their own local time.
+
+The reply may be English, Hindi (Latin or Devanagari script), or Hinglish mixed in one sentence: "Sunday shaam ko free hoon", "Sat after lunch, not before 2", "kal subah thoda time hai", "is weekend nahi ho payega". Read it as a fluent Hinglish speaker would.
+
+Windows
+- day: YYYY-MM-DD, using the calendar given. Only days in the calendar. weekend = the coming Saturday and Sunday. aaj = today, kal = tomorrow, parso = the day after tomorrow.
+- start and end: HH:MM, 24 hour, local time, on that same day (end after start).
+- Parts of the day: subah / morning = 09:00 to 12:00; dopahar / afternoon / after lunch = 13:00 to 16:00; shaam / evening = 17:00 to 20:00; raat / night = 20:00 to 22:00. A whole day without a part ("Sunday free hoon") = 10:00 to 20:00.
+- Clock words: "2 baje" or "2" in the afternoon = 14:00; "after 2" or "not before 2" starts at 14:00; "before 6" ends at 18:00. Afternoon and evening hours below 8 are pm. A single clock time alone = one hour from it.
+- At most 3 windows, soonest first. If they give more, keep the three clearest.
+
+not_this_weekend: true when they say they can't this weekend ("not this weekend", "is weekend nahi", "busy all weekend"). Then windows is empty unless they also name another time.
+
+language: en, hi (Hindi only), mixed (Hindi and English), or other.
+
+If the reply gives no time at all, windows is empty. Never invent times that are not in the reply.`;
+
+function windowsUser(i: WindowsInput): string {
+	const today = zonedDay(Date.parse(i.now), i.timeZone);
+	return `Now: ${i.now} (${i.timeZone})
+
+Calendar:
+${calendarLines(today, 0, 8)}
+
+Reply:
+"""
+${i.reply}
+"""`;
+}
+
+// ---------------------------------------------------------------- weekend
+export const WEEKEND_TOOL_NAMES = {
+	getWindows: 'get_windows',
+	getOccasions: 'get_occasions',
+	getLocalTime: 'get_local_time',
+	getReasons: 'get_reasons',
+	finish: 'finish'
+} as const;
+
+/** Arguments of the weekend `finish` call: WeekendOutput minus tools_used, with slots named by id. */
+export interface WeekendFinishArgs {
+	slot_id: string | null; // an id from get_windows, or null when nothing fits
+	person_ids: string[]; // people free in that slot (not the user)
+	skipped: { person_id: string; why: string; alt_slot_id: string | null }[];
+	reason: string;
+	occasion: string | null;
+}
+/** One candidate slot as get_windows returns it. */
+export interface WeekendToolSlot {
+	id: string;
+	start: string;
+	end: string;
+	label: string; // in the user's zone
+	person_ids: string[]; // others free then
+}
+
+const DAY_PARAM = { type: 'string', description: 'day in the user\'s time zone, YYYY-MM-DD' };
+
+export const WEEKEND_TOOLS = [
+	{
+		type: 'function',
+		function: {
+			name: WEEKEND_TOOL_NAMES.getWindows,
+			description:
+				"Each person's shared free windows between two days (inclusive), and candidate call slots where the user and at least one other person are free together, outside everyone's quiet hours. Biggest groups first. Each slot has an id for finish.",
+			strict: true,
+			parameters: {
+				type: 'object',
+				properties: {
+					person_ids: { type: 'array', items: { type: 'string' }, description: 'people to include; empty for everyone' },
+					from: DAY_PARAM,
+					to: DAY_PARAM
+				},
+				required: ['person_ids', 'from', 'to'],
+				additionalProperties: false
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: WEEKEND_TOOL_NAMES.getOccasions,
+			description: 'Festivals, birthdays and anniversaries between two days (inclusive).',
+			strict: true,
+			parameters: {
+				type: 'object',
+				properties: { from: DAY_PARAM, to: DAY_PARAM },
+				required: ['from', 'to'],
+				additionalProperties: false
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: WEEKEND_TOOL_NAMES.getLocalTime,
+			description: "The local time and weekday for a person at an instant, in their own time zone, and whether it is inside their quiet hours. person_id 'me' is the user.",
+			strict: true,
+			parameters: {
+				type: 'object',
+				properties: {
+					person_id: { type: 'string' },
+					at: { type: 'string', description: 'an ISO time with offset, or a slot id from get_windows' }
+				},
+				required: ['person_id', 'at'],
+				additionalProperties: false
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: WEEKEND_TOOL_NAMES.getReasons,
+			description: "Short lines from the user's own notes about a person (sensitive details already removed).",
+			strict: true,
+			parameters: {
+				type: 'object',
+				properties: { person_id: { type: 'string' } },
+				required: ['person_id'],
+				additionalProperties: false
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: WEEKEND_TOOL_NAMES.finish,
+			description: 'Gives the plan: one slot id from get_windows (or null when nothing fits), who is free then, who is left out and why, and one kind reason line.',
+			strict: true,
+			parameters: {
+				type: 'object',
+				properties: {
+					slot_id: { type: ['string', 'null'], description: 'a slot id from get_windows, or null' },
+					person_ids: { type: 'array', items: { type: 'string' }, description: 'people free in that slot, not the user' },
+					skipped: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								person_id: { type: 'string' },
+								why: { type: 'string', description: 'short and kind, e.g. "It\'s 01:30 in Toronto then."' },
+								alt_slot_id: { type: ['string', 'null'], description: 'a slot id where they and the user are free, or null' }
+							},
+							required: ['person_id', 'why', 'alt_slot_id'],
+							additionalProperties: false
+						}
+					},
+					reason: { type: 'string', description: 'one kind line, e.g. "It\'s Diwali morning."' },
+					occasion: { type: ['string', 'null'], description: 'the occasion name if the plan is built around one, else null' }
+				},
+				required: ['slot_id', 'person_ids', 'skipped', 'reason', 'occasion'],
+				additionalProperties: false
+			}
+		}
+	}
+];
+
+export const WEEKEND_PROMPT = `You plan one call this weekend between the user and the people on their Kizuna map (family and close friends, each in their own time zone). Find the one time that suits the most people, or say that nothing fits. Nothing is a fine answer.
+
+How to work
+1. In your first turn call, all at once: get_windows for everyone over the weekend, get_occasions for the next 10 days, and get_reasons for each person.
+2. Choose one slot from get_windows. Prefer, in order: the most people; what the user's request asks ("not Sunday, Papa has puja" means no Sunday slot); an occasion day ("Diwali morning"); a time that is daytime for everyone; sooner.
+3. For a person who has windows but is not in that slot, you may call get_local_time to see why (asleep, late night). Offer them an alt slot id where they and the user are both free, or null.
+4. Call finish. slot_id is an id from get_windows, or null when nothing works. person_ids: the people free in that slot (never the user). reason: one short, kind line, e.g. "It's Diwali morning." or "Kabir just started his new job." occasion: the occasion's name if the plan is built around it, else null.
+
+Rules
+- Never make up ids or times. Use only what the tools return.
+- Never mention health, money or conflict details; keep it gentle and general.
+- No guilt, no counting days, no urgency. Plain English, short.
+- Always end by calling finish.`;
+
+function weekendUser(i: WeekendInput): string {
+	const today = zonedDay(Date.parse(i.now), i.timeZone);
+	const { sat, sun } = comingWeekend(today);
+	const people = i.people.length
+		? i.people.map((p) => `- id=${p.id} ${p.name} (${p.relation}), ${p.timeZone}, writes ${p.language}`).join('\n')
+		: '(nobody yet)';
+	return `Now: ${i.now} (${i.timeZone}), ${WEEKDAY_NAMES[weekdayOfDay(today)]}
+The weekend: Sat ${sat} and Sun ${sun}
+Request: ${i.request.trim() ? `"${i.request.trim()}"` : '(none: plan the coming weekend)'}
+Shortest call: ${i.minMinutes} minutes
+
+People:
+${people}
+
+Calendar:
+${calendarLines(today, 0, 10)}`;
+}
+
 // ---------------------------------------------------------------- build
 const system = (task: TaskName, prompt: string): ChatMessage => ({ role: 'system', content: `${TASK_MARKER} ${task}\n${prompt}` });
 
@@ -320,6 +519,24 @@ export function buildTask<T extends TaskName>(task: T, input: TaskIO[T]['input']
 				max_tokens: 1500
 			};
 		}
+		case 'windows': {
+			const i = input as WindowsInput;
+			return {
+				messages: [system('windows', WINDOWS_PROMPT), { role: 'user', content: windowsUser(i) }],
+				schema: { name: 'windows', schema: SCHEMAS.windows },
+				reasoning_effort: 'minimal',
+				max_tokens: 600
+			};
+		}
+		case 'weekend': {
+			const i = input as WeekendInput;
+			return {
+				messages: [system('weekend', WEEKEND_PROMPT), { role: 'user', content: weekendUser(i) }],
+				tools: WEEKEND_TOOLS,
+				reasoning_effort: 'low',
+				max_tokens: 2000
+			};
+		}
 		default:
 			throw new Error(`unknown task ${String(task)}`);
 	}
@@ -331,5 +548,7 @@ export const TASK_LIMITS: Record<TaskName, number> = {
 	weave: 600_000,
 	draft: 16_000,
 	plan: 64_000,
-	rank: 16_000
+	rank: 16_000,
+	windows: 4_000,
+	weekend: 48_000
 };

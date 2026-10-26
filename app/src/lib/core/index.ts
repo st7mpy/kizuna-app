@@ -1,11 +1,38 @@
 // The app's core API. UI code imports only from here (and from '@kizuna/shared' for types).
 import { processPending, requeueFailed } from './capture.ts';
 import { runWeave } from './weave.ts';
+import { entrySignature, publishMyEntry, refreshCircle } from './circle.ts';
+import { liveQuery } from 'dexie';
+import { readSettings } from '../db.ts';
 
-export { saveFragment, processPending, retryFragment } from './capture.ts';
+export { saveFragment, processPending, retryFragment, noteThought } from './capture.ts';
 export { runWeave } from './weave.ts';
 export { getSettings, updateSettings, setRoom } from './settings.ts';
-export { todayCards, answerCard } from './today.ts';
+export { todayCards, answerCard, todayExtras } from './today.ts';
+export {
+	createCircle,
+	circleLink,
+	newCircleLink,
+	myWindows,
+	publishMyEntry,
+	refreshCircle,
+	linkMember,
+	leaveCircle,
+	setSharing,
+	SAMPLE_CIRCLE_ID
+} from './circle.ts';
+export { FESTIVALS, upcomingOccasions, daysUntil } from './occasions.ts';
+export { buildMapView, isSharing, MAP_MAX_PEOPLE, type MapView, type MapPerson } from './map.ts';
+export {
+	weekendCard,
+	planWeekend,
+	answerWeekend,
+	draftForGroup,
+	draftForPerson,
+	WHATSAPP_SCHEDULE_TIP
+} from './weekend.ts';
+export { giftCards, draftGiftLine, markGift } from './gifts.ts';
+export { inviteFamilyLine } from './invite.ts';
 export { draftPoke, whatsappLink } from './poke.ts';
 export { suggestSlots, createInvite, googleCalendarLink, icsFile } from './time.ts';
 export { updatePerson, mergePeople, removePerson, updateThread, markReached } from './people.ts';
@@ -20,6 +47,37 @@ export function startCore(): void {
 		.then(() => processPending())
 		.then(() => runWeave())
 		.catch(() => {});
+	startCircleSync();
+}
+
+let syncing = false;
+/** The map stays fresh: fetch on open and every 60 s while visible; republish when my settings or room change. */
+function startCircleSync(): void {
+	if (syncing || typeof window === 'undefined') return;
+	syncing = true;
+	const visible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden';
+	const refresh = () => {
+		if (visible()) void refreshCircle().catch(() => {});
+	};
+	refresh();
+	setInterval(refresh, 60_000);
+	document.addEventListener?.('visibilitychange', refresh);
+	window.addEventListener('online', refresh);
+
+	let last: string | null = null;
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	liveQuery(readSettings).subscribe({
+		next: (s) => {
+			const sig = entrySignature(s);
+			if (sig === last) return;
+			const first = last === null;
+			last = sig;
+			clearTimeout(timer);
+			// on open, and after a change settles
+			timer = setTimeout(() => void publishMyEntry().catch(() => {}), first ? 0 : 1500);
+		},
+		error: () => {}
+	});
 }
 
 let persistAsked = false;

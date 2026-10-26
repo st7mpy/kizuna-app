@@ -97,11 +97,17 @@ describe('planToday', () => {
 		expect(lots).toEqual(['person:Kabir', 'person:Mum', 'person:Nani', 'suggest_circle:Meera', 'thread:Goa trip plan']);
 	});
 
-	it('shows no person cards in quiet hours, only threads', () => {
+	it('still shows person cards in quiet hours, with the time moved out of them, and does not count them', () => {
 		const late = { ...life(), now: at(0, 22, 15) };
-		expect(titles(late)).toEqual(['thread:Goa trip plan', 'thread:Return shoes']);
+		expect(titles(late).filter((t) => t.startsWith('person:'))).toEqual(['person:Kabir', 'person:Mum', 'person:Nani']);
 		const early = { ...life(), now: at(0, 7, 0) };
-		expect(titles(early).every((t) => t.startsWith('thread:'))).toBe(true);
+		expect(titles(early).some((t) => t.startsWith('person:'))).toBe(true);
+		// a free window inside quiet hours is no window at all
+		const nightSlot: Slot = { start: isoWithOffset(at(0, 23)), end: isoWithOffset(at(1, 0)), label: '' };
+		expect(titles({ ...late, freeSlot: nightSlot }).some((t) => t.startsWith('person:'))).toBe(false);
+		// shown at night: not counted in the weekly cap
+		const nightly = [1, 2, 3, 4, 5].map((d) => mkPrompt({ personId: 'x', reason: 'gap', shownAt: at(-d, 23).toISOString(), answer: 'poke' }));
+		expect(capUsed({ ...life(), prompts: nightly })).toBe(0);
 	});
 
 	it('needs a free window for person cards', () => {
@@ -202,7 +208,9 @@ describe('planToday', () => {
 
 	it('quiet hours that do not wrap midnight also work', () => {
 		const s = { ...life(), settings: { quietStart: '09:00', quietEnd: '11:00', weeklyCap: 5 } };
-		expect(titles(s).every((t) => t.startsWith('thread:'))).toBe(true);
+		expect(titles(s).some((t) => t.startsWith('person:'))).toBe(true);
+		const shown = [mkPrompt({ personId: 'x', reason: 'gap', shownAt: at(-1, 10).toISOString() }), mkPrompt({ personId: 'y', reason: 'gap', shownAt: at(-1, 12).toISOString() })];
+		expect(capUsed({ ...s, prompts: shown })).toBe(1);
 	});
 });
 

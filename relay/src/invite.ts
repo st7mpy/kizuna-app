@@ -57,7 +57,7 @@ export function inviteState(id: string, inv: StoredInvite): InviteState {
 	return { id, fromName: inv.fromName, title: inv.title, slots: inv.slots, timeZone: inv.timeZone, pickedIndex: inv.pickedIndex, expiresAt: inv.expiresAt };
 }
 
-function publicOrigin(req: Request): string {
+export function publicOrigin(req: Request): string {
 	const url = new URL(req.url);
 	// In dev the app runs on Vite and proxies here; give links on the app's origin.
 	const origin = req.headers.get('origin');

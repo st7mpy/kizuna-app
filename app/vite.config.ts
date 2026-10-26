@@ -17,13 +17,15 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': { target: 'http://localhost:8787', ws: true, changeOrigin: true },
-			'/p': { target: 'http://localhost:8787', changeOrigin: true }
+			'/p': { target: 'http://localhost:8787', changeOrigin: true },
+			'^/c/': { target: 'http://localhost:8787', changeOrigin: true }
 		}
 	},
 	preview: {
 		proxy: {
 			'/api': { target: 'http://localhost:8787', ws: true, changeOrigin: true },
-			'/p': { target: 'http://localhost:8787', changeOrigin: true }
+			'/p': { target: 'http://localhost:8787', changeOrigin: true },
+			'^/c/': { target: 'http://localhost:8787', changeOrigin: true }
 		}
 	},
 	test: {

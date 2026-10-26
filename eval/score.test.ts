@@ -6,7 +6,7 @@ import type { ExtractOutput } from '../shared/src/api.ts';
 
 const TODAY = '2026-10-26'; // Monday
 
-const out = (o: Partial<ExtractOutput>): ExtractOutput => ({ language: 'mixed', sensitive: false, people: [], events: [], promises: [], threads: [], ...o });
+const out = (o: Partial<ExtractOutput>): ExtractOutput => ({ language: 'mixed', sensitive: false, people: [], events: [], promises: [], threads: [], gift_hints: [], ...o });
 const ev = (kind: ExtractOutput['events'][number]['kind'], date: string | null, date_text: string | null = null) => ({ what: 'x', kind, people: [], date, time: null, date_text });
 
 describe('scorePeople', () => {

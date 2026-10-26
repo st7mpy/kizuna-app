@@ -116,7 +116,15 @@ export const limits = {
 	inviteCreate: new ClientLimiter({ capacity: 2, refillPerMinute: 1, daily: 20 }, 2),
 	// Picks (API and the pick page's form). Pickers have no device id, so this is per IP.
 	invite: new ClientLimiter({ capacity: 5, refillPerMinute: 2, daily: 30 }, 1),
-	ical: new ClientLimiter({ capacity: 6, refillPerMinute: 2, daily: 100 })
+	ical: new ClientLimiter({ capacity: 6, refillPerMinute: 2, daily: 100 }),
+	// Circles: creating one is a KV write per phone, like an invite.
+	circleCreate: new ClientLimiter({ capacity: 3, refillPerMinute: 1, daily: 20 }, 2),
+	// Member writes, keyed per IP + circle (family-page writers have no device id).
+	circleWrite: new RateLimiter({ capacity: 6, refillPerMinute: 2, daily: 80 }),
+	// And per IP across circles, so one address can't fill many.
+	circleWriteIp: new RateLimiter({ capacity: 20, refillPerMinute: 6, daily: 300 }),
+	// Reads: the app re-fetches every 60 s while the map is open.
+	circleRead: new RateLimiter({ capacity: 30, refillPerMinute: 6, daily: 3000 })
 };
 
 export function resetAllLimits(): void {
@@ -124,11 +132,11 @@ export function resetAllLimits(): void {
 	ledger.reset();
 }
 
-/** The edge rate-limit binding, keyed by IP; allows when the binding is absent or fails. */
-export async function edgeAllow(binding: RateLimit | undefined, req: Request): Promise<boolean> {
+/** The edge rate-limit binding, keyed by IP (plus `scope`, if given); allows when the binding is absent or fails. */
+export async function edgeAllow(binding: RateLimit | undefined, req: Request, scope?: string): Promise<boolean> {
 	if (!binding) return true;
 	try {
-		return (await binding.limit({ key: clientIp(req) })).success;
+		return (await binding.limit({ key: scope ? `${clientIp(req)}|${scope}` : clientIp(req) })).success;
 	} catch {
 		return true;
 	}

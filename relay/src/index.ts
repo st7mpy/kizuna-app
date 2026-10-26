@@ -7,6 +7,8 @@ import { handleTranscribe } from './transcribe.ts';
 import { createInvite, getInvite, pickInvite } from './invite.ts';
 import { handleIcal } from './ical.ts';
 import { handlePage } from './page.ts';
+import { createCircle, deleteMember, getCircle, putMember } from './circle.ts';
+import { handleFamilyPage } from './family-page.ts';
 
 export async function route(req: Request, env: Env): Promise<Response> {
 	const url = new URL(req.url);
@@ -16,6 +18,10 @@ export async function route(req: Request, env: Env): Promise<Response> {
 	if (path.startsWith('/p/')) {
 		const match = /^\/p\/([^/]+)(\/.*)?$/.exec(path);
 		return handlePage(req, env, match?.[1] ?? '', match?.[2] ?? '');
+	}
+	if (path.startsWith('/c/')) {
+		const match = /^\/c\/([^/]*)\/?$/.exec(path);
+		return handleFamilyPage(req, match?.[1] ?? '');
 	}
 	if (!path.startsWith('/api/')) return env.ASSETS.fetch(req);
 
@@ -29,6 +35,16 @@ export async function route(req: Request, env: Env): Promise<Response> {
 	if (inv) {
 		if (inv[2]) return m === 'POST' ? pickInvite(req, env, inv[1]) : fail('method_not_allowed');
 		return m === 'GET' ? getInvite(env, inv[1]) : fail('method_not_allowed');
+	}
+	if (path === '/api/circle') return m === 'POST' ? createCircle(req, env) : fail('method_not_allowed');
+	const circle = /^\/api\/circle\/([^/]+)(?:\/m\/([^/]+))?$/.exec(path);
+	if (circle) {
+		if (circle[2]) {
+			if (m === 'PUT') return putMember(req, env, circle[1], circle[2]);
+			if (m === 'DELETE') return deleteMember(req, env, circle[1], circle[2]);
+			return fail('method_not_allowed');
+		}
+		return m === 'GET' ? getCircle(req, env, circle[1]) : fail('method_not_allowed');
 	}
 	return fail('not_found');
 }

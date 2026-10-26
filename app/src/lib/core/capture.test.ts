@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExtractOutput } from '@kizuna/shared';
 import { db } from '../db.ts';
-import { FAILED_RETRY_MS, processPending, requeueFailed, retryFragment, saveFragment } from './capture.ts';
+import { FAILED_RETRY_MS, noteThought, processPending, requeueFailed, retryFragment, saveFragment } from './capture.ts';
 import { matchPerson } from './people.ts';
 import { mkPerson, mockRelay, resetDb, setOffline } from './testing.ts';
 
@@ -15,6 +15,7 @@ const empty = (p: Partial<ExtractOutput> = {}): ExtractOutput => ({
 	events: [],
 	promises: [],
 	threads: [],
+	gift_hints: [],
 	...p
 });
 
@@ -226,5 +227,44 @@ describe('saveFragment + processPending', () => {
 		await saveFragment('n4', 'typed');
 		await idle();
 		expect(relay.tasks()).toContain('weave');
+	});
+
+	it('keeps gift hints (matched by alias) and turns dated birthdays into occasions', async () => {
+		await db.people.add(mkPerson({ id: 'papa', name: 'Papa', relation: 'parent', aliases: ['papa', 'dad'] }));
+		mockRelay(() =>
+			empty({
+				people: [{ name: 'Dad', relation: 'parent' }, { name: 'Riya', relation: 'sibling' }],
+				events: [{ what: "Papa's 60th birthday", kind: 'birthday', people: ['Dad', 'Riya'], date: '2026-11-04', time: null, date_text: '4 Nov' }],
+				gift_hints: [
+					{ person: 'Dad', what: 'a brighter reading lamp.' },
+					{ person: 'Dad', what: 'a lamp under Rs 2000' },
+					{ person: 'Dad', what: 'a new knee brace' }
+				]
+			})
+		);
+		await saveFragment("Dad's birthday 4 Nov, he wants a brighter reading lamp", 'typed');
+		await idle();
+		const gifts = await db.gifts.toArray();
+		expect(gifts).toHaveLength(1);
+		expect(gifts[0]).toMatchObject({ personId: 'papa', what: 'a brighter reading lamp', status: 'open' });
+		expect(await db.occasions.toArray()).toEqual([
+			expect.objectContaining({ id: 'birthday:papa', day: '2026-11-04', name: "Papa's birthday", kind: 'birthday', personIds: ['papa'] })
+		]);
+		// the same hint again is not added twice
+		await saveFragment('Dad wants a brighter reading lamp', 'typed');
+		await idle();
+		expect(await db.gifts.count()).toBe(1);
+	});
+
+	it('a thought noted on a person stays tagged to them', async () => {
+		await db.people.add(mkPerson({ id: 'nani', name: 'Nani', relation: 'family' }));
+		mockRelay(() => empty({ people: [{ name: 'Riya', relation: 'sibling' }] }));
+		const f = await noteThought('nani', 'ask about the old photos, Riya has some');
+		expect(f.personIds).toEqual(['nani']);
+		await idle();
+		const saved = (await db.fragments.get(f.id))!;
+		expect(saved.status).toBe('done');
+		expect(saved.personIds![0]).toBe('nani');
+		expect(saved.personIds).toHaveLength(2);
 	});
 });

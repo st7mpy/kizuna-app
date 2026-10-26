@@ -40,7 +40,13 @@ const extract = obj({
 		})
 	),
 	promises: arr(obj({ what: str(), person: nstr(), date_text: nstr() })),
-	threads: arr(obj({ title: str(), kind: strEnum(THREAD_KINDS), people: arr(str()) }))
+	threads: arr(obj({ title: str(), kind: strEnum(THREAD_KINDS), people: arr(str()) })),
+	gift_hints: arr(
+		obj({
+			person: str('name as in people'),
+			what: str('the thing they would like, 2 to 8 words; never a price or money')
+		})
+	)
 });
 
 const weave = obj({
@@ -77,4 +83,20 @@ const rank = obj({
 	order: arr(str())
 });
 
-export const SCHEMAS: Record<Exclude<TaskName, 'plan'>, object> = { extract, weave, draft, rank };
+const windows = obj({
+	windows: {
+		type: 'array',
+		maxItems: 3,
+		items: obj({
+			day: str('YYYY-MM-DD from the calendar'),
+			start: str('HH:MM 24h local'),
+			end: str('HH:MM 24h local, after start')
+		})
+	},
+	not_this_weekend: { type: 'boolean', description: 'true if they said they cannot this weekend' },
+	language: strEnum(LANGUAGES)
+});
+
+/** Structured-output tasks (plan and weekend use tools instead). */
+export type SchemaTask = Exclude<TaskName, 'plan' | 'weekend'>;
+export const SCHEMAS: Record<SchemaTask, object> = { extract, weave, draft, rank, windows };

@@ -41,10 +41,12 @@ Kizuna is built for that close half.
 | Model | Where | What it does |
 | --- | --- | --- |
 | **Muse Voice Transcribe 1.0** | `relay/src/asr.ts`, `relay/src/transcribe.ts` | Live speech to text over a WebSocket, with English + Hindi language bias and code-switching. A record-then-transcribe path takes over if streaming fails. |
-| **Muse Spark 1.3**, structured output | `shared/src/tasks.ts`, `shared/src/schemas.ts` | `extract`: one note to people, events, promises and threads (strict JSON schema, minimal reasoning). |
+| **Muse Spark 1.3**, structured output | `shared/src/tasks.ts`, `shared/src/schemas.ts` | `extract`: one note to people, events, promises, threads and gift hints ("Papa wants a brighter reading lamp", never prices) (strict JSON schema, minimal reasoning). |
+| **Muse Spark 1.3**, structured output | same, guard in `relay/src/validate.ts` | `windows`: a reply in English, Hindi or Hinglish ("Sunday shaam ko free hoon", "Sat after lunch, not before 2") to at most 3 free windows. Code drops anything in the past, past 7 days, or ending before it starts. |
 | **Muse Spark 1.3**, long context | same | `weave`: all notes at once to circle suggestions, merged names and threads (high reasoning). |
 | **Muse Spark 1.3**, tool calling | `relay/src/plan.ts` | `plan`: turns "sometime next weekend, not Sunday" into calls to a `free_slots` tool and a `finish` tool. |
-| **Muse Spark 1.3** | same | `draft`: the poke line in your language; `rank`: orders cards when there are more than fit. |
+| **Muse Spark 1.3**, tool calling | `relay/src/weekend.ts`, `shared/src/weekend.ts` | `weekend`: plans one call over the Kizuna map with parallel calls to `get_windows`, `get_occasions`, `get_local_time` and `get_reasons`, then `finish`. The tools run from what the app sends, so nothing is stored. The answer is checked in code (everyone really free, outside their quiet hours in their own time zone); a plain fallback gives the same kind of answer if the model fails. |
+| **Muse Spark 1.3** | `shared/src/tasks.ts` | `draft`: the poke line in your language; `rank`: orders cards when there are more than fit. |
 
 Every model output is checked against its schema and retried once if it fails. Drafts are screened for guilt, fake urgency and length. Kizuna only uses the standard models, never the `*-contributor` models.
 
@@ -57,8 +59,21 @@ threads, never leave the        schema check, rate limits)
 phone except to be read   --->  /api/asr     (WebSocket)       -> Muse Voice Transcribe
 by the model                    /api/ical    (busy times only)
                                 /p/:id       pick-a-time page  <- your person, on WhatsApp
-                                KV: invites, 7-day expiry
+                                /api/circle  sealed map entries (ciphertext only)
+                                /c/:id       family page       <- family, on WhatsApp, no app
+                                KV: invites (7 days), circle entries (8 days)
 ```
+
+| Route | What it does |
+| --- | --- |
+| `POST /api/spark` | Runs one named task: `extract`, `weave`, `draft`, `plan`, `rank`, `windows` or `weekend`. |
+| `WS /api/asr`, `POST /api/transcribe` | Speech to text, live or from a recording. |
+| `POST /api/ical` | Busy times from a private calendar link. |
+| `POST /api/invite`, `GET /api/invite/:id`, `POST /api/invite/:id/pick`, `GET /p/:id` | Pick-a-time invites and their page. |
+| `POST /api/circle` | Makes a new map circle. The key is made on the phone and only travels in the link's `#k=` part, which browsers never send. |
+| `PUT` / `DELETE /api/circle/:id/m/:memberId` | Writes or removes one member's sealed entry (AES-GCM, at most 12 members, gone after 8 days). |
+| `GET /api/circle/:id` | Lists the sealed entries; the phone opens them. |
+| `GET /c/:id` | The family page: four big buttons (Sat or Sun, morning or evening), "Not this weekend", speak or type a reply. The answer is sealed in the browser before it is sent. English and Hindi labels. |
 
 - `app/`: SvelteKit (Svelte 5) single-page PWA. Dexie over IndexedDB. Nudge rules, free-slot maths and the date guard run on the phone.
 - `relay/`: one Cloudflare Worker that serves the app and the API from the same origin and holds the API key.
@@ -105,6 +120,7 @@ cd .. && npm run build -w @kizuna/app && npm run deploy -w @kizuna/relay
 - No accounts. Notes, people and threads live in your browser's IndexedDB.
 - Note text and audio pass through the relay to Meta's API to be understood. The relay never logs request bodies and stores nothing.
 - A pick-a-time invite stores only your first name, a title and the time slots, and expires after 7 days.
+- The Kizuna map shares only what you choose: your first name, time zone, up to three free windows and an optional "free today" that ends within 12 hours. Each entry is sealed on the device with a key that lives only in the family link, so the server holds ciphertext it can't read. Entries expire after 8 days, and leaving deletes yours. No location, ever.
 - A calendar link, if you add one, is read through the relay for busy times only. Neither the link nor your events are stored.
 - **Delete everything** in Settings clears it all.
 

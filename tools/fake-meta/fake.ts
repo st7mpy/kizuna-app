@@ -2,12 +2,12 @@
 // Pure functions so the relay tests can call them directly.
 
 type Msg = { role: string; content?: string | null; tool_calls?: any[]; tool_call_id?: string };
-export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank';
+export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank' | 'windows' | 'weekend';
 
 export const CANNED_SENTENCE =
 	"Mum ka knee appointment Thursday hai, Kabir ne naya job join kiya, should call him, and Riya wants to do something for Papa's birthday.";
 
-const TASKS: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank'];
+const TASKS: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend'];
 
 /** Task from the system marker, the schema name, or the presence of tools. */
 export function detectTask(body: any): TaskName | null {
@@ -17,7 +17,9 @@ export function detectTask(body: any): TaskName | null {
 	if (marked && TASKS.includes(marked)) return marked;
 	const named = body?.response_format?.json_schema?.name;
 	if (TASKS.includes(named)) return named;
-	if (Array.isArray(body?.tools) && body.tools.length) return 'plan';
+	if (Array.isArray(body?.tools) && body.tools.length) {
+		return body.tools.some((t: any) => t?.function?.name === 'get_windows') ? 'weekend' : 'plan';
+	}
 	return null;
 }
 
@@ -91,7 +93,7 @@ export function namesIn(text: string, known: { name: string; aliases: string[]; 
 
 export function languageOf(text: string): 'en' | 'hi' | 'mixed' {
 	if (/[ऀ-ॿ]/.test(text)) return /[a-z]{3,}/i.test(text) ? 'mixed' : 'hi';
-	const hi = (text.toLowerCase().match(/\b(hai|ka|ki|ke|ne|kal|parso|aaj|karna|nahi|kiya|tha|thi|hoga|wala|yaar|bhi|aur|mein|ko)\b/g) ?? []).length;
+	const hi = (text.toLowerCase().match(/\b(hai|ka|ki|ke|ne|kal|parso|aaj|karna|nahi|kiya|tha|thi|hoga|wala|yaar|bhi|aur|mein|ko|hoon|shaam|subah|raat|dopahar)\b/g) ?? []).length;
 	return hi >= 2 ? 'mixed' : 'en';
 }
 
@@ -199,8 +201,24 @@ export function fakeExtract(user: string): any {
 		people,
 		events,
 		promises,
-		threads
+		threads,
+		gift_hints: giftHints(note, people.map((p) => p.name), known)
 	};
+}
+
+/** "Papa wants a brighter reading lamp", "Riya ko naya yoga mat chahiye". Never money. */
+export function giftHints(note: string, people: string[], known: { name: string; aliases: string[]; relation: string }[] = []): { person: string; what: string }[] {
+	const out: { person: string; what: string }[] = [];
+	const nameOf = (w: string) => namesIn(w, known)[0]?.name;
+	const add = (who: string | undefined, what: string) => {
+		const thing = what.replace(/\s+(for (his|her|their) birthday|for diwali)\b.*$/i, '').trim().replace(/[.!?]+$/, '');
+		if (!who || !people.includes(who) || !thing || /₹|\$|rs\.?\s*\d|rupees|price|money|paisa|medicine|\d{3,}/i.test(thing)) return;
+		const short = thing.split(/\s+/).slice(0, 8).join(' ');
+		if (!out.some((g) => g.person === who && g.what === short)) out.push({ person: who, what: short });
+	};
+	for (const m of note.matchAll(/\b([A-Z][a-z]+)(?:'s)?\s+(?:wants|wanted|would like|would love|needs)\s+(?!to\b)((?:a|an|the|some|new)\s+[^.,;!?]+)/g)) add(nameOf(m[1]), m[2]);
+	for (const m of note.matchAll(/\b([A-Z][a-z]+)\s+ko\s+([^.,;!?]+?)\s+chahiye\b/g)) add(nameOf(m[1]), m[2]);
+	return out;
 }
 
 const GROUPS = FAMILY.slice(0, 2);
@@ -344,6 +362,100 @@ export function fakePlanTurn(messages: Msg[]): { content: string | null; tool_ca
 	return { content: null, tool_calls: [toolCall('finish', { slot_ids: ids, note })] };
 }
 
+const DAY_WORDS: [RegExp, number][] = [
+	[/\b(sat|saturday|shanivar)\b/, 6],
+	[/\b(sun|sunday|ravivar|itvaar)\b/, 0]
+];
+const PARTS: [RegExp, [string, string]][] = [
+	[/\b(subah|morning)\b/, ['09:00', '12:00']],
+	[/\b(dopahar|afternoon|after lunch|lunch ke baad)\b/, ['13:00', '16:00']],
+	[/\b(shaam|evening)\b/, ['17:00', '20:00']],
+	[/\b(raat|night)\b/, ['20:00', '22:00']]
+];
+
+/** A reply like "Sunday shaam ko free hoon" -> windows, using the calendar's dates. */
+export function fakeWindows(user: string): any {
+	const reply = (/"""\n?([\s\S]*?)\n?"""/.exec(user)?.[1] ?? '').trim();
+	const r = reply.toLowerCase();
+	const today = /^\w{3} (\d{4}-\d{2}-\d{2}) \(today\)/m.exec(user)?.[1] ?? new Date().toISOString().slice(0, 10);
+	const nope = /not this weekend|is weekend nahi|weekend nahi|busy all weekend|can'?t this weekend/.test(r);
+	const days: string[] = [];
+	const nextOf = (wd: number) => addDays(today, (wd - weekday(today) + 7) % 7);
+	if (!nope) for (const [re, wd] of DAY_WORDS) if (re.test(r)) days.push(nextOf(wd));
+	if (/\b(kal|tomorrow)\b/.test(r)) days.push(addDays(today, 1));
+	if (/\b(aaj|today)\b/.test(r)) days.push(today);
+	if (!days.length && /\bweekend\b/.test(r) && !nope) days.push(nextOf(6), nextOf(0));
+	let span: [string, string] = ['10:00', '20:00'];
+	for (const [re, p] of PARTS) {
+		if (re.test(r)) {
+			span = [p[0], p[1]];
+			break;
+		}
+	}
+	const after = /(?:after|not before|ke baad)\s+(\d{1,2})\b/.exec(r);
+	if (after) {
+		let h = Number(after[1]);
+		if (h < 8) h += 12;
+		const start = `${String(h).padStart(2, '0')}:00`;
+		span = [start, span[1] > start ? span[1] : '20:00'];
+	}
+	const windows = [...new Set(days)].sort().slice(0, 3).map((day) => ({ day, start: span[0], end: span[1] }));
+	return { windows, not_this_weekend: nope, language: languageOf(reply) };
+}
+
+/** One weekend turn: get_windows + get_occasions + get_reasons in parallel, then finish. */
+export function fakeWeekendTurn(messages: Msg[]): { content: string | null; tool_calls: any[] } {
+	const user = messages.find((m) => m.role === 'user')?.content ?? '';
+	const ids = [...user.matchAll(/^- id=(\S+) /gm)].map((m) => m[1]);
+	const sat = /The weekend: Sat (\d{4}-\d{2}-\d{2})/.exec(user)?.[1] ?? '';
+	const sun = /and Sun (\d{4}-\d{2}-\d{2})/.exec(user)?.[1] ?? sat;
+	const today = /^Now: (\d{4}-\d{2}-\d{2})/m.exec(user)?.[1] ?? sat;
+	const request = (/^Request: "(.*)"$/m.exec(user)?.[1] ?? '').toLowerCase();
+	const tools = messages.filter((m) => m.role === 'tool');
+	if (!tools.length) {
+		return {
+			content: null,
+			tool_calls: [
+				toolCall('get_windows', { person_ids: ids, from: sat, to: sun }),
+				toolCall('get_occasions', { from: today, to: addDays(today, 10) }),
+				...ids.map((id) => toolCall('get_reasons', { person_id: id }))
+			]
+		};
+	}
+	const parse = (m: Msg) => {
+		try {
+			return JSON.parse(m.content ?? '{}');
+		} catch {
+			return {};
+		}
+	};
+	const results = tools.map(parse);
+	const win = results.find((r) => Array.isArray(r.slots)) ?? { slots: [], people: [] };
+	const occ: { day: string; name: string }[] = results.find((r) => Array.isArray(r.occasions))?.occasions ?? [];
+	const skipSun = /not sunday|sunday nahi/.test(request);
+	const skipSat = /not saturday|saturday nahi/.test(request);
+	const slots = (win.slots as { id: string; start: string; person_ids: string[] }[]).filter((s) => {
+		const wd = weekday(s.start.slice(0, 10));
+		return !(skipSun && wd === 0) && !(skipSat && wd === 6);
+	});
+	const onOccasion = (s: { start: string }) => Number(occ.some((o) => o.day === s.start.slice(0, 10)));
+	const best = [...slots].sort((a, b) => b.person_ids.length - a.person_ids.length || onOccasion(b) - onOccasion(a) || a.start.localeCompare(b.start))[0];
+	if (!best) {
+		return { content: null, tool_calls: [toolCall('finish', { slot_id: null, person_ids: [], skipped: [], reason: 'Nothing lines up this weekend.', occasion: null })] };
+	}
+	const occasion = occ.find((o) => o.day === best.start.slice(0, 10)) ?? null;
+	const reasons = results.filter((r) => Array.isArray(r.reasons) && r.reasons.length && best.person_ids.includes(r.person_id));
+	const withWindows: string[] = (win.people ?? []).filter((p: any) => p.windows?.length).map((p: any) => p.person_id);
+	const skipped = withWindows
+		.filter((id) => !best.person_ids.includes(id))
+		.map((id) => ({ person_id: id, why: 'Not free then.', alt_slot_id: slots.find((s) => s.person_ids.includes(id))?.id ?? null }));
+	const reason = occasion ? `It's ${occasion.name} that day.` : reasons[0]?.reasons[0] ?? "You're free together then.";
+	return {
+		content: null,
+		tool_calls: [toolCall('finish', { slot_id: best.id, person_ids: best.person_ids, skipped, reason, occasion: occasion?.name ?? null })]
+	};
+}
+
 /** A full chat completion response for a request body. */
 export function fakeCompletion(body: any): { status: number; json: any } {
 	const task = detectTask(body);
@@ -353,8 +465,15 @@ export function fakeCompletion(body: any): { status: number; json: any } {
 	let message: any;
 	if (task === 'plan') {
 		message = { role: 'assistant', ...fakePlanTurn(messages) };
+	} else if (task === 'weekend') {
+		message = { role: 'assistant', ...fakeWeekendTurn(messages) };
 	} else {
-		const out = task === 'extract' ? fakeExtract(user) : task === 'weave' ? fakeWeave(user) : task === 'draft' ? fakeDraft(user) : fakeRank(user);
+		const out =
+			task === 'extract' ? fakeExtract(user) :
+			task === 'weave' ? fakeWeave(user) :
+			task === 'draft' ? fakeDraft(user) :
+			task === 'windows' ? fakeWindows(user) :
+			fakeRank(user);
 		message = { role: 'assistant', content: JSON.stringify(out) };
 	}
 	const promptChars = messages.reduce((n, m) => n + (m.content?.length ?? 0), 0);

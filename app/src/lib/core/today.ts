@@ -1,11 +1,13 @@
 // Today: turns the nudge plan into stored prompts and cards.
-import type { Card, Prompt } from '@kizuna/shared';
+import type { Card, GiftCard, Prompt, WeekendCard } from '@kizuna/shared';
 import { db, newId, readSettings } from '../db.ts';
-import { localDay } from './days.ts';
+import { deviceTimeZone, inQuietHours, localDay } from './days.ts';
+import { giftCards } from './gifts.ts';
+import { weekendCard } from './weekend.ts';
 import { buildCandidates, eligibleCount, planToday, ROOM_CARDS, slotRange, withSlot, type Candidate, type NudgeState } from './nudges.ts';
 import { isOnline, spark } from './relay.ts';
 import { roomToday } from './settings.ts';
-import { busyTimes, nextFreeWindow } from './time.ts';
+import { busyTimes, findFreeSlots } from './time.ts';
 
 const DAY = 86_400_000;
 
@@ -28,8 +30,21 @@ export async function loadNudgeState(now = new Date()): Promise<NudgeState> {
 		events,
 		threads,
 		prompts,
-		freeSlot: nextFreeWindow(s, now, from, to, busy)
+		// The next free window outside quiet hours (at night that is the next morning or later).
+		freeSlot:
+			findFreeSlots({ now, timeZone: deviceTimeZone(), freeHours: s.freeHours, busy, from, to, durationMinutes: 60 }).find(
+				(x) => new Date(x.start).getTime() > now.getTime() && !inQuietHours(new Date(x.start), s.quietStart, s.quietEnd)
+			) ?? null
 	};
+}
+
+/** The weekend card (first) and gift cards, which come before person cards and count toward the room. */
+export async function todayExtras(now = new Date()): Promise<{ weekend: WeekendCard | null; gifts: GiftCard[] }> {
+	const s = await readSettings();
+	const n = ROOM_CARDS[roomToday(s, now)];
+	const weekend = await weekendCard(now).catch(() => null);
+	const gifts = await giftCards(now).catch(() => [] as GiftCard[]);
+	return { weekend, gifts: gifts.slice(0, Math.max(0, n - (weekend ? 1 : 0))) };
 }
 
 function actionsFor(c: Candidate): Card['actions'] {
@@ -43,11 +58,16 @@ export async function todayCards(): Promise<Card[]> {
 	const now = new Date();
 	const state = await loadNudgeState(now);
 	const cands = buildCandidates(state);
+	const extras = await todayExtras(now);
+	const room = Math.max(0, ROOM_CARDS[state.room] - (extras.weekend ? 1 : 0) - extras.gifts.length);
+	// someone with a gift card already has their moment on Today
+	const giftPeople = new Set(extras.gifts.map((g) => g.personId));
+	const shown = cands.filter((c) => !(c.kind === 'person' && c.personId && giftPeople.has(c.personId)));
 
 	let order: string[] | undefined;
-	if (isOnline() && eligibleCount(state, cands) > ROOM_CARDS[state.room]) {
+	if (isOnline() && eligibleCount(state, shown) > room) {
 		try {
-			const eligible = planToday(state, cands, undefined, Infinity).map((p) => p.candidate);
+			const eligible = planToday(state, shown, undefined, Infinity).map((p) => p.candidate);
 			const r = await spark('rank', {
 				room: state.room,
 				candidates: eligible.map((c) => ({ id: c.key, title: c.title, reason: c.reasonText }))
@@ -58,7 +78,7 @@ export async function todayCards(): Promise<Card[]> {
 		}
 	}
 
-	const picks = planToday(state, cands, order);
+	const picks = planToday(state, shown, order, room);
 	const cards: Card[] = [];
 	const fresh: Prompt[] = [];
 	for (const { candidate: c, promptId } of picks) {

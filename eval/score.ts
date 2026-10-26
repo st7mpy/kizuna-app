@@ -75,7 +75,7 @@ export function scorePromises(expected: number, got: number): Tally {
 }
 
 export function scoreCase(c: Case, out: ExtractOutput | null, today: string): CaseScore {
-	const o: ExtractOutput = out ?? { language: 'other', sensitive: !c.expect.sensitive, people: [], events: [], promises: [], threads: [] };
+	const o: ExtractOutput = out ?? { language: 'other', sensitive: !c.expect.sensitive, people: [], events: [], promises: [], threads: [], gift_hints: [] };
 	const events = guardEvents(o, today);
 	return {
 		id: c.id,

@@ -7,7 +7,7 @@ import { escapeHtml } from './http.ts';
 import { limits } from './ratelimit.ts';
 import { icsFor, ID_RE, loadInvite, savePick, type StoredInvite } from './invite.ts';
 
-function nonce(): string {
+export function nonce(): string {
 	const b = crypto.getRandomValues(new Uint8Array(16));
 	return btoa(String.fromCharCode(...b));
 }
@@ -37,7 +37,7 @@ const GRAIN = `url("data:image/svg+xml;base64,${btoa(
 	`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.1 -0.3'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`
 )}")`;
 
-const CSS = `
+export const CSS = `
 :root{--bg:#F3F3F0;--text:#121214;--muted:#55545C;--faint:#6B6A72;--line:#D6D5CF;--rule:#121214;--on-rule:#F3F3F0;--accent:#2B3A92;--on-accent:#FFFFFF;--seal:#D4432A;color-scheme:light dark;
 --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif}
 @media (prefers-color-scheme:dark){:root{--bg:#0D0D0F;--text:#ECECE8;--muted:#A9A8B0;--faint:#8E8D95;--line:#2B2B30;--rule:#ECECE8;--on-rule:#0D0D0F;--accent:#A3ADFF;--on-accent:#0D0D0F;--seal:#F0603F}}
@@ -107,7 +107,7 @@ const JS = `
 `;
 
 // The Kizuna mark: two rings, one in the seal colour. Inline SVG needs no namespace in HTML.
-const MARK = `<svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(-28 50 50)" fill="none" stroke-width="8"><circle cx="37" cy="50" r="20" stroke="currentColor"/><circle cx="63" cy="50" r="20" stroke="var(--seal)"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="var(--bg)" stroke-width="13"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="currentColor" stroke-linecap="round"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--bg)" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--seal)" stroke-linecap="round"/></g></svg>`;
+export const MARK = `<svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(-28 50 50)" fill="none" stroke-width="8"><circle cx="37" cy="50" r="20" stroke="currentColor"/><circle cx="63" cy="50" r="20" stroke="var(--seal)"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="var(--bg)" stroke-width="13"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="currentColor" stroke-linecap="round"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--bg)" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--seal)" stroke-linecap="round"/></g></svg>`;
 
 const ARROW = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 

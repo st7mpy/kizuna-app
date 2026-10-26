@@ -1,4 +1,5 @@
 // Records stored on the phone (IndexedDB). Dates are ISO strings.
+import type { WeekendCard } from './circle.ts';
 // A "day" is 'YYYY-MM-DD' in the user's local time zone; a "time" is 'HH:MM' 24h.
 
 export type Source = 'voice' | 'typed' | 'sample';
@@ -111,6 +112,22 @@ export interface Settings {
 	lastWeaveAt?: string;
 	weaveFailedAt?: string; // last failed weave; no new try for 6 h after it
 	notesSinceWeave: number;
+	/** The Kizuna map circle this phone belongs to (absent = none yet). The key never leaves the device except in links. */
+	circle?: {
+		id: string;
+		key: string;
+		memberId: string;
+		share: boolean; // share my weekend windows
+		freeToday: boolean; // show "free today" from the room tap (12 h at most)
+		paused: boolean; // nothing shared while paused
+		lastSyncAt?: string;
+	};
+	/** Demo: let the weekend card show on any day. */
+	forceWeekend?: boolean;
+	/** The user's answer to this weekend's card (keyed by that weekend's Saturday). */
+	weekendAnswer?: { weekend: string; answer: 'not_now' | 'done' };
+	/** Today's weekend plan, kept so the planner runs once a day unless something changes. */
+	weekendCache?: { day: string; key: string; request: string; card: WeekendCard | null };
 }
 
 /** A proposed meeting slot. */

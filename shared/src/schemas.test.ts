@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Validator } from '@cfworker/json-schema';
 import { SCHEMAS } from './schemas.ts';
-import { PLAN_TOOLS } from './tasks.ts';
+import { PLAN_TOOLS, WEEKEND_TOOLS } from './tasks.ts';
 import type { DraftOutput, ExtractOutput, RankOutput, WeaveOutput } from './api.ts';
+import type { WindowsOutput } from './circle.ts';
 
 type Node = Record<string, unknown>;
 
@@ -48,7 +49,8 @@ const extractSample: ExtractOutput = {
 		{ what: 'naya job join kiya', kind: 'milestone', people: ['Kabir'], date: null, time: null, date_text: null }
 	],
 	promises: [{ what: 'call Kabir', person: 'Kabir', date_text: null }],
-	threads: [{ title: 'call Kabir', kind: 'promise', people: ['Kabir'] }]
+	threads: [{ title: 'call Kabir', kind: 'promise', people: ['Kabir'] }],
+	gift_hints: [{ person: 'Mum', what: 'a brighter reading lamp' }]
 };
 const weaveSample: WeaveOutput = {
 	people: [
@@ -69,6 +71,7 @@ const weaveSample: WeaveOutput = {
 };
 const draftSample: DraftOutput = { line: 'Kabir! Heard about the new job, how is the first week going?', language: 'en' };
 const rankSample: RankOutput = { order: ['c2', 'c1'] };
+const windowsSample: WindowsOutput = { windows: [{ day: '2026-11-01', start: '17:00', end: '20:00' }], not_this_weekend: false, language: 'mixed' };
 
 describe('schemas are strict-mode valid', () => {
 	for (const [name, schema] of Object.entries(SCHEMAS)) {
@@ -76,6 +79,9 @@ describe('schemas are strict-mode valid', () => {
 	}
 	for (const tool of PLAN_TOOLS as { function: { name: string; parameters: Node } }[]) {
 		it(`plan tool ${tool.function.name}`, () => expect(strictProblems(tool.function.parameters)).toEqual([]));
+	}
+	for (const tool of WEEKEND_TOOLS as { function: { name: string; parameters: Node } }[]) {
+		it(`weekend tool ${tool.function.name}`, () => expect(strictProblems(tool.function.parameters)).toEqual([]));
 	}
 	it('the walker catches a loose object', () => {
 		expect(strictProblems({ type: 'object', properties: { a: { type: 'string' } } })).toHaveLength(2);
@@ -87,8 +93,10 @@ describe('sample outputs validate', () => {
 	it('weave', () => expect(validate(SCHEMAS.weave, weaveSample).valid).toBe(true));
 	it('draft', () => expect(validate(SCHEMAS.draft, draftSample).valid).toBe(true));
 	it('rank', () => expect(validate(SCHEMAS.rank, rankSample).valid).toBe(true));
+	it('windows', () => expect(validate(SCHEMAS.windows, windowsSample).valid).toBe(true));
+	it('windows may be empty', () => expect(validate(SCHEMAS.windows, { windows: [], not_this_weekend: true, language: 'en' }).valid).toBe(true));
 	it('empty extract lists are fine', () => {
-		expect(validate(SCHEMAS.extract, { ...extractSample, people: [], events: [], promises: [], threads: [] }).valid).toBe(true);
+		expect(validate(SCHEMAS.extract, { ...extractSample, people: [], events: [], promises: [], threads: [], gift_hints: [] }).valid).toBe(true);
 	});
 });
 
@@ -107,4 +115,12 @@ describe('bad outputs are rejected', () => {
 		expect(validate(SCHEMAS.weave, bad).valid).toBe(false);
 	});
 	it('null where not allowed', () => expect(validate(SCHEMAS.rank, { order: null }).valid).toBe(false));
+	it('extract without gift_hints', () => {
+		const { gift_hints: _g, ...old } = extractSample;
+		expect(validate(SCHEMAS.extract, old).valid).toBe(false);
+	});
+	it('more than three windows', () => {
+		const w = windowsSample.windows[0];
+		expect(validate(SCHEMAS.windows, { ...windowsSample, windows: [w, w, w, w] }).valid).toBe(false);
+	});
 });

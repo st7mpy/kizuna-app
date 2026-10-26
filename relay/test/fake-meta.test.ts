@@ -1,7 +1,8 @@
 // End to end through the relay with real task building and the local fake model.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SCHEMAS } from '@kizuna/shared';
-import { fakeCompletion, fakeExtract, planArgs } from '../../tools/fake-meta/fake.ts';
+import { fakeCompletion, fakeExtract, giftHints, planArgs } from '../../tools/fake-meta/fake.ts';
+import { sampleWeekend } from './weekend-fixture.ts';
 import { route } from '../src/index.ts';
 import { resetAllLimits } from '../src/ratelimit.ts';
 import { schemaErrors } from '../src/validate.ts';
@@ -105,5 +106,41 @@ describe('fake model through the relay', () => {
 		expect(planArgs(u('next weekend, not Sunday'))).toEqual({ from: '2026-11-07', to: '2026-11-08', partOfDay: null, excludeWeekdays: [0] });
 		expect(planArgs(u('kal shaam ko'))).toMatchObject({ from: '2026-11-03', to: '2026-11-03', partOfDay: 'evening' });
 		expect(planArgs(u('friday morning'))).toMatchObject({ from: '2026-11-06', partOfDay: 'morning' });
+	});
+
+	it('extract finds gift hints, never with prices', async () => {
+		const r = await spark('extract', { text: 'Papa wants a brighter reading lamp for his birthday. Riya ko naya yoga mat chahiye.', today: '2026-11-02', weekday: 'Monday', knownPeople: [] });
+		expect(schemaErrors(SCHEMAS.extract, r.output)).toBeNull();
+		expect(r.output.gift_hints).toEqual([
+			{ person: 'Papa', what: 'a brighter reading lamp' },
+			{ person: 'Riya', what: 'naya yoga mat' }
+		]);
+		expect(giftHints('Papa wants a lamp for ₹2000', ['Papa'])).toEqual([]);
+		expect(giftHints('Kabir wants to meet', ['Kabir'])).toEqual([]);
+	});
+
+	it('windows reads Hinglish replies into guarded windows', async () => {
+		const now = '2026-10-30T18:10:00+05:30';
+		const sun = await spark('windows', { reply: 'Sunday shaam ko free hoon', now, timeZone: 'Asia/Kolkata' });
+		expect(sun.ok).toBe(true);
+		expect(schemaErrors(SCHEMAS.windows, sun.output)).toBeNull();
+		expect(sun.output).toEqual({ windows: [{ day: '2026-11-01', start: '17:00', end: '20:00' }], not_this_weekend: false, language: 'mixed' });
+		const sat = await spark('windows', { reply: 'Sat after lunch, not before 2', now, timeZone: 'Asia/Kolkata' });
+		expect(sat.output.windows).toEqual([{ day: '2026-10-31', start: '14:00', end: '16:00' }]);
+		const nope = await spark('windows', { reply: 'is weekend nahi ho payega', now, timeZone: 'Asia/Kolkata' });
+		expect(nope.output).toMatchObject({ windows: [], not_this_weekend: true });
+	});
+
+	it('weekend runs the tool loop to a checked plan', async () => {
+		const r = await spark('weekend', sampleWeekend);
+		expect(r.ok).toBe(true);
+		expect(r.output.slot.start).toBe('2026-11-01T10:00:00+05:30');
+		expect(r.output.personIds).toEqual(['mum', 'papa', 'riya']);
+		expect(r.output.occasion).toBe('Diwali');
+		expect(r.output.tools_used).toEqual(['get_windows', 'get_occasions', ...sampleWeekend.people.map(() => 'get_reasons'), 'finish']);
+		expect(r.output.skipped.map((s: any) => s.personId)).toEqual(['kabir']);
+		expect(r.output.skipped[0].alt.start).toBe('2026-10-31T19:30:00+05:30');
+		const notSun = await spark('weekend', { ...sampleWeekend, request: 'not Sunday, Papa has puja' });
+		expect(notSun.output.slot.start.slice(0, 10)).toBe('2026-10-31');
 	});
 });

@@ -77,11 +77,16 @@ describe('todayCards', () => {
 		expect(await db.prompts.count()).toBe(3);
 	});
 
-	it('stays quiet about people during quiet hours', async () => {
+	it('still shows people at night, with the time moved to the morning, without counting them', async () => {
 		await seed();
 		vi.setSystemTime(at(0, 23));
 		const cards = await todayCards();
-		expect(cards.map((c) => c.kind)).toEqual(['thread']);
+		const people = cards.filter((c) => c.kind === 'person');
+		expect(people.length).toBeGreaterThan(0);
+		for (const c of people) expect(new Date(c.slot!.start).getTime()).toBeGreaterThan(at(1, 8, 30).getTime() - 1);
+		const { capUsed } = await import('./nudges.ts');
+		const s = await getSettings();
+		expect(capUsed({ now: at(0, 23), prompts: await db.prompts.toArray(), settings: s })).toBe(0);
 	});
 
 	it('handles answers: not now hides, keep adds to circle, done closes a thread', async () => {

@@ -1,9 +1,28 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import type { Fragment, KEvent, Person } from '@kizuna/shared';
-	import { mergePeople, removePerson, retryFragment, updatePerson } from '#lib/core/index.js';
-	import { allPeople, eventsFor, fragmentsMentioning, person } from '#lib/db.js';
+	import type { Fragment, GiftHint, KEvent, Person } from '@kizuna/shared';
+	import {
+		linkMember,
+		mergePeople,
+		noteThought,
+		removePerson,
+		retryFragment,
+		updatePerson
+	} from '#lib/core/index.js';
+	import {
+		allPeople,
+		circleMembers,
+		eventsFor,
+		fragmentsMentioning,
+		giftsFor,
+		mapLive,
+		person,
+		type MapView,
+		type MemberRow
+	} from '#lib/db.js';
+	import { cityOf } from '#lib/ui/constellation.js';
+	import { occasionChip, whenLocal } from '#lib/ui/mapformat.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { dayKey, dayLabel, noteDay, snippet } from '#lib/ui/format.js';
 	import PokeSheet from '#lib/ui/PokeSheet.svelte';
@@ -17,6 +36,50 @@
 	const events = watch<KEvent[]>(() => eventsFor(id), []);
 	const notes = watch<Fragment[]>(() => fragmentsMentioning(id), []);
 	const everyone = watch<Person[]>(() => allPeople(), []);
+
+	const map = watch<MapView | undefined>(() => mapLive(), undefined);
+	const gifts = watch<GiftHint[]>(() => giftsFor(id), []);
+	const members = watch<MemberRow[]>(() => circleMembers(), []);
+	const onMap = $derived(map.value?.people.find((m) => m.person.id === id));
+	const openGift = $derived(gifts.value.find((g) => g.status === 'open'));
+	const linked = $derived(members.value.find((m) => m.personId === id));
+	const unlinked = $derived(members.value.filter((m) => !m.personId));
+	const windowLine = (w: { start: string; end: string }) =>
+		`${whenLocal(w.start)} to ${whenLocal(w.end).split(' ')[1]}`;
+
+	// note a thought: stays on this phone
+	let thought = $state('');
+	let thoughtNote = $state('');
+	let thinking = $state(false);
+	async function saveThought(e: SubmitEvent) {
+		e.preventDefault();
+		const t = thought.trim();
+		if (!t || !p.value) return;
+		thinking = true;
+		try {
+			await noteThought(p.value.id, t);
+			thought = '';
+			thoughtNote = 'Kept. Only on this phone.';
+		} catch {
+			thoughtNote = 'Couldn’t keep that just now. Try again in a moment.';
+		} finally {
+			thinking = false;
+		}
+	}
+
+	// link a family-page member to this person
+	let memberPick = $state('');
+	let linkNote = $state('');
+	async function link(memberId: string | null) {
+		linkNote = '';
+		try {
+			if (memberId) await linkMember(memberId, id);
+			else if (linked) await linkMember(linked.memberId, null);
+			memberPick = '';
+		} catch {
+			linkNote = 'Couldn’t link that just now.';
+		}
+	}
 
 	const today = dayKey();
 	const upcoming = $derived(
@@ -135,6 +198,70 @@
 			</div>
 		</section>
 
+		<section class="section">
+			<h3>Note a thought</h3>
+			<form class="stack thought" onsubmit={saveThought}>
+				<label class="field">
+					<span class="sr-only">A thought about {p.value.name}</span>
+					<textarea
+						rows="2"
+						bind:value={thought}
+						maxlength="1000"
+						placeholder="Something to remember about {p.value.name}"
+						oninput={() => (thoughtNote = '')}
+					></textarea>
+				</label>
+				<div class="spread">
+					<span class="tiny" role="status">{thoughtNote || 'Stays on this phone.'}</span>
+					<button class="btn line" type="submit" disabled={!thought.trim() || thinking}>Keep</button>
+				</div>
+			</form>
+		</section>
+
+		{#if onMap && (onMap.localTime || onMap.windows.length || onMap.occasion || openGift)}
+			<section class="section">
+				<h3>On the map</h3>
+				<ul class="rows">
+					{#if onMap.localTime}
+						<li class="map-row">
+							<span class="label">Their time</span>
+							<span
+								><span class="num">{onMap.localTime}</span>{onMap.tz ? ` in ${cityOf(onMap.tz)}` : ''}{onMap.glow ===
+								'open'
+									? ', open to a call'
+									: onMap.glow === 'maybe'
+										? ', maybe later'
+										: ''}</span
+							>
+						</li>
+					{/if}
+					{#if onMap.windows.length}
+						<li class="map-row">
+							<span class="label">Free this week, your time</span>
+							{#each onMap.windows as w (w.start)}<span class="num">{windowLine(w)}</span>{/each}
+						</li>
+					{/if}
+					{#if onMap.occasion}
+						<li class="map-row">
+							<span class="label">Occasion</span>
+							<span>{occasionChip(onMap.occasion.name, onMap.occasion.day)}</span>
+						</li>
+					{/if}
+					{#if openGift}
+						<li class="map-row">
+							<span class="label">Gift idea, only on this phone</span>
+							<span>{openGift.what}</span>
+						</li>
+					{/if}
+				</ul>
+			</section>
+		{:else if openGift}
+			<section class="section">
+				<h3>Gift idea</h3>
+				<p class="pad">{openGift.what} <span class="tiny">Only on this phone.</span></p>
+			</section>
+		{/if}
+
 		{#if upcoming.length}
 			<section class="section">
 				<h3>Coming up</h3>
@@ -203,6 +330,33 @@
 				</div>
 			</form>
 		</section>
+
+		{#if linked || unlinked.length}
+			<section class="section">
+				<h3>On the family page</h3>
+				{#if linked}
+					<div class="spread pad">
+						<span>Linked to <em>{linked.entry.name}</em>.</span>
+						<button class="btn quiet" type="button" onclick={() => link(null)}>Unlink</button>
+					</div>
+				{:else}
+					<p class="tiny pad">Someone replied on the family page. Is one of them {p.value.name}?</p>
+					<div class="row merge">
+						<label class="field grow">
+							<span class="sr-only">Who on the family page is {p.value.name}</span>
+							<select bind:value={memberPick}>
+								<option value="">Pick a reply…</option>
+								{#each unlinked as m (m.memberId)}
+									<option value={m.memberId}>{m.entry.name}</option>
+								{/each}
+							</select>
+						</label>
+						<button class="btn line" type="button" disabled={!memberPick} onclick={() => link(memberPick)}>Link</button>
+					</div>
+				{/if}
+				{#if linkNote}<p class="note" role="alert">{linkNote}</p>{/if}
+			</section>
+		{/if}
 
 		<section class="section">
 			<h3>Same person?</h3>
@@ -339,6 +493,15 @@
 	}
 	.pad {
 		padding-top: 14px;
+	}
+	.thought {
+		gap: 6px;
+	}
+	.map-row {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 12px 0;
 	}
 	.remove {
 		align-self: flex-start;
