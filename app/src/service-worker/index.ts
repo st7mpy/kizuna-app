@@ -17,7 +17,8 @@ sw.addEventListener('install', (event) => {
 	event.waitUntil(
 		caches
 			.open(CACHE)
-			.then((c) => Promise.allSettled([...new Set(SHELL)].map((u) => c.add(u))))
+			// All or nothing: if one file fails, install fails and the old worker and cache stay.
+			.then((c) => c.addAll([...new Set(SHELL)]))
 			.then(() => sw.skipWaiting())
 	);
 });

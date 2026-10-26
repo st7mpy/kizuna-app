@@ -1,11 +1,11 @@
 // GET/POST /p/:id: the page the other person opens. One self-contained HTML
 // document (inline CSS and JS under a nonce CSP), works without JavaScript; the
 // script only rewrites times into the viewer's own time zone.
-import { slotLabel, type Slot } from '@kizuna/shared';
+import { googleCalendarLink, slotLabel, type Slot } from '@kizuna/shared';
 import type { Env } from './env.ts';
 import { escapeHtml } from './http.ts';
 import { limits } from './ratelimit.ts';
-import { ID_RE, loadInvite, savePick, type StoredInvite } from './invite.ts';
+import { icsFor, ID_RE, loadInvite, savePick, type StoredInvite } from './invite.ts';
 
 function nonce(): string {
 	const b = crypto.getRandomValues(new Uint8Array(16));
@@ -32,41 +32,55 @@ function pageHeaders(n: string): Record<string, string> {
 	};
 }
 
+// Same paper, ink and indigo as the app. System fonts only: the CSP allows no font loads.
+const GRAIN = `url("data:image/svg+xml;base64,${btoa(
+	`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.1 -0.3'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`
+)}")`;
+
 const CSS = `
-:root{--bg:#FAF7F2;--card:#FFFFFF;--text:#2B2420;--muted:#6F635A;--line:#E9E1D6;--accent:#D9572B;--accent-ink:#FFFFFF;--soft:#FBEDE6;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#1A1714;--card:#24201C;--text:#F3EDE5;--muted:#AA9D90;--line:#3A332C;--accent:#EE7A4E;--accent-ink:#1A1714;--soft:#3A2820}}
+:root{--bg:#F3F3F0;--text:#121214;--muted:#55545C;--faint:#6B6A72;--line:#D6D5CF;--rule:#121214;--on-rule:#F3F3F0;--accent:#2B3A92;--on-accent:#FFFFFF;--seal:#D4432A;color-scheme:light dark;
+--sans:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0D0D0F;--text:#ECECE8;--muted:#A9A8B0;--faint:#8E8D95;--line:#2B2B30;--rule:#ECECE8;--on-rule:#0D0D0F;--accent:#A3ADFF;--on-accent:#0D0D0F;--seal:#F0603F}}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text)}
-body{font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;justify-content:center;padding:40px 16px 32px}
-main{width:100%;max-width:440px}
-.mark{width:40px;height:40px;border-radius:50%;background:var(--soft);display:grid;place-items:center;margin-bottom:20px}
-.mark span{width:14px;height:14px;border-radius:50%;background:var(--accent)}
-h1{font-size:26px;line-height:1.25;font-weight:650;letter-spacing:-.01em;margin:0 0 6px}
-.sub{color:var(--muted);margin:0 0 28px}
+body{font:17px/1.5 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;justify-content:center;padding:20px 20px 32px}
+main{width:100%;max-width:440px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;font-size:16px;letter-spacing:-.015em;margin:0 0 56px}
+.brand svg{display:block}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:0 0 12px}
+h1{font-size:42px;line-height:1.04;font-weight:500;letter-spacing:-.035em;margin:0 0 14px;text-wrap:balance}
+.sub{color:var(--muted);font-size:19px;line-height:1.4;margin:0 0 36px}
+em{font-family:var(--serif);font-style:italic;font-weight:400}
 form{margin:0}
-.slots{display:grid;gap:12px;margin:0;padding:0;list-style:none}
-.slot{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;font:inherit;color:inherit;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 18px;min-height:72px;cursor:pointer;transition:border-color .15s,transform .1s}
-.slot:hover{border-color:var(--accent)}
-.slot:active{transform:scale(.99)}
-.slot:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.slots{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.slots li{border-bottom:1px solid var(--line)}
+.slot{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:18px 0;min-height:96px;cursor:pointer}
+.slot:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
 .slot[disabled]{opacity:.45;cursor:default}
-.slot .day{display:block;font-weight:600}
-.slot .time{display:block;color:var(--muted);font-size:15px}
-.slot .go{flex:none;color:var(--accent);font-weight:600;font-size:15px}
-.tz{color:var(--muted);font-size:14px;margin:16px 2px 0}
-.picked{background:var(--card);border:1.5px solid var(--accent);border-radius:16px;padding:18px}
-.picked .label{color:var(--muted);font-size:14px;margin:0 0 2px}
-.picked .day{font-weight:650;font-size:20px;display:block}
-.picked .time{color:var(--text);display:block}
-.actions{display:grid;gap:10px;margin:20px 0 0}
-.btn{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:14px;font-weight:600;text-decoration:none;border:1.5px solid var(--accent);padding:0 16px}
-.btn.primary{background:var(--accent);color:var(--accent-ink)}
-.btn.secondary{color:var(--accent);background:transparent}
-.btn:focus-visible{outline:3px solid var(--text);outline-offset:2px}
-.note{margin:20px 2px 0;color:var(--text)}
-.change{display:inline-block;margin-top:18px;color:var(--muted);font-size:15px}
-footer{margin-top:44px;color:var(--muted);font-size:13px;text-align:center}
+.slot .day{display:block;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.slot .time{display:block;font-size:28px;line-height:1.1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.go{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--rule);color:var(--on-rule);transition:transform .15s}
+.slot:hover .go{transform:translateX(3px)}
+.slot:active .go{transform:scale(.94)}
+.slot[disabled] .go{background:none;color:var(--faint);box-shadow:inset 0 0 0 1px var(--line);font-size:12px;width:auto;padding:0 14px;border-radius:999px;height:32px}
+.tz{color:var(--faint);font-size:14px;margin:18px 0 0}
+.picked{position:relative;overflow:hidden;border-radius:28px;padding:22px 22px 26px;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end;color:#121214;
+background:radial-gradient(130% 100% at 15% 0%,#6E7FC8 0%,transparent 62%),linear-gradient(172deg,#9CC6EE 0%,#D7E8F8 100%)}
+.picked::after{content:"";position:absolute;inset:0;background-image:${GRAIN};background-size:180px;mix-blend-mode:multiply;opacity:.38;pointer-events:none}
+.picked>*{position:relative;z-index:1}
+.picked .label{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:rgba(18,18,20,.72);margin:0 0 auto;padding-bottom:28px}
+.picked .day{display:block;font-size:15px;font-weight:500}
+.picked .time{display:block;font-size:34px;line-height:1.1;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.seal{position:absolute;top:18px;right:18px;z-index:1;transform:rotate(-8deg)}
+.actions{display:grid;gap:10px;margin:24px 0 0}
+.btn{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:999px;font-weight:500;text-decoration:none;padding:0 20px}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.secondary{color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.btn:focus-visible,.change:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.change{align-self:flex-start;display:inline-flex;align-items:center;min-height:44px;margin-top:10px;color:var(--muted);font-size:15px}
+footer{margin-top:auto;padding-top:56px;color:var(--faint);font-size:13px}
 footer b{font-weight:600;color:var(--text)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 `;
 
 // Rewrites [data-start] times into the viewer's zone. No network calls.
@@ -92,6 +106,13 @@ const JS = `
 })();
 `;
 
+// The Kizuna mark: two rings, one in the seal colour. Inline SVG needs no namespace in HTML.
+const MARK = `<svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(-28 50 50)" fill="none" stroke-width="8"><circle cx="37" cy="50" r="20" stroke="currentColor"/><circle cx="63" cy="50" r="20" stroke="var(--seal)"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="var(--bg)" stroke-width="13"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="currentColor" stroke-linecap="round"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--bg)" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--seal)" stroke-linecap="round"/></g></svg>`;
+
+const ARROW = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+
+const SEAL = `<svg class="seal" width="64" height="64" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="#D4432A"/><circle cx="50" cy="50" r="39" fill="none" stroke="#F7F1E8" stroke-width="2.5"/><g transform="rotate(-28 50 50)" fill="none" stroke="#F7F1E8" stroke-width="5.5"><circle cx="41" cy="50" r="13"/><circle cx="59" cy="50" r="13"/></g></svg>`;
+
 function shell(title: string, body: string, status = 200): Response {
 	const n = nonce();
 	const html = `<!doctype html>
@@ -101,14 +122,14 @@ function shell(title: string, body: string, status = 200): Response {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#FAF7F2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1A1714" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F3F3F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D0D0F" media="(prefers-color-scheme: dark)">
 <title>${escapeHtml(title)}</title>
 <style nonce="${n}">${CSS}</style>
 </head>
 <body>
 <main>
-<div class="mark" aria-hidden="true"><span></span></div>
+<div class="brand">${MARK}<span>Kizuna</span></div>
 ${body}
 <footer>Sent with <b>Kizuna</b></footer>
 </main>
@@ -116,45 +137,6 @@ ${body}
 </body>
 </html>`;
 	return new Response(html, { status, headers: pageHeaders(n) });
-}
-
-function compact(ms: number): string {
-	return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-}
-
-export function googleCalendarUrl(title: string, slot: Slot, details: string): string {
-	const p = new URLSearchParams({
-		action: 'TEMPLATE',
-		text: title,
-		dates: `${compact(Date.parse(slot.start))}/${compact(Date.parse(slot.end))}`,
-		details
-	});
-	return `https://calendar.google.com/calendar/render?${p.toString()}`;
-}
-
-function icsText(s: string): string {
-	return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
-}
-
-export function icsFor(id: string, inv: StoredInvite, index: number, now = Date.now()): string {
-	const slot = inv.slots[index];
-	const lines = [
-		'BEGIN:VCALENDAR',
-		'VERSION:2.0',
-		'PRODID:-//Kizuna//Pick a time//EN',
-		'CALSCALE:GREGORIAN',
-		'METHOD:PUBLISH',
-		'BEGIN:VEVENT',
-		`UID:${id}-${index}@kizuna`,
-		`DTSTAMP:${compact(now)}`,
-		`DTSTART:${compact(Date.parse(slot.start))}`,
-		`DTEND:${compact(Date.parse(slot.end))}`,
-		`SUMMARY:${icsText(inv.title)}`,
-		`DESCRIPTION:${icsText(`Picked on Kizuna. ${inv.fromName} can see your pick.`)}`,
-		'END:VEVENT',
-		'END:VCALENDAR'
-	];
-	return lines.join('\r\n') + '\r\n';
 }
 
 function slotParts(inv: StoredInvite, s: Slot): { day: string; time: string } {
@@ -175,10 +157,11 @@ export function renderPickPage(id: string, inv: StoredInvite, now = Date.now()):
 			const { day, time } = slotParts(inv, s);
 			const past = Date.parse(s.start) < now;
 			return `<li><button class="slot" type="submit" name="index" value="${i}"${past ? ' disabled' : ''} data-start="${escapeHtml(s.start)}" data-end="${escapeHtml(s.end)}">
-<span><span class="day">${escapeHtml(day)}</span><span class="time">${escapeHtml(time)}</span></span><span class="go" aria-hidden="true">${past ? 'Passed' : 'Pick'}</span></button></li>`;
+<span><span class="day">${escapeHtml(day)}</span><span class="time">${escapeHtml(time)}</span></span>${past ? '<span class="go">Passed</span>' : `<span class="go" aria-hidden="true">${ARROW}</span>`}</button></li>`;
 		})
 		.join('\n');
-	const body = `<h1>${name} wants to catch up.</h1>
+	const body = `<p class="eyebrow">An invitation</p>
+<h1>${name} wants to catch up.</h1>
 <p class="sub">Pick a time that works.</p>
 <form method="post" action="/p/${id}">
 <ul class="slots">
@@ -194,10 +177,12 @@ export function renderPickedPage(id: string, inv: StoredInvite): Response {
 	const slot = inv.slots[index];
 	const { day, time } = slotParts(inv, slot);
 	const name = escapeHtml(inv.fromName);
-	const gcal = googleCalendarUrl(inv.title, slot, `Picked on Kizuna. ${inv.fromName} can see your pick.`);
-	const body = `<h1>You're set.</h1>
+	const gcal = googleCalendarLink(slot, inv.title, `Picked on Kizuna. ${inv.fromName} can see your pick.`);
+	const body = `<p class="eyebrow">Picked</p>
+<h1>You're <em>set</em>.</h1>
 <p class="sub">${name} will see your pick.</p>
 <div class="picked" data-start="${escapeHtml(slot.start)}" data-end="${escapeHtml(slot.end)}">
+${SEAL}
 <p class="label">${escapeHtml(inv.title)}</p>
 <span class="day">${escapeHtml(day)}</span><span class="time">${escapeHtml(time)}</span>
 </div>
@@ -211,7 +196,8 @@ ${zoneLine(inv)}
 }
 
 export function renderGonePage(): Response {
-	const body = `<h1>This invite has ended.</h1>
+	const body = `<p class="eyebrow">Invite</p>
+<h1>This invite has ended.</h1>
 <p class="sub">Invites last a week, or the link may be incomplete. If you still want to meet, send a quick message to whoever shared it and they can send a fresh one.</p>`;
 	return shell('Invite ended', body, 404);
 }

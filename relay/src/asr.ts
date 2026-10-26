@@ -3,7 +3,8 @@
 import type { AsrServerMessage } from '@kizuna/shared';
 import { metaBase, type Env } from './env.ts';
 import { fail } from './http.ts';
-import { limits } from './ratelimit.ts';
+import { edgeAllow, limits } from './ratelimit.ts';
+import { audioUsd, overBudget, spend, withinBudget } from './budget.ts';
 import { handshakeFrame, mapUpstreamEvent, stopFrame, upstreamUrl } from './asr-upstream.ts';
 
 export const SESSION_CAP_MS = 10 * 60_000;
@@ -40,7 +41,8 @@ export async function handleAsr(req: Request, env: Env): Promise<Response> {
 	if (req.headers.get('upgrade')?.toLowerCase() !== 'websocket') {
 		return new Response('Expected a WebSocket', { status: 426 });
 	}
-	if (!limits.voice.allow(req)) return fail('rate_limited');
+	if (!limits.voice.allow(req) || !(await edgeAllow(env.RL_VOICE, req))) return fail('rate_limited');
+	if (!(await withinBudget(env))) return overBudget();
 	const queryLang = new URL(req.url).searchParams.get('lang');
 
 	const pair = new WebSocketPair();
@@ -56,6 +58,8 @@ export async function handleAsr(req: Request, env: Env): Promise<Response> {
 	let pending: ArrayBuffer[] = [];
 	let pendingBytes = 0;
 	let audioChain: Promise<void> = Promise.resolve();
+	let audioBytes = 0;
+	let bytesPerMs = 32; // 16 kHz PCM16; set from the start frame
 	const timers: ReturnType<typeof setTimeout>[] = [];
 
 	const send = (m: AsrServerMessage) => {
@@ -68,6 +72,7 @@ export async function handleAsr(req: Request, env: Env): Promise<Response> {
 	const finish = (error?: string) => {
 		if (done) return;
 		done = true;
+		void spend(env, audioUsd(audioBytes / bytesPerMs)).catch(() => {});
 		for (const t of timers) clearTimeout(t);
 		if (error) send({ type: 'error', error });
 		send({ type: 'closed' });
@@ -94,7 +99,10 @@ export async function handleAsr(req: Request, env: Env): Promise<Response> {
 		if (done) return ws.close(1000, 'done');
 		upstream = ws;
 		ws.send(handshakeFrame({ apiKey: env.MODEL_API_KEY ?? '', sampleRate, languageBias }));
-		for (const chunk of pending) ws.send(chunk);
+		for (const chunk of pending) {
+			ws.send(chunk);
+			audioBytes += chunk.byteLength;
+		}
 		pending = [];
 		pendingBytes = 0;
 		if (stopping) ws.send(stopFrame());
@@ -122,6 +130,7 @@ export async function handleAsr(req: Request, env: Env): Promise<Response> {
 			if (m?.type === 'start' && !started) {
 				started = true;
 				const rate = m.sampleRate === 24000 ? 24000 : 16000;
+				bytesPerMs = (rate * 2) / 1000;
 				void connect(rate, languagesFrom(m.languageBias, queryLang));
 			} else if (m?.type === 'stop' && !stopping) {
 				stopping = true;
@@ -143,6 +152,7 @@ export async function handleAsr(req: Request, env: Env): Promise<Response> {
 			if (upstream) {
 				try {
 					upstream.send(chunk);
+					audioBytes += chunk.byteLength;
 				} catch {
 					finish('asr_error');
 				}

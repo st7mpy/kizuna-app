@@ -13,6 +13,7 @@ export interface Fragment {
 	/** 'new' = not yet understood, 'done' = extracted, 'failed' = gave up after retries */
 	status: 'new' | 'done' | 'failed';
 	tries: number;
+	nextTryAt?: string; // ISO; not tried again before this (backoff after an error)
 	sensitive?: boolean;
 	personIds?: string[]; // people this note mentions (set once understood)
 }
@@ -106,8 +107,9 @@ export interface Settings {
 	languageBias: string[]; // e.g. ['en','hi']
 	room?: { day: string; level: Room }; // today's room tap
 	relayUrl?: string; // override for dev
-	timeZone?: string; // IANA, from Intl at first run
+	timeZone?: string; // IANA, the phone's current zone (read from Intl each time, not stored)
 	lastWeaveAt?: string;
+	weaveFailedAt?: string; // last failed weave; no new try for 6 h after it
 	notesSinceWeave: number;
 }
 

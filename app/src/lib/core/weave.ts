@@ -3,13 +3,18 @@ import type { Settings, Thread, WeaveOutput } from '@kizuna/shared';
 import { db, newId, readSettings } from '../db.ts';
 import { addDays, dayToDate, localDay } from './days.ts';
 import { matchPerson, mergePeople, normName, unionAliases, upsertPerson } from './people.ts';
-import { isOnline, spark } from './relay.ts';
+import { RelayError, isOnline, spark } from './relay.ts';
+import { updateSettings } from './settings.ts';
 
 export const WEAVE_NOTE_DAYS = 60;
 export const WEAVE_NOTE_CAP = 200;
 
-/** Due when 10+ notes arrived, or a day has passed and 3+ arrived. */
-export function weaveDue(s: Pick<Settings, 'lastWeaveAt' | 'notesSinceWeave'>, now = new Date()): boolean {
+/** After a failed weave, wait this long before trying again (it is the most costly call). */
+export const WEAVE_FAIL_WAIT_MS = 6 * 3600_000;
+
+/** Due when 10+ notes arrived, or a day has passed and 3+ arrived; never within 6 h of a failure. */
+export function weaveDue(s: Pick<Settings, 'lastWeaveAt' | 'notesSinceWeave' | 'weaveFailedAt'>, now = new Date()): boolean {
+	if (s.weaveFailedAt && now.getTime() - new Date(s.weaveFailedAt).getTime() < WEAVE_FAIL_WAIT_MS) return false;
 	const n = s.notesSinceWeave ?? 0;
 	if (n >= 10) return true;
 	const dayPassed = !s.lastWeaveAt || now.getTime() - new Date(s.lastWeaveAt).getTime() > 24 * 3600_000;
@@ -31,11 +36,18 @@ export function runWeave(force = false): Promise<void> {
 				.reverse();
 			if (!notes.length) return;
 			const people = await db.people.toArray();
-			const out = await spark('weave', {
-				today: localDay(),
-				notes: notes.map((f) => ({ id: f.id, day: localDay(f.createdAt), text: f.text })),
-				people: people.map((p) => ({ id: p.id, name: p.name, aliases: p.aliases, relation: p.relation, circle: p.circle }))
-			});
+			let out: WeaveOutput;
+			try {
+				out = await spark('weave', {
+					today: localDay(),
+					notes: notes.map((f) => ({ id: f.id, day: localDay(f.createdAt), text: f.text })),
+					people: people.map((p) => ({ id: p.id, name: p.name, aliases: p.aliases, relation: p.relation, circle: p.circle }))
+				});
+			} catch (e) {
+				// Offline is not a failure; anything else backs off for 6 h.
+				if (!(e instanceof RelayError && e.isConnectivity)) await updateSettings({ weaveFailedAt: new Date().toISOString() });
+				throw e;
+			}
 			await applyWeave(out);
 		} finally {
 			weaving = null;
@@ -118,6 +130,6 @@ export async function applyWeave(out: WeaveOutput, noteId: (id: string) => strin
 		}
 
 		const s = await readSettings();
-		await db.settings.put({ ...s, lastWeaveAt: now, notesSinceWeave: 0 });
+		await db.settings.put({ ...s, lastWeaveAt: now, notesSinceWeave: 0, weaveFailedAt: undefined });
 	});
 }

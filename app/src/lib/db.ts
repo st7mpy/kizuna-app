@@ -57,7 +57,9 @@ export function defaultSettings(): Settings {
 
 export async function readSettings(): Promise<Settings> {
 	const s = await db.settings.get('me');
-	return s ? { ...defaultSettings(), ...s } : defaultSettings();
+	const d = defaultSettings();
+	// The zone is always the phone's current one, never a saved copy.
+	return s ? { ...d, ...s, timeZone: d.timeZone } : d;
 }
 
 // ---------- live queries for the UI (Svelte can use these as stores with $) ----------

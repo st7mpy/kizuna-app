@@ -1,6 +1,9 @@
 // Per-client limits: a token bucket for bursts plus a daily cap.
-// State lives in the isolate's memory, so limits are per edge location and reset
-// when the isolate is recycled. Good enough to stop casual abuse of the model key.
+// State lives in the isolate's memory, so these are per isolate. The edge rate-limit
+// bindings (edgeAllow) are shared by a location's isolates, and budget.ts holds the
+// global daily ceiling on spend.
+
+import { ledger } from './budget.ts';
 
 export interface LimitOptions { capacity: number; refillPerMinute: number; daily: number }
 
@@ -52,10 +55,9 @@ export class ClientLimiter {
 	}
 
 	allow(req: Request, now = Date.now()): boolean {
-		const ip = req.headers.get('cf-connecting-ip') || 'local';
-		const device = (req.headers.get('x-kizuna-device') || '').slice(0, 64).replace(/[^\w-]/g, '');
+		const ip = clientIp(req);
 		if (!this.ip.take(`ip:${ip}`, now)) return false;
-		return this.device.take(`d:${ip}|${device}`, now);
+		return this.device.take(`d:${ip}|${deviceOf(req)}`, now);
 	}
 
 	reset(): void {
@@ -64,13 +66,70 @@ export class ClientLimiter {
 	}
 }
 
+export function clientIp(req: Request): string {
+	return req.headers.get('cf-connecting-ip') || 'local';
+}
+
+/** The per-install id: a header, or ?device= where headers can't be sent (WebSocket, WAV upload). */
+export function deviceOf(req: Request): string {
+	const raw = req.headers.get('x-kizuna-device') || new URL(req.url).searchParams.get('device') || '';
+	return raw.slice(0, 64).replace(/[^\w-]/g, '');
+}
+
+/**
+ * Voice: a listening session may open the socket and, if that fails, upload the recording.
+ * Both carry the same ?session= id; only the first use takes a token, and an id works twice at most.
+ */
+export class VoiceLimiter {
+	private sessions = new Map<string, number>();
+	constructor(readonly limiter: ClientLimiter) {}
+
+	allow(req: Request, now = Date.now()): boolean {
+		const session = (new URL(req.url).searchParams.get('session') || '').slice(0, 64).replace(/[^\w-]/g, '');
+		const key = session ? `${clientIp(req)}|${deviceOf(req)}|${session}` : '';
+		const used = key ? this.sessions.get(key) : undefined;
+		if (used !== undefined) {
+			if (used >= 2) return false;
+			this.sessions.set(key, used + 1);
+			return true;
+		}
+		if (!this.limiter.allow(req, now)) return false;
+		if (key) {
+			if (this.sessions.size > 20_000) this.sessions.clear();
+			this.sessions.set(key, 1);
+		}
+		return true;
+	}
+
+	reset(): void {
+		this.sessions.clear();
+		this.limiter.reset();
+	}
+}
+
 export const limits = {
-	spark: new ClientLimiter({ capacity: 20, refillPerMinute: 10, daily: 400 }),
-	voice: new ClientLimiter({ capacity: 6, refillPerMinute: 3, daily: 120 }),
-	invite: new ClientLimiter({ capacity: 10, refillPerMinute: 2, daily: 60 }),
+	spark: new ClientLimiter({ capacity: 20, refillPerMinute: 10, daily: 400 }, 2),
+	// Weave can cost about $0.50 a call: its own, much smaller bucket.
+	weave: new ClientLimiter({ capacity: 2, refillPerMinute: 0.1, daily: 10 }, 2),
+	voice: new VoiceLimiter(new ClientLimiter({ capacity: 6, refillPerMinute: 3, daily: 120 })),
+	// One new invite a minute per phone; each is a KV write.
+	inviteCreate: new ClientLimiter({ capacity: 2, refillPerMinute: 1, daily: 20 }, 2),
+	// Picks (API and the pick page's form). Pickers have no device id, so this is per IP.
+	invite: new ClientLimiter({ capacity: 5, refillPerMinute: 2, daily: 30 }, 1),
 	ical: new ClientLimiter({ capacity: 6, refillPerMinute: 2, daily: 100 })
 };
 
 export function resetAllLimits(): void {
 	for (const l of Object.values(limits)) l.reset();
+	ledger.reset();
+}
+
+/** The edge rate-limit binding, keyed by IP; allows when the binding is absent or fails. */
+export async function edgeAllow(binding: RateLimit | undefined, req: Request): Promise<boolean> {
+	if (!binding) return true;
+	try {
+		return (await binding.limit({ key: clientIp(req) })).success;
+	} catch {
+		return true;
+	}
 }

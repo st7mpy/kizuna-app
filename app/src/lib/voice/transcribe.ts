@@ -6,15 +6,23 @@ export interface TranscribeOptions {
 	languageBias?: string[];
 	fetch?: typeof fetch;
 	signal?: AbortSignal;
+	device?: string; // per-install id, for the relay's per-phone limit
+	session?: string; // the listening session; its socket already paid the voice try
 }
 
 export async function transcribeBlob(blob: Blob, opts: TranscribeOptions = {}): Promise<string> {
 	const origin = opts.origin ?? (typeof location !== 'undefined' ? location.origin : '');
 	const doFetch = opts.fetch ?? fetch;
-	const lang = opts.languageBias?.length ? `?lang=${encodeURIComponent(opts.languageBias.join(','))}` : '';
-	const res = await doFetch(`${origin}/api/transcribe${lang}`, {
+	const q = new URLSearchParams();
+	if (opts.languageBias?.length) q.set('lang', opts.languageBias.join(','));
+	if (opts.device) q.set('device', opts.device);
+	if (opts.session) q.set('session', opts.session);
+	const qs = q.size ? `?${q}` : '';
+	const headers: Record<string, string> = { 'Content-Type': 'audio/wav' };
+	if (opts.device) headers['x-kizuna-device'] = opts.device;
+	const res = await doFetch(`${origin}/api/transcribe${qs}`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'audio/wav' },
+		headers,
 		body: blob,
 		signal: opts.signal
 	});

@@ -32,7 +32,9 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 function formatter(timeZone: string): Intl.DateTimeFormat {
-	let f = formatters.get(timeZone);
+	// Keyed by lower-case name: zone names ignore case, so spellings must not each add an entry.
+	const key = timeZone.toLowerCase();
+	let f = formatters.get(key);
 	if (!f) {
 		f = new Intl.DateTimeFormat('en-US', {
 			timeZone,
@@ -44,7 +46,7 @@ function formatter(timeZone: string): Intl.DateTimeFormat {
 			minute: 'numeric',
 			second: 'numeric'
 		});
-		formatters.set(timeZone, f);
+		formatters.set(key, f);
 	}
 	return f;
 }

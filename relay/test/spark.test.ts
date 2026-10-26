@@ -164,3 +164,53 @@ describe('POST /api/spark', () => {
 		expect(ipLimited).toBe(true);
 	});
 });
+
+describe('spending ceiling', () => {
+	const big = { prompt_tokens: 400_000, completion_tokens: 0 }; // $0.50
+
+	it('stops spark calls for the day once the budget is spent', async () => {
+		fetchMock.mockImplementation(async () => completion({ content: '{"order":[]}' }, big));
+		const env = { ...makeEnv(), DAILY_BUDGET_USD: '1' };
+		expect((await route(post('/api/spark', { task: 'rank', input: rankInput }), env)).status).toBe(200);
+		expect((await route(post('/api/spark', { task: 'rank', input: rankInput }), env)).status).toBe(200);
+		const res = await route(post('/api/spark', { task: 'rank', input: rankInput }), env);
+		expect(res.status).toBe(429);
+		expect(await res.json()).toMatchObject({ ok: false, error: 'rate_limited', detail: 'daily_budget' });
+		expect(Number(res.headers.get('retry-after'))).toBeGreaterThan(30);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		// The spend is in KV for other isolates to see.
+		const tallies = [...env.kv.store.entries()].filter(([k]) => k.startsWith('budget:'));
+		expect(tallies).toHaveLength(1);
+		expect((tallies[0][1].metadata as any).usd).toBeCloseTo(1, 5);
+	});
+
+	it('counts spend from failed tries too', async () => {
+		fetchMock.mockImplementation(async () => completion({ content: 'not json' }, big));
+		const env = { ...makeEnv(), DAILY_BUDGET_USD: '1' };
+		expect((await route(post('/api/spark', { task: 'rank', input: rankInput }), env)).status).toBe(502); // 2 tries, $1
+		expect((await route(post('/api/spark', { task: 'rank', input: rankInput }), env)).status).toBe(429);
+	});
+
+	it('gives weave its own small bucket and its own share of the budget', async () => {
+		fetchMock.mockImplementation(async () => completion({ content: '{"order":[]}' }));
+		const env = makeEnv();
+		const codes = [];
+		for (let i = 0; i < 3; i++) codes.push((await route(post('/api/spark', { task: 'weave', input: {} }), env)).status);
+		expect(codes.slice(0, 2).every((c) => c !== 429)).toBe(true);
+		expect(codes[2]).toBe(429);
+		resetAllLimits();
+		const noWeave = { ...makeEnv(), WEAVE_BUDGET_USD: '0' };
+		const w = await route(post('/api/spark', { task: 'weave', input: {} }), noWeave);
+		expect(await w.json()).toMatchObject({ detail: 'daily_budget' });
+		expect((await route(post('/api/spark', { task: 'rank', input: rankInput }), noWeave)).status).toBe(200);
+	});
+
+	it('honours the edge rate-limit binding', async () => {
+		fetchMock.mockImplementation(async () => completion({ content: '{"order":[]}' }));
+		const limit = vi.fn(async () => ({ success: false }));
+		const env = { ...makeEnv(), RL_SPARK: { limit } as unknown as RateLimit };
+		expect((await route(post('/api/spark', { task: 'rank', input: rankInput }), env)).status).toBe(429);
+		expect(limit).toHaveBeenCalledWith({ key: '203.0.113.9' });
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+});

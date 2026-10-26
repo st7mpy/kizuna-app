@@ -32,6 +32,11 @@ describe('weaveDue', () => {
 		expect(weaveDue({ notesSinceWeave: 2, lastWeaveAt: old }, NOW)).toBe(false);
 		expect(weaveDue({ notesSinceWeave: 3 }, NOW)).toBe(true);
 	});
+	it('waits 6 hours after a failed weave', () => {
+		const failed = new Date(NOW.getTime() - 5 * 3600_000).toISOString();
+		expect(weaveDue({ notesSinceWeave: 50, weaveFailedAt: failed }, NOW)).toBe(false);
+		expect(weaveDue({ notesSinceWeave: 50, weaveFailedAt: failed }, new Date(NOW.getTime() + 3600_000 + 1))).toBe(true);
+	});
 });
 
 describe('applyWeave', () => {
@@ -118,6 +123,22 @@ describe('runWeave', () => {
 		expect(relay.fn).not.toHaveBeenCalled();
 		await runWeave(true);
 		expect((await db.people.get('k'))!.circle).toBe('suggested');
+	});
+
+	it('does not run again after a failure until 6 hours have passed', async () => {
+		const relay = mockRelay(() => {
+			throw new Error('bad output');
+		});
+		await db.fragments.add({ id: 'n', text: 'x', createdAt: NOW.toISOString(), source: 'typed', status: 'done', tries: 0 });
+		await db.settings.put({ ...defaultSettings(), notesSinceWeave: 12 });
+		await expect(runWeave()).rejects.toThrow();
+		expect((await db.settings.get('me'))!.weaveFailedAt).toBe(NOW.toISOString());
+		await runWeave();
+		await runWeave();
+		expect(relay.tasks()).toEqual(['weave']);
+		vi.setSystemTime(NOW.getTime() + 6 * 3600_000 + 1);
+		await expect(runWeave()).rejects.toThrow();
+		expect(relay.tasks()).toEqual(['weave', 'weave']);
 	});
 
 	it('stays quiet offline', async () => {

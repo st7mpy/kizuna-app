@@ -1,7 +1,7 @@
 // Find us a time: slots from free hours (+ busy times from a private iCal link),
 // pick-a-time invites, Google Calendar links and .ics files.
 import type { IcalResponse, InviteResponse, PlanOutput, Settings, Slot, Window } from '@kizuna/shared';
-import { freeSlots } from '@kizuna/shared';
+import { freeSlots, icsText, pickSpread } from '@kizuna/shared';
 import { readSettings } from '../db.ts';
 import { addDays, dayToDate, deviceTimeZone, isoWithOffset, localDay, minutesOf, slotLabel, weekdayOf } from './days.ts';
 import { isOnline, relayJson, spark } from './relay.ts';
@@ -34,45 +34,7 @@ export async function busyTimes(s?: Settings): Promise<Busy[]> {
 	}
 }
 
-/**
- * Plain local slot finder, used when the shared one is unavailable.
- * Walks free windows day by day and returns the first slot that fits in each window.
- */
-export function localFreeSlots(q: {
-	now: Date;
-	freeHours: Window[];
-	busy: Busy[];
-	from: string;
-	to: string;
-	durationMinutes: number;
-	excludeWeekdays?: number[];
-}): Slot[] {
-	const out: Slot[] = [];
-	const dur = q.durationMinutes * 60_000;
-	const busy = q.busy.map((b) => [new Date(b.start).getTime(), new Date(b.end).getTime()] as const);
-	for (let day = q.from; day <= q.to; day = addDays(day, 1)) {
-		const wd = weekdayOf(day);
-		if (q.excludeWeekdays?.includes(wd)) continue;
-		const windows = q.freeHours.filter((w) => w.day === wd).sort((a, b) => minutesOf(a.start) - minutesOf(b.start));
-		for (const w of windows) {
-			const winEnd = dayToDate(day, w.end).getTime();
-			let t = dayToDate(day, w.start).getTime();
-			// not in the past; round up to the next half hour
-			const soonest = Math.ceil((q.now.getTime() + 30 * 60_000) / 1_800_000) * 1_800_000;
-			if (t < soonest) t = soonest;
-			for (; t + dur <= winEnd; t += 1_800_000) {
-				if (busy.some(([bs, be]) => t < be && t + dur > bs)) continue;
-				const start = new Date(t);
-				const end = new Date(t + dur);
-				out.push({ start: isoWithOffset(start), end: isoWithOffset(end), label: slotLabel(start, end) });
-				break;
-			}
-		}
-	}
-	return out;
-}
-
-/** Free slots via the shared slot maths, falling back to the local finder. */
+/** Free slots via the shared slot maths. */
 export function findFreeSlots(q: {
 	now: Date;
 	timeZone: string;
@@ -82,28 +44,14 @@ export function findFreeSlots(q: {
 	to: string;
 	durationMinutes: number;
 }): Slot[] {
-	try {
-		const r = freeSlots({ ...q, now: isoWithOffset(q.now) });
-		if (Array.isArray(r)) return r;
-	} catch {
-		/* shared slot maths not available: use the local one */
-	}
-	return localFreeSlots(q);
-}
-
-/** Two slots on different days when possible. */
-export function pickTwo(slots: Slot[]): Slot[] {
-	const first = slots[0];
-	if (!first) return [];
-	const day = (s: Slot) => s.start.slice(0, 10);
-	const second = slots.find((s) => day(s) !== day(first)) ?? slots[1];
-	return second ? [first, second] : [first];
+	return freeSlots({ ...q, now: isoWithOffset(q.now) });
 }
 
 /** Two slots for a person, from free hours + busy times, optionally a plain-language request. */
 export async function suggestSlots(request = ''): Promise<{ slots: Slot[]; note: string | null }> {
 	const s = await readSettings();
-	const timeZone = s.timeZone || deviceTimeZone();
+	// The phone's zone right now, so slots follow the user when they travel.
+	const timeZone = deviceTimeZone();
 	const busy = await busyTimes(s);
 	const now = new Date();
 	if (isOnline()) {
@@ -123,11 +71,12 @@ export async function suggestSlots(request = ''): Promise<{ slots: Slot[]; note:
 		}
 	}
 	const today = localDay(now);
-	const slots = pickTwo(
-		findFreeSlots({ now, timeZone, freeHours: s.freeHours, busy, from: today, to: addDays(today, 14), durationMinutes: 60 })
+	// Works offline: the same shared slot maths, two well-spread slots.
+	const slots = pickSpread(
+		findFreeSlots({ now, timeZone, freeHours: s.freeHours, busy, from: today, to: addDays(today, 14), durationMinutes: 60 }),
+		2
 	);
-	const note = request.trim() ? 'Picked from your usual free hours.' : null;
-	return { slots, note: slots.length ? note : 'No free hours in the next two weeks. You can change them in Settings.' };
+	return { slots, note: slots.length ? null : 'No free hours in the next two weeks. You can change them in Settings.' };
 }
 
 /** Creates a pick-a-time page and returns its URL. */
@@ -137,7 +86,7 @@ export async function createInvite(personId: string, slots: Slot[]): Promise<str
 	void personId;
 	const myName = (s.myName || '').trim().split(/\s+/)[0] || 'a friend';
 	const r = await relayJson<InviteResponse>('/api/invite', {
-		body: { fromName: myName, title: `Catch up with ${myName}`, slots: slots.slice(0, 3), timeZone: s.timeZone || deviceTimeZone() },
+		body: { fromName: myName, title: `Catch up with ${myName}`, slots: slots.slice(0, 3), timeZone: deviceTimeZone() },
 		timeoutMs: 15_000
 	});
 	if (/^https?:\/\//.test(r.url)) return r.url;
@@ -145,65 +94,18 @@ export async function createInvite(personId: string, slots: Slot[]): Promise<str
 	return base + (r.url.startsWith('/') ? r.url : `/${r.url}`);
 }
 
-/** 'YYYYMMDDTHHMMSSZ' */
-export function utcStamp(d: Date | string): string {
-	return new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-}
-
-export function googleCalendarLink(slot: Slot, title: string): string {
-	const p = new URLSearchParams({ action: 'TEMPLATE', text: title, dates: `${utcStamp(slot.start)}/${utcStamp(slot.end)}` });
-	return `https://calendar.google.com/calendar/render?${p.toString()}`;
-}
-
-function icsEscape(s: string): string {
-	return s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
-}
-
-/** Folds lines longer than 75 octets (RFC 5545). */
-function fold(line: string): string {
-	const enc = new TextEncoder();
-	if (enc.encode(line).length <= 75) return line;
-	const parts: string[] = [];
-	let cur = '';
-	for (const ch of line) {
-		if (enc.encode(cur + ch).length > (parts.length ? 74 : 75)) {
-			parts.push(cur);
-			cur = '';
-		}
-		cur += ch;
-	}
-	parts.push(cur);
-	return parts.join('\r\n ');
-}
-
-export function icsText(slot: Slot, title: string, uid: string = crypto.randomUUID()): string {
-	const lines = [
-		'BEGIN:VCALENDAR',
-		'VERSION:2.0',
-		'PRODID:-//Kizuna//Kizuna//EN',
-		'CALSCALE:GREGORIAN',
-		'METHOD:PUBLISH',
-		'BEGIN:VEVENT',
-		`UID:${uid}@kizuna`,
-		`DTSTAMP:${utcStamp(new Date())}`,
-		`DTSTART:${utcStamp(slot.start)}`,
-		`DTEND:${utcStamp(slot.end)}`,
-		`SUMMARY:${icsEscape(title)}`,
-		'END:VEVENT',
-		'END:VCALENDAR'
-	];
-	return lines.map(fold).join('\r\n') + '\r\n';
-}
+export { googleCalendarLink, utcStamp } from '@kizuna/shared';
 
 export function icsFile(slot: Slot, title: string): Blob {
-	return new Blob([icsText(slot, title)], { type: 'text/calendar;charset=utf-8' });
+	const ics = icsText({ uid: `${crypto.randomUUID()}@kizuna`, start: slot.start, end: slot.end, title });
+	return new Blob([ics], { type: 'text/calendar;charset=utf-8' });
 }
 
 /** The user's next free window within [from, to] (for nudges). */
 export function nextFreeWindow(s: Settings, now: Date, from: string, to: string, busy: Busy[] = []): Slot | null {
 	const slots = findFreeSlots({
 		now,
-		timeZone: s.timeZone || deviceTimeZone(),
+		timeZone: deviceTimeZone(),
 		freeHours: s.freeHours,
 		busy,
 		from,

@@ -8,12 +8,20 @@ import { RelayError, isOnline, spark } from './relay.ts';
 import { runWeave, weaveDue } from './weave.ts';
 
 export const MAX_TRIES = 3;
+/** A failed note is tried again (3 more tries) at most once a day, on app open. */
+export const FAILED_RETRY_MS = 24 * 3600_000;
 
-/** Test hooks: backoff wait between tries. */
+/** Test hooks: wait before the next try, by tries so far (30 s, 2 min, 10 min). */
 export const captureConfig = {
-	sleep: (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
-	backoffMs: (tries: number) => 1500 * 2 ** (tries - 1)
+	backoffMs: (tries: number) => [30_000, 120_000, 600_000][Math.min(tries, 3) - 1] ?? 600_000
 };
+
+let retryTimer: ReturnType<typeof setTimeout> | undefined;
+/** Wakes the queue when the next waiting note is due (while the app stays open). */
+function scheduleRetry(at: number) {
+	clearTimeout(retryTimer);
+	retryTimer = setTimeout(() => void processPending().catch(() => {}), Math.max(1000, at - Date.now()));
+}
 
 let onlineHooked = false;
 function hookOnline() {
@@ -186,15 +194,24 @@ export function processPending(): Promise<void> {
 async function processOnce(): Promise<void> {
 	hookOnline();
 	if (!isOnline()) return;
-	const pending = (await db.fragments.where('status').equals('new').toArray()).sort((a, b) =>
-		a.createdAt.localeCompare(b.createdAt)
-	);
+	const now = Date.now();
+	const queued = await db.fragments.where('status').equals('new').toArray();
+	const due = (f: Fragment) => !f.nextTryAt || Date.parse(f.nextTryAt) <= now;
+	const pending = queued.filter(due).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 	let understood = 0;
 	for (const f of pending) {
 		const r = await understand(f);
-		if (r === 'offline') break;
+		if (r === 'pause') {
+			// The relay is busy or slow: look again in a couple of minutes (the online event covers offline).
+			if (isOnline()) scheduleRetry(Date.now() + 120_000);
+			return;
+		}
 		if (r === 'done') understood++;
 	}
+	const waiting = (await db.fragments.where('status').equals('new').toArray())
+		.map((f) => (f.nextTryAt ? Date.parse(f.nextTryAt) : NaN))
+		.filter((t) => t > Date.now());
+	if (waiting.length) scheduleRetry(Math.min(...waiting));
 	if (understood) {
 		await db.transaction('rw', db.settings, async () => {
 			const s = await readSettings();
@@ -204,34 +221,44 @@ async function processOnce(): Promise<void> {
 	}
 }
 
-async function understand(f: Fragment): Promise<'done' | 'failed' | 'offline'> {
-	let tries = f.tries ?? 0;
-	while (tries < MAX_TRIES) {
-		const people = await db.people.toArray();
-		const day = localDay(f.createdAt);
-		try {
-			const out = await spark('extract', {
-				text: f.text,
-				today: day,
-				weekday: weekdayName(day),
-				knownPeople: people
-					.filter((p) => p.circle !== 'out' || p.mentions > 0)
-					.map((p) => ({ name: p.name, aliases: p.aliases, relation: p.relation }))
-			});
-			await applyExtract(f, out);
-			return 'done';
-		} catch (e) {
-			if (e instanceof RelayError && e.isConnectivity) return 'offline';
-			tries++;
-			await db.fragments.update(f.id, { tries, status: tries >= MAX_TRIES ? 'failed' : 'new' });
-			if (tries < MAX_TRIES) await captureConfig.sleep(captureConfig.backoffMs(tries));
-		}
+/**
+ * One try. Offline, timeouts and rate limits are not the note's fault: stop the queue,
+ * don't count a try. Other errors count, and the next try waits longer.
+ */
+async function understand(f: Fragment): Promise<'done' | 'later' | 'failed' | 'pause'> {
+	const people = await db.people.toArray();
+	const day = localDay(f.createdAt);
+	try {
+		const out = await spark('extract', {
+			text: f.text,
+			today: day,
+			weekday: weekdayName(day),
+			knownPeople: people
+				.filter((p) => p.circle !== 'out' || p.mentions > 0)
+				.map((p) => ({ name: p.name, aliases: p.aliases, relation: p.relation }))
+		});
+		await applyExtract(f, out);
+		return 'done';
+	} catch (e) {
+		if (e instanceof RelayError && e.isTransient) return 'pause';
+		const tries = (f.tries ?? 0) + 1;
+		const failed = tries >= MAX_TRIES;
+		const wait = failed ? FAILED_RETRY_MS : captureConfig.backoffMs(tries);
+		await db.fragments.update(f.id, { tries, status: failed ? 'failed' : 'new', nextTryAt: new Date(Date.now() + wait).toISOString() });
+		return failed ? 'failed' : 'later';
 	}
-	return 'failed';
 }
 
 /** Puts a failed note back in the queue (e.g. a "try again" tap). */
 export async function retryFragment(id: string): Promise<void> {
-	await db.fragments.update(id, { status: 'new', tries: 0 });
+	await db.fragments.update(id, { status: 'new', tries: 0, nextTryAt: undefined });
 	void processPending().catch(() => {});
+}
+
+/** On app open: failed notes get a fresh set of tries, at most once a day each. */
+export async function requeueFailed(now = Date.now()): Promise<number> {
+	const failed = await db.fragments.where('status').equals('failed').toArray();
+	const ready = failed.filter((f) => !f.nextTryAt || Date.parse(f.nextTryAt) <= now);
+	for (const f of ready) await db.fragments.update(f.id, { status: 'new', tries: 0, nextTryAt: undefined });
+	return ready.length;
 }

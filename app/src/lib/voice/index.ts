@@ -7,6 +7,7 @@
 // (after a short 'transcribing' step). stop() always resolves; transcription trouble is
 // reported through onError and the best text so far is returned.
 import { captureSupported, startMicCapture } from './capture.ts';
+import { deviceId } from '../core/relay.ts';
 import { createListener, type ListenHandlers, type Listener, type ListenOptions, type SocketLike, type VoiceDeps } from './session.ts';
 
 export type { ListenHandlers, Listener, ListenOptions, VoiceMode } from './session.ts';
@@ -31,6 +32,7 @@ function browserDeps(): VoiceDeps {
 		fetch: (...args) => fetch(...args),
 		origin: typeof location !== 'undefined' ? location.origin : '',
 		now: () => performance.now(),
+		deviceId,
 		onPageHide(fn) {
 			if (typeof window === 'undefined') return () => {};
 			const onVis = () => {

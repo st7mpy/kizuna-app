@@ -2,7 +2,8 @@ import type { Env } from '../src/env.ts';
 
 /** In-memory KV with expiry, enough for the invite code. */
 export class MemoryKV {
-	store = new Map<string, { value: string; expires: number | null }>();
+	store = new Map<string, { value: string; expires: number | null; metadata?: unknown }>();
+	writes = 0;
 	now = () => Date.now();
 	async get(key: string, type?: 'json' | 'text'): Promise<any> {
 		const e = this.store.get(key);
@@ -13,9 +14,16 @@ export class MemoryKV {
 		}
 		return type === 'json' ? JSON.parse(e.value) : e.value;
 	}
-	async put(key: string, value: string, opts: { expirationTtl?: number; expiration?: number } = {}): Promise<void> {
+	async put(key: string, value: string, opts: { expirationTtl?: number; expiration?: number; metadata?: unknown } = {}): Promise<void> {
 		const expires = opts.expiration ? opts.expiration * 1000 : opts.expirationTtl ? this.now() + opts.expirationTtl * 1000 : null;
-		this.store.set(key, { value, expires });
+		this.writes++;
+		this.store.set(key, { value, expires, metadata: opts.metadata });
+	}
+	async list(opts: { prefix?: string } = {}): Promise<{ keys: { name: string; metadata?: unknown }[]; list_complete: true }> {
+		const keys = [...this.store.entries()]
+			.filter(([k, e]) => k.startsWith(opts.prefix ?? '') && (e.expires == null || e.expires > this.now()))
+			.map(([name, e]) => ({ name, metadata: e.metadata }));
+		return { keys, list_complete: true };
 	}
 	async delete(key: string): Promise<void> {
 		this.store.delete(key);

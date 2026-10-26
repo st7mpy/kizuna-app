@@ -98,7 +98,7 @@ export function busyFromIcs(text: string, fromMs: number, toMs: number): Busy[] 
 		raw.push([Math.max(s, fromMs), Math.min(e, toMs)]);
 	};
 
-	for (const cal of cals) {
+	const collect = (cal: any) => {
 		for (const tz of cal.getAllSubcomponents('vtimezone')) {
 			try {
 				ICAL.TimezoneService.register(tz);
@@ -128,6 +128,13 @@ export function busyFromIcs(text: string, fromMs: number, toMs: number): Busy[] 
 				add(d.startDate, d.endDate, d.item.component);
 			}
 		}
+	};
+
+	// Zones go into ical.js's global registry; clear it after so it never grows across requests.
+	try {
+		for (const cal of cals) collect(cal);
+	} finally {
+		ICAL.TimezoneService.reset();
 	}
 
 	raw.sort((a, b) => a[0] - b[0]);

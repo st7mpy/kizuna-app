@@ -2,13 +2,20 @@
 import { ASR_MODEL } from '@kizuna/shared';
 import { metaBase, type Env } from './env.ts';
 import { fail, json, readBody } from './http.ts';
-import { limits } from './ratelimit.ts';
+import { edgeAllow, limits } from './ratelimit.ts';
+import { audioUsd, overBudget, spend, withinBudget } from './budget.ts';
 
 export const MAX_WAV_BYTES = 32 * 1024 * 1024;
 
 function isWav(b: Uint8Array): boolean {
 	const ascii = (from: number) => String.fromCharCode(...b.subarray(from, from + 4));
 	return b.byteLength > 44 && ascii(0) === 'RIFF' && ascii(8) === 'WAVE';
+}
+
+/** Audio length from the WAV header's byte rate (falls back to 16 kHz mono 16-bit). */
+export function wavMs(b: Uint8Array): number {
+	const byteRate = b.byteLength >= 32 ? new DataView(b.buffer, b.byteOffset, b.byteLength).getUint32(28, true) : 0;
+	return ((b.byteLength - 44) / (byteRate > 0 ? byteRate : 32_000)) * 1000;
 }
 
 function textOf(v: any): string | null {
@@ -56,10 +63,12 @@ export function transcriptFrom(body: string, contentType: string): string {
 }
 
 export async function handleTranscribe(req: Request, env: Env): Promise<Response> {
-	if (!limits.voice.allow(req)) return fail('rate_limited');
+	if (!limits.voice.allow(req) || !(await edgeAllow(env.RL_VOICE, req))) return fail('rate_limited');
+	if (!(await withinBudget(env))) return overBudget();
 	const audio = await readBody(req, MAX_WAV_BYTES);
 	if (!audio) return fail('too_large');
 	if (!isWav(audio)) return fail('bad_request', 'expected a WAV file');
+	await spend(env, audioUsd(wavMs(audio)));
 
 	const form = new FormData();
 	const languageBias = (new URL(req.url).searchParams.get('lang') ?? '')

@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExtractOutput } from '@kizuna/shared';
 import { db } from '../db.ts';
-import { captureConfig, processPending, saveFragment } from './capture.ts';
+import { FAILED_RETRY_MS, processPending, requeueFailed, retryFragment, saveFragment } from './capture.ts';
 import { matchPerson } from './people.ts';
 import { mkPerson, mockRelay, resetDb, setOffline } from './testing.ts';
 
@@ -25,7 +25,6 @@ async function idle() {
 beforeEach(async () => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(NOW);
-	captureConfig.sleep = async () => {};
 	setOffline(false);
 	await resetDb();
 });
@@ -113,14 +112,50 @@ describe('saveFragment + processPending', () => {
 		expect(matchPerson(people, 'Mum ji', 'unknown')?.id).toBe('m');
 	});
 
-	it('retries up to three times, then marks the note failed', async () => {
+	it('backs off over minutes, then marks the note failed', async () => {
 		const relay = mockRelay(() => {
 			throw new Error('boom');
 		});
 		const f = await saveFragment('hello', 'typed');
 		await idle();
+		expect(await db.fragments.get(f.id)).toMatchObject({ status: 'new', tries: 1 });
+		// Not again before the wait is over
+		vi.setSystemTime(NOW.getTime() + 10_000);
+		await processPending();
+		expect(relay.tasks()).toEqual(['extract']);
+		vi.setSystemTime(NOW.getTime() + 31_000);
+		await processPending();
+		expect(await db.fragments.get(f.id)).toMatchObject({ status: 'new', tries: 2 });
+		vi.setSystemTime(NOW.getTime() + 31_000 + 121_000);
+		await processPending();
 		expect(relay.tasks()).toEqual(['extract', 'extract', 'extract']);
 		expect(await db.fragments.get(f.id)).toMatchObject({ status: 'failed', tries: 3 });
+	});
+
+	it('tries failed notes again on app open, once a day', async () => {
+		let fail = true;
+		const relay = mockRelay(() => {
+			if (fail) throw new Error('boom');
+			return empty();
+		});
+		const f = await saveFragment('hello', 'typed');
+		await idle();
+		await db.fragments.update(f.id, { status: 'failed', tries: 3, nextTryAt: new Date(NOW.getTime() + FAILED_RETRY_MS).toISOString() });
+		expect(await requeueFailed()).toBe(0);
+		vi.setSystemTime(NOW.getTime() + FAILED_RETRY_MS + 1);
+		fail = false;
+		expect(await requeueFailed()).toBe(1);
+		await processPending();
+		expect(await db.fragments.get(f.id)).toMatchObject({ status: 'done' });
+		expect(relay.tasks().length).toBe(2);
+	});
+
+	it('does not count a try when rate limited or timed out', async () => {
+		vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: false, error: 'rate_limited' }), { status: 429 })));
+		const f = await saveFragment('x', 'typed');
+		await idle();
+		expect(await db.fragments.get(f.id)).toMatchObject({ status: 'new', tries: 0 });
+		expect((await db.fragments.get(f.id))!.nextTryAt).toBeUndefined();
 	});
 
 	it('succeeds on a later try', async () => {
@@ -131,7 +166,19 @@ describe('saveFragment + processPending', () => {
 		});
 		const f = await saveFragment('hello', 'typed');
 		await idle();
+		vi.setSystemTime(NOW.getTime() + 31_000);
+		await processPending();
 		expect(await db.fragments.get(f.id)).toMatchObject({ status: 'done', tries: 1 });
+	});
+
+	it('retryFragment clears the wait', async () => {
+		mockRelay(() => empty());
+		const f = await saveFragment('hello', 'typed');
+		await idle();
+		await db.fragments.update(f.id, { status: 'failed', tries: 3, nextTryAt: new Date(NOW.getTime() + FAILED_RETRY_MS).toISOString() });
+		await retryFragment(f.id);
+		await idle();
+		expect(await db.fragments.get(f.id)).toMatchObject({ status: 'done' });
 	});
 
 	it('leaves notes new while offline and picks them up later', async () => {

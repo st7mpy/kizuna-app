@@ -20,6 +20,10 @@ export class RelayError extends Error {
 	get isConnectivity(): boolean {
 		return this.code === 'offline';
 	}
+	/** Not about this request: offline, slow, or the relay asked us to wait. Try later, uncounted. */
+	get isTransient(): boolean {
+		return this.code === 'offline' || this.code === 'timeout' || this.code === 'rate_limited';
+	}
 }
 
 /** Per-install random id, sent so the relay can rate-limit per phone. */

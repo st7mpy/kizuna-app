@@ -3,7 +3,8 @@ import { get, makeEnv, MemoryKV, post } from './helpers.ts';
 import { route } from '../src/index.ts';
 import { resetAllLimits } from '../src/ratelimit.ts';
 import { INVITE_TTL_S, parseInviteRequest } from '../src/invite.ts';
-import { googleCalendarUrl, icsFor } from '../src/page.ts';
+import { googleCalendarLink } from '@kizuna/shared';
+import { icsFor } from '../src/invite.ts';
 
 const invite = {
 	fromName: 'Aarav Mehta',
@@ -142,7 +143,7 @@ describe('pick page', () => {
 	});
 
 	it('builds calendar links and ics directly', () => {
-		const url = new URL(googleCalendarUrl('Catch up', invite.slots[0], 'x'));
+		const url = new URL(googleCalendarLink(invite.slots[0], 'Catch up', 'x'));
 		expect(url.searchParams.get('dates')).toBe('20270109T043000Z/20270109T053000Z');
 		expect(url.searchParams.get('action')).toBe('TEMPLATE');
 		const ics = icsFor('abc', { ...invite, fromName: 'Aarav', pickedIndex: 0, expiresAt: '' }, 1, Date.parse('2027-01-01T00:00:00Z'));

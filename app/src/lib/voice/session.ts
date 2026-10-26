@@ -68,6 +68,8 @@ export interface VoiceDeps {
 	onPageHide(fn: () => void): () => void;
 	/** Language hint; defaults to the user's settings, else en + hi. */
 	languageBias(): Promise<string[]>;
+	/** Per-install id for the relay's per-phone voice limit (sockets can't carry headers). */
+	deviceId?(): string;
 }
 
 export interface ListenOptions {
@@ -135,8 +137,10 @@ export async function createListener(h: ListenHandlers, deps: VoiceDeps, opts: L
 	}
 	h.onMode?.(mode);
 
-	const lang = encodeURIComponent(languageBias.join(','));
-	const wsUrl = `${deps.origin.replace(/^http/, 'ws')}/api/asr?lang=${lang}`;
+	// One session id for the socket and its WAV fallback, so the relay charges one voice try.
+	const ids: { device?: string; session?: string } = deps.deviceId ? { device: deps.deviceId(), session: crypto.randomUUID() } : {};
+	const query = new URLSearchParams({ lang: languageBias.join(','), ...(ids as Record<string, string>) }).toString();
+	const wsUrl = `${deps.origin.replace(/^http/, 'ws')}/api/asr?${query}`;
 	try {
 		ws = deps.openSocket(wsUrl);
 		ws.binaryType = 'arraybuffer';
@@ -238,7 +242,7 @@ export async function createListener(h: ListenHandlers, deps: VoiceDeps, opts: L
 		const samples = concatInt16(recorded);
 		if (samples.length === 0) return '';
 		setMode('transcribing');
-		return transcribeBlob(encodeWav(samples, TARGET_RATE), { origin: deps.origin, languageBias, fetch: deps.fetch });
+		return transcribeBlob(encodeWav(samples, TARGET_RATE), { origin: deps.origin, languageBias, fetch: deps.fetch, ...ids });
 	}
 
 	function finish(): Promise<string> {

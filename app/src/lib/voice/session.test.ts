@@ -165,6 +165,24 @@ describe('listener: live streaming', () => {
 });
 
 describe('listener: fallback to record-then-transcribe', () => {
+	it('sends the device id and one session id on both the socket and the fallback upload', async () => {
+		const t = setup({ deviceId: () => 'dev-1' });
+		const listener = await createListener(t.h, t.deps);
+		const wsUrl = new URL(t.sockets[0].url);
+		expect(wsUrl.searchParams.get('device')).toBe('dev-1');
+		const session = wsUrl.searchParams.get('session');
+		expect(session).toMatch(/^[0-9a-f-]{36}$/);
+		t.speak(1000);
+		await vi.advanceTimersByTimeAsync(2500);
+		await listener.stop();
+		const [url, init] = t.fetchMock.mock.calls[0];
+		const up = new URL(String(url));
+		expect(up.pathname).toBe('/api/transcribe');
+		expect(up.searchParams.get('device')).toBe('dev-1');
+		expect(up.searchParams.get('session')).toBe(session);
+		expect((init!.headers as Record<string, string>)['x-kizuna-device']).toBe('dev-1');
+	});
+
 	it('falls back when the socket does not open within 2.5 s', async () => {
 		const t = setup();
 		const listener = await createListener(t.h, t.deps);

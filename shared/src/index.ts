@@ -4,3 +4,4 @@ export * from './schemas.ts';
 export * from './tasks.ts';
 export * from './dates.ts';
 export * from './slots.ts';
+export * from './ics.ts';

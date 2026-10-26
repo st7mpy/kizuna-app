@@ -3,6 +3,8 @@
 //   npx wrangler kv namespace create INVITES            -> put the id below
 //   npx wrangler kv namespace create INVITES --preview  -> put the preview_id below
 //   npx wrangler secret put MODEL_API_KEY
+// Spending: DAILY_BUDGET_USD is the day's ceiling for all model and voice calls (UTC day),
+// tallied in INVITES under budget:* keys. KV is eventually consistent, so it can overshoot by about a minute's spend.
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "kizuna",
@@ -21,8 +23,19 @@
       "preview_id": "3ae339c1b1004d6092e79efc804b3af1"
     }
   ],
+  // Edge rate limits per IP, shared by the isolates in one location (period is 10 or 60 s).
+  // namespace_id only has to be unique within the account.
+  "ratelimits": [
+    { "name": "RL_SPARK", "namespace_id": "4101", "simple": { "limit": 40, "period": 60 } },
+    { "name": "RL_WEAVE", "namespace_id": "4102", "simple": { "limit": 2, "period": 60 } },
+    { "name": "RL_VOICE", "namespace_id": "4103", "simple": { "limit": 20, "period": 60 } },
+    { "name": "RL_INVITE", "namespace_id": "4104", "simple": { "limit": 10, "period": 60 } }
+  ],
   "vars": {
-    "META_BASE_URL": "https://api.meta.ai/v1"
+    "META_BASE_URL": "https://api.meta.ai/v1",
+    "DAILY_BUDGET_USD": "5",
+    "WEAVE_BUDGET_USD": "2",
+    "KV_WRITES_PER_DAY": "600"
   },
   "observability": { "enabled": true }
 }

@@ -31,8 +31,8 @@ const STATUS: Record<ApiError, number> = {
 	server_error: 500
 };
 
-export function fail(error: ApiError, detail?: string): Response {
-	const extra: Record<string, string> = error === 'rate_limited' ? { 'retry-after': '30' } : {};
+export function fail(error: ApiError, detail?: string, retryAfterS = 30): Response {
+	const extra: Record<string, string> = error === 'rate_limited' ? { 'retry-after': String(retryAfterS) } : {};
 	return json(detail ? { ok: false, error, detail } : { ok: false, error }, STATUS[error], extra);
 }
 
