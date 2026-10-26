@@ -498,7 +498,7 @@ export function buildTask<T extends TaskName>(task: T, input: TaskIO[T]['input']
 				messages: [system('draft', DRAFT_PROMPT), { role: 'user', content: draftUser(i) }],
 				schema: { name: 'draft', schema: SCHEMAS.draft },
 				reasoning_effort: 'low',
-				max_tokens: 400
+				max_tokens: 1000
 			};
 		}
 		case 'rank': {
@@ -507,7 +507,7 @@ export function buildTask<T extends TaskName>(task: T, input: TaskIO[T]['input']
 				messages: [system('rank', RANK_PROMPT), { role: 'user', content: rankUser(i) }],
 				schema: { name: 'rank', schema: SCHEMAS.rank },
 				reasoning_effort: 'minimal',
-				max_tokens: 400
+				max_tokens: 1500
 			};
 		}
 		case 'plan': {
@@ -525,7 +525,7 @@ export function buildTask<T extends TaskName>(task: T, input: TaskIO[T]['input']
 				messages: [system('windows', WINDOWS_PROMPT), { role: 'user', content: windowsUser(i) }],
 				schema: { name: 'windows', schema: SCHEMAS.windows },
 				reasoning_effort: 'minimal',
-				max_tokens: 600
+				max_tokens: 1200
 			};
 		}
 		case 'weekend': {
