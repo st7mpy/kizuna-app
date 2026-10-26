@@ -106,7 +106,7 @@
 	}
 </script>
 
-<Sheet bind:open title={person ? `A time with ${person.name}` : 'Find a time'}>
+<Sheet bind:open title={person ? 'A time with' : 'Find a time'} em={person?.name}>
 	<form
 		class="ask"
 		onsubmit={(e) => {
@@ -115,10 +115,12 @@
 		}}
 	>
 		<label class="field grow">
-			<span>When?</span>
+			<span>When</span>
 			<input type="text" bind:value={request} placeholder="e.g. next weekend, not Sunday" enterkeyhint="search" />
 		</label>
-		<button class="btn" type="submit" disabled={loading}>Look</button>
+		<button class="icon-btn solid" type="submit" disabled={loading} aria-label="Look">
+			<Icon name="arrow" size={20} />
+		</button>
 	</form>
 
 	<div class="slots" role="radiogroup" aria-label="Times you're free" aria-busy={loading}>
@@ -132,16 +134,22 @@
 			<p class="note">{note ?? 'No free hours fit that. Try another day, or add free hours in Settings.'}</p>
 		{:else}
 			{#each slots as s, i (s.start)}
+				{@const [day, span = ''] = s.label.split(', ')}
+				{@const [from, to] = span.split(' to ')}
 				<button
 					type="button"
 					class="slot"
 					role="radio"
 					aria-checked={picked === i}
+					aria-label={s.label}
 					class:on={picked === i}
 					onclick={() => (picked = i)}
 				>
-					<Icon name="clock" size={20} />
-					<span>{s.label}</span>
+					<span class="when">
+						<span class="label">{day}</span>
+						<span class="time num">{from}{#if to}<span class="to">to {to}</span>{/if}</span>
+					</span>
+					<span class="radio" aria-hidden="true"></span>
 				</button>
 			{/each}
 			{#if note}<p class="note">{note}</p>{/if}
@@ -156,13 +164,13 @@
 		{sharing ? 'Making the link…' : 'Share pick-a-time link'}
 	</button>
 
-	<div class="stack cal">
-		<p class="label">Add to my calendar</p>
+	<div class="cal">
+		<span class="label">Add to my calendar</span>
 		<div class="row">
-			<button class="btn grow" type="button" onclick={google} disabled={!slots.length} aria-label="Add to Google Calendar">
+			<button class="btn" type="button" onclick={google} disabled={!slots.length} aria-label="Add to Google Calendar">
 				<Icon name="calendar" size={20} /> Google
 			</button>
-			<button class="btn grow" type="button" onclick={ics} disabled={!slots.length} aria-label="Download a calendar file">
+			<button class="btn" type="button" onclick={ics} disabled={!slots.length} aria-label="Download a calendar file">
 				<Icon name="download" size={20} /> .ics file
 			</button>
 		</div>
@@ -173,57 +181,90 @@
 	.ask {
 		display: flex;
 		align-items: flex-end;
-		gap: 8px;
+		gap: 12px;
 	}
-	.grow {
-		flex: 1;
+	.ask .icon-btn {
+		margin-bottom: 2px;
 	}
 	.slots {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		border-top: 1px solid var(--line);
 	}
 	.slot {
 		appearance: none;
 		display: flex;
 		align-items: center;
+		justify-content: space-between;
 		gap: 12px;
-		min-height: 60px;
-		padding: 0 18px;
-		border-radius: var(--radius-s);
-		border: 1px solid var(--line);
-		background: var(--surface);
-		color: var(--text);
+		min-height: 88px;
+		padding: 14px 4px 14px 0;
+		border: 0;
+		border-bottom: 1px solid var(--line);
+		border-radius: 0;
+		background: transparent;
+		color: var(--text-2);
 		font: inherit;
-		font-weight: 560;
 		text-align: left;
 		cursor: pointer;
-		transition:
-			border-color var(--dur) var(--ease),
-			background var(--dur) var(--ease);
+		transition: color var(--dur) var(--ease);
 	}
-	.slot :global(svg) {
+	.when {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.time {
+		font-size: 2.25rem;
+		line-height: 1.05;
+		font-weight: 400;
+		letter-spacing: -0.04em;
+	}
+	.to {
+		margin-left: 0.35em;
+		font-size: 1.125rem;
+		letter-spacing: -0.01em;
 		color: var(--text-3);
 	}
 	.slot.on {
-		border-color: var(--accent);
-		box-shadow: inset 0 0 0 1px var(--accent);
-		background: var(--accent-soft);
+		color: var(--text);
 	}
-	.slot.on :global(svg) {
+	.slot.on .label {
 		color: var(--accent-ink);
 	}
+	.radio {
+		flex: none;
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		box-shadow: inset 0 0 0 1.5px var(--line);
+		transition: box-shadow var(--dur) var(--ease);
+	}
+	.slot.on .radio {
+		box-shadow:
+			inset 0 0 0 1.5px var(--accent),
+			inset 0 0 0 6px var(--surface),
+			inset 0 0 0 12px var(--accent);
+	}
+	.slot:focus-visible {
+		outline-offset: -2px;
+	}
 	.ghost {
-		background: var(--surface-2);
-		border-color: transparent;
-		opacity: 0.7;
+		background: linear-gradient(90deg, transparent, var(--sunk), transparent);
+		opacity: 0.8;
 	}
 	.cal {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		gap: 8px;
-		padding-top: 4px;
+		flex-wrap: wrap;
+	}
+	.cal .row {
+		gap: 18px;
 	}
 	.cal .btn {
-		padding: 0 12px;
-		font-size: 0.9375rem;
+		font-size: var(--t-small);
+		color: var(--text-2);
 	}
 </style>

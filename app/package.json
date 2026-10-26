@@ -31,6 +31,8 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@fontsource/geist": "^5.3.0",
+		"@fontsource/instrument-serif": "^5.3.0",
 		"@kizuna/shared": "*",
 		"dexie": "^4.4.7"
 	}

@@ -24,24 +24,25 @@
 <svelte:head><title>Threads · Kizuna</title></svelte:head>
 
 <div class="page">
-	<a href="/" class="back"><Icon name="back" size={20} /> Today</a>
-	<div>
+	<a href="/" class="back"><Icon name="back" size={18} /> Today</a>
+	<div class="head">
+		<p class="label">Threads</p>
 		<h1>Your threads</h1>
-		<p class="muted">Things you said you’d like to do. No rush.</p>
+		<p class="lede">Things you said you’d like to do. <em>No rush.</em></p>
 	</div>
 
 	{#each groups as g (g.kind)}
-		<section class="stack" aria-labelledby="g-{g.kind}">
+		<section class="section" aria-labelledby="g-{g.kind}">
 			<h3 id="g-{g.kind}">{g.label}</h3>
-			<ul class="list">
+			<ul class="rows">
 				{#each g.items as t (t.id)}
 					<li out:fold>
 						<span class="title">
 							{cap(t.title)}
 							{#if t.dueDay}<span class="when">{dayLabel(t.dueDay)}</span>{/if}
 						</span>
-						<button class="btn done" type="button" onclick={() => done(t)} aria-label="Done: {t.title}">
-							<Icon name="check" size={20} /> Done
+						<button class="icon-btn" type="button" onclick={() => done(t)} aria-label="Done: {t.title}">
+							<Icon name="check" size={20} />
 						</button>
 					</li>
 				{/each}
@@ -53,59 +54,37 @@
 
 	{#if threads.ready && !groups.length}
 		<div class="stack">
-			<p class="calm">All clear.</p>
+			<p class="calm">All <em>clear</em>.</p>
 			<p class="muted">When you mention an idea, a plan or an errand, it lands here.</p>
 		</div>
 	{/if}
 </div>
 
 <style>
-	.back {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		min-height: var(--tap);
-		margin: -8px 0 -12px -6px;
-		color: var(--text-2);
-		text-decoration: none;
-		font-weight: 560;
-		align-self: flex-start;
-	}
-	.list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		background: var(--surface);
-		border: 1px solid var(--line);
-		border-radius: var(--radius);
-	}
-	.list li {
+	li {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 10px 10px 16px;
-	}
-	.list li + li {
-		border-top: 1px solid var(--line);
+		gap: 16px;
+		padding: 12px 0;
 	}
 	.title {
 		display: flex;
 		flex-direction: column;
-		font-weight: 520;
+		font-size: var(--t-lead);
+		letter-spacing: -0.01em;
+		line-height: 1.35;
 	}
 	.when {
-		font-size: 0.8125rem;
-		font-weight: 600;
+		font-size: var(--t-label);
+		font-weight: 500;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 		color: var(--text-3);
+		margin-top: 2px;
 	}
-	.done {
-		flex: none;
-		padding: 0 14px;
-		color: var(--text-2);
-	}
-	.calm {
-		font-size: 1.375rem;
-		font-weight: 620;
+	.icon-btn:hover {
+		background: var(--rule);
+		color: var(--on-rule);
 	}
 </style>

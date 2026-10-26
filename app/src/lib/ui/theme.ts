@@ -23,6 +23,6 @@ export function setTheme(t: ThemeChoice): void {
 	else root.dataset.theme = t;
 	const dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
 	document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
-		m.setAttribute('content', dark ? '#1c1916' : '#fbf8f3');
+		m.setAttribute('content', dark ? '#0d0d0f' : '#f3f3f0');
 	});
 }

@@ -8,12 +8,12 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
 const out = (f) => fileURLToPath(new URL(`../static/${f}`, import.meta.url));
 
-const INK = '#2a231e';
-const PAPER = '#fbf8f3';
-const PERSIMMON = '#d9572b';
+const INK = '#121214';
+const PAPER = '#f3f3f0';
+const SEAL = '#d4432a';
 
 // Two rings; short arcs are redrawn over a paper-coloured band so the rings pass over and under.
-function knot({ ink = INK, accent = PERSIMMON, paper = PAPER } = {}) {
+function knot({ ink = INK, accent = SEAL, paper = PAPER } = {}) {
 	return `<g transform="rotate(-28 50 50)" fill="none" stroke-width="8" stroke-linecap="butt">
 <circle class="ink" cx="37" cy="50" r="20" stroke="${ink}"/>
 <circle cx="63" cy="50" r="20" stroke="${accent}"/>
@@ -25,7 +25,7 @@ const TOP = 'M43.36 31.04 A20 20 0 0 1 54.75 40.78';
 const BOTTOM = 'M56.64 68.96 A20 20 0 0 1 45.25 59.22';
 
 // favicon: a paper tile that turns charcoal in dark mode
-const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>@media (prefers-color-scheme: dark){.tile{fill:#1c1916}.paper{stroke:#1c1916}.ink{stroke:#f1ebe3}}</style><rect class="tile" width="100" height="100" rx="24" fill="${PAPER}"/><g transform="translate(5 5) scale(0.9)">${knot()}</g></svg>
+const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><style>@media (prefers-color-scheme: dark){.tile{fill:#0d0d0f}.paper{stroke:#0d0d0f}.ink{stroke:#ecece8}}</style><rect class="tile" width="100" height="100" rx="24" fill="${PAPER}"/><g transform="translate(5 5) scale(0.9)">${knot()}</g></svg>
 `;
 writeFileSync(out('favicon.svg'), favicon);
 

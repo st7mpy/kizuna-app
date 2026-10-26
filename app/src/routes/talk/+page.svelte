@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { liveQuery } from 'dexie';
-	import { saveFragment } from '#lib/core/index.js';
+	import { retryFragment, saveFragment } from '#lib/core/index.js';
 	import { startListening, voiceSupported, type Listener } from '#lib/voice/index.js';
 	import { db } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
@@ -62,15 +62,16 @@
 	}
 
 	async function stop() {
-		if (!listener) return;
+		const l = listener;
+		if (!l) return;
+		listener = null;
 		phase = 'stopping';
 		let full = live;
 		try {
-			full = (await listener.stop()) || live;
+			full = (await l.stop()) || live;
 		} catch {
 			/* keep what we heard */
 		}
-		listener = null;
 		level = 0;
 		text = [text.trim(), full.trim()].filter(Boolean).join(' ');
 		heard = '';
@@ -137,34 +138,84 @@
 		});
 	}, null);
 
+	// Leaving while the mic is on must not lose the words: stop, then keep what was heard.
+	let flushing = false;
+	async function flush() {
+		const l = listener;
+		if (flushing) return;
+		if (!l) {
+			// A tap on stop may still be finishing; its words are in live until then.
+			if (phase === 'stopping' && live.trim()) {
+				flushing = true;
+				await saveFragment([text.trim(), live.trim()].filter(Boolean).join(' '), 'voice').catch(() => {});
+			}
+			return;
+		}
+		flushing = true;
+		listener = null;
+		const typed = text.trim();
+		let said = live.trim();
+		try {
+			said = ((await l.stop()) || said).trim();
+		} catch {
+			/* keep what we heard */
+		}
+		const full = [typed, said].filter(Boolean).join(' ');
+		if (said && full) await saveFragment(full, 'voice').catch(() => {});
+	}
+
+	let retrying = $state(false);
+	async function retry() {
+		if (!savedId) return;
+		retrying = true;
+		try {
+			await retryFragment(savedId);
+		} catch {
+			/* it stays kept; Kizuna tries again later */
+		} finally {
+			retrying = false;
+		}
+	}
+
 	onDestroy(() => {
 		clearTimeout(slowTimer);
 		clearTimeout(revealTimer);
-		listener?.stop().catch(() => {});
+		void flush();
 	});
 </script>
 
 <svelte:head><title>Talk · Kizuna</title></svelte:head>
 
+<svelte:window onpagehide={() => void flush()} />
+
 <div class="page talk">
 	{#if phase === 'saved'}
 		<section class="saved" in:soft>
-			<div class="tick" aria-hidden="true"><Icon name="check" size={34} /></div>
-			<h1 role="status">Got it.</h1>
+			<span class="icon-btn solid tick" aria-hidden="true"><Icon name="check" size={22} stroke={2} /></span>
+			<div class="head">
+				<p class="label">Saved on this phone</p>
+				<h1 role="status">Got <em>it</em>.</h1>
+			</div>
 			<div class="understood" aria-live="polite">
 				{#if reveal && understood.value?.status === 'done'}
 					{#if understood.value.chips.length}
-						<p class="muted">Kizuna noted</p>
+						<p class="label">Kizuna noted</p>
 						<div class="row wrap chips">
 							{#each understood.value.chips as c, i (c.key)}
-								<span class="chip" style="animation-delay:{i * 70}ms">{cap(c.label)}</span>
+								<span class="tag" style="animation-delay:{i * 70}ms">{cap(c.label)}</span>
 							{/each}
 						</div>
 					{:else}
 						<p class="muted">Kept with your notes.</p>
 					{/if}
 				{:else if understood.value?.status === 'failed'}
-					<p class="muted">It’s kept safely, just as you said it.</p>
+					<p class="retry muted">
+						Couldn’t read this one yet ·
+						<button class="btn accent" type="button" onclick={retry} disabled={retrying}>
+							{retrying ? 'Trying…' : 'Try again'}
+						</button>
+					</p>
+					<p class="tiny">It’s kept safely, just as you said it.</p>
 				{:else if slow}
 					<p class="muted">Saved on your phone. Kizuna will read it properly once you’re online.</p>
 				{:else}
@@ -175,13 +226,14 @@
 				<button class="btn primary big block" type="button" onclick={again}>
 					<Icon name="mic" size={22} /> Add another
 				</button>
-				<a class="btn big block" href="/">Back to Today</a>
+				<a class="btn line big block" href="/">Back to Today</a>
 			</div>
 		</section>
 	{:else}
-		<div class="intro">
-			<h1>What’s on your mind?</h1>
-			<p class="muted">People, plans, little things. English, Hindi, or both.</p>
+		<div class="head">
+			<p class="label">Talk</p>
+			<h1>What’s on <em>your</em> mind?</h1>
+			<p class="lede">People, plans, little things. English, Hindi, or both.</p>
 		</div>
 
 		{#if micOk}
@@ -196,10 +248,12 @@
 					disabled={phase === 'stopping' || phase === 'saving'}
 					style="--lv:{level}"
 				>
-					<span class="ring" aria-hidden="true"></span>
-					<Icon name={listening ? 'stop' : 'mic'} size={44} />
+					<span class="ring r1" aria-hidden="true"></span>
+					<span class="ring r2" aria-hidden="true"></span>
+					<Icon name={listening ? 'stop' : 'mic'} size={38} stroke={1.6} />
 				</button>
 				<p class="hint" aria-hidden="true">
+					{#if listening}<span class="rec"></span>{/if}
 					{phase === 'starting'
 						? 'Opening the mic…'
 						: phase === 'listening'
@@ -223,7 +277,7 @@
 			<label class="field">
 				<span>{micOk ? 'Or type it' : 'Type it here'}</span>
 				<textarea
-					rows={micOk ? 4 : 7}
+					rows={micOk ? 3 : 6}
 					bind:value={text}
 					placeholder="Mum's appointment is Thursday. Kabir started his new job, should call him."
 				></textarea>
@@ -233,38 +287,32 @@
 		{#if micNote}<p class="note" role="status">{micNote}</p>{/if}
 		{#if saveNote}<p class="note" role="alert">{saveNote}</p>{/if}
 
-		<button
-			class="btn primary big block"
-			type="button"
-			onclick={save}
-			disabled={!text.trim() || phase !== 'idle'}
-		>
-			{phase === 'saving' ? 'Saving…' : 'Save'}
-		</button>
-		<p class="tiny">Your notes stay on this phone.</p>
+		<div class="stack">
+			<button
+				class="btn primary big block"
+				type="button"
+				onclick={save}
+				disabled={!text.trim() || phase !== 'idle'}
+			>
+				{phase === 'saving' ? 'Saving…' : 'Save'}
+			</button>
+			<p class="tiny center">Your notes stay on this phone.</p>
+		</div>
 	{/if}
 </div>
 
 <style>
-	.talk {
-		gap: 22px;
-	}
-	.intro {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
 	.mic-wrap {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 14px;
-		padding: 18px 0 4px;
+		gap: 18px;
+		padding: 8px 0 0;
 	}
 	.mic {
 		position: relative;
-		width: 132px;
-		height: 132px;
+		width: 120px;
+		height: 120px;
 		border-radius: 50%;
 		border: 0;
 		display: grid;
@@ -272,76 +320,106 @@
 		background: var(--accent);
 		color: var(--on-accent);
 		cursor: pointer;
-		box-shadow: 0 16px 36px -14px color-mix(in srgb, var(--accent) 80%, transparent);
 		transition: transform 200ms var(--ease);
 	}
 	.mic:active {
 		transform: scale(0.96);
 	}
 	.mic:focus-visible {
-		outline-offset: 6px;
+		outline-offset: 8px;
 		border-radius: 50%;
 	}
+	/* Hairline rings that breathe with the voice. */
 	.ring {
 		position: absolute;
-		inset: -10px;
 		border-radius: 50%;
-		border: 2px solid var(--accent);
-		opacity: 0;
-		transform: scale(1);
+		box-shadow: 0 0 0 1px var(--line);
 		transition:
 			transform 120ms linear,
-			opacity var(--dur) var(--ease);
+			box-shadow var(--dur) var(--ease);
+	}
+	.r1 {
+		inset: -14px;
+	}
+	.r2 {
+		inset: -30px;
+		opacity: 0.6;
 	}
 	.mic.on .ring {
-		opacity: calc(0.25 + var(--lv) * 0.6);
+		box-shadow: 0 0 0 1px var(--accent);
+	}
+	.mic.on .r1 {
+		transform: scale(calc(1 + var(--lv) * 0.12));
+	}
+	.mic.on .r2 {
 		transform: scale(calc(1 + var(--lv) * 0.22));
 	}
-	.mic.on {
-		background: color-mix(in srgb, var(--accent) 88%, var(--text));
-	}
 	.hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 18px;
 		color: var(--text-2);
-		font-weight: 560;
+		font-size: var(--t-small);
+		font-weight: 500;
+	}
+	.rec {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--seal);
 	}
 	.live {
 		min-height: 140px;
-		padding: 18px;
-		border-radius: var(--radius);
-		background: var(--surface);
-		border: 1px solid var(--line);
-		font-size: 1.1875rem;
-		line-height: 1.55;
+		padding: 16px 0;
+		border-top: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		font-size: 1.375rem;
+		line-height: 1.45;
+		letter-spacing: -0.015em;
 	}
 	.partial {
-		color: var(--text-2);
+		color: var(--text-3);
+	}
+	textarea {
+		font-size: var(--t-lead);
+	}
+	.center {
+		text-align: center;
 	}
 	.saved {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 14px;
-		padding-top: 28px;
+		gap: 22px;
+		padding-top: 20px;
+	}
+	.saved .head {
+		padding-top: 0;
 	}
 	.tick {
-		width: 64px;
-		height: 64px;
-		border-radius: 50%;
-		display: grid;
-		place-items: center;
-		background: var(--accent-soft);
-		color: var(--accent-ink);
+		width: 52px;
+		height: 52px;
 	}
 	.understood {
 		min-height: 96px;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.retry {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
 	}
 	.chips {
-		margin-top: 10px;
 		gap: 8px;
 	}
 	.after {
 		width: 100%;
-		margin-top: 12px;
+		margin-top: 8px;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.ring {

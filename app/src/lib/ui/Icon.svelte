@@ -2,8 +2,9 @@
 	// Simple line icons, drawn in the current text colour.
 	type Name =
 		| 'today' | 'mic' | 'circle' | 'gear' | 'check' | 'close' | 'back' | 'chevron'
-		| 'send' | 'clock' | 'stop' | 'keyboard' | 'threads' | 'share' | 'calendar' | 'download';
-	let { name, size = 24 }: { name: Name; size?: number } = $props();
+		| 'send' | 'clock' | 'stop' | 'keyboard' | 'threads' | 'share' | 'calendar' | 'download'
+		| 'arrow' | 'arrow-out' | 'plus' | 'refresh';
+	let { name, size = 24, stroke = 1.6 }: { name: Name; size?: number; stroke?: number } = $props();
 </script>
 
 <svg
@@ -12,7 +13,7 @@
 	viewBox="0 0 24 24"
 	fill="none"
 	stroke="currentColor"
-	stroke-width="1.8"
+	stroke-width={stroke}
 	stroke-linecap="round"
 	stroke-linejoin="round"
 	aria-hidden="true"
@@ -57,6 +58,14 @@
 	{:else if name === 'calendar'}
 		<rect x="3.5" y="5" width="17" height="15" rx="2.5" />
 		<path d="M3.5 10h17M8 3v4M16 3v4" />
+	{:else if name === 'arrow'}
+		<path d="M5 12h14M13 6l6 6-6 6" />
+	{:else if name === 'arrow-out'}
+		<path d="M7 17 17 7M9 7h8v8" />
+	{:else if name === 'plus'}
+		<path d="M12 5v14M5 12h14" />
+	{:else if name === 'refresh'}
+		<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4" />
 	{:else if name === 'download'}
 		<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />
 	{/if}

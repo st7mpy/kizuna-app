@@ -9,7 +9,8 @@
 		loadSampleLife,
 		updateSettings
 	} from '#lib/core/index.js';
-	import { readSettings } from '#lib/db.js';
+	import { hasAnyData, readSettings } from '#lib/db.js';
+	import { watch } from '#lib/ui/live.svelte.js';
 	import { dayKey, minutes, WEEK_ORDER, WEEKDAYS } from '#lib/ui/format.js';
 	import { getTheme, setTheme, type ThemeChoice } from '#lib/ui/theme.js';
 	import Segmented from '#lib/ui/Segmented.svelte';
@@ -98,7 +99,16 @@
 	let confirmDelete = $state(false);
 	let dataNote = $state('');
 
+	// A sample life replaces what is on the phone, so ask first when there is anything to lose.
+	const hasData = watch(() => hasAnyData(), false);
+	let confirmSample = $state(false);
+	function askSample() {
+		if (hasData.value) confirmSample = true;
+		else sample();
+	}
+
 	async function sample() {
+		confirmSample = false;
 		sampling = true;
 		dataNote = '';
 		try {
@@ -145,11 +155,15 @@
 <svelte:head><title>Settings · Kizuna</title></svelte:head>
 
 <div class="page">
-	<a href="/" class="back"><Icon name="back" size={20} /> Today</a>
-	<h1>Settings</h1>
+	<a href="/" class="back"><Icon name="back" size={18} /> Today</a>
+	<div class="head">
+		<p class="label">Settings</p>
+		<h1>Settings</h1>
+	</div>
 
 	{#if s}
-		<section class="stack">
+		<section class="block">
+			<h2><span class="n num">01</span> You</h2>
 			<label class="field">
 				<span>Your first name</span>
 				<input
@@ -162,10 +176,10 @@
 			</label>
 		</section>
 
-		<section class="stack">
-			<h3>When you’re free for people</h3>
+		<section class="block">
+			<h2><span class="n num">02</span> When you’re free for people</h2>
 			<p class="note">Kizuna only suggests times inside these hours.</p>
-			<div class="card days">
+			<div class="days">
 				{#each WEEK_ORDER as d (d)}
 					<div class="day">
 						<span class="dname">{WEEKDAYS[d].slice(0, 3)}</span>
@@ -174,6 +188,7 @@
 								<div class="win">
 									<input
 										type="time"
+										class="num"
 										value={w.start}
 										aria-label="{WEEKDAYS[d]} from"
 										onchange={(e) => setWindow(i, 'start', e.currentTarget.value)}
@@ -181,12 +196,13 @@
 									<span class="to" aria-hidden="true">–</span>
 									<input
 										type="time"
+										class="num"
 										value={w.end}
 										aria-label="{WEEKDAYS[d]} until"
 										onchange={(e) => setWindow(i, 'end', e.currentTarget.value)}
 									/>
 									<button
-										class="icon-btn"
+										class="icon-btn bare"
 										type="button"
 										aria-label="Remove {WEEKDAYS[d]} {w.start} to {w.end}"
 										onclick={() => removeWindow(i)}><Icon name="close" size={18} /></button
@@ -195,20 +211,23 @@
 							{:else}
 								<span class="busy">Not free</span>
 							{/each}
-							<button class="btn quiet add" type="button" onclick={() => addWindow(d)}>+ Add time</button>
+							<button class="btn add" type="button" onclick={() => addWindow(d)}>
+								<Icon name="plus" size={16} /> Add time
+							</button>
 						</div>
 					</div>
 				{/each}
 			</div>
 		</section>
 
-		<section class="stack">
-			<h3>Quiet hours</h3>
-			<div class="row">
+		<section class="block">
+			<h2><span class="n num">03</span> Quiet hours</h2>
+			<div class="row quiet-row">
 				<label class="field grow">
 					<span>No nudges after</span>
 					<input
 						type="time"
+						class="num"
 						value={s.quietStart}
 						onchange={(e) => e.currentTarget.value && save({ quietStart: e.currentTarget.value })}
 					/>
@@ -217,6 +236,7 @@
 					<span>or before</span>
 					<input
 						type="time"
+						class="num"
 						value={s.quietEnd}
 						onchange={(e) => e.currentTarget.value && save({ quietEnd: e.currentTarget.value })}
 					/>
@@ -224,8 +244,8 @@
 			</div>
 		</section>
 
-		<section class="stack">
-			<h3>Your calendar</h3>
+		<section class="block">
+			<h2><span class="n num">04</span> Your calendar</h2>
 			<label class="field">
 				<span>Private calendar link (iCal)</span>
 				<input
@@ -241,9 +261,9 @@
 			</p>
 		</section>
 
-		<section class="stack">
-			<h3>Languages you speak in</h3>
-			<div class="row wrap" role="group" aria-label="Languages">
+		<section class="block">
+			<h2><span class="n num">05</span> Languages you speak in</h2>
+			<div class="row wrap langs" role="group" aria-label="Languages">
 				{#each LANGS as l (l.code)}
 					<button
 						type="button"
@@ -258,8 +278,8 @@
 		{#if note}<p class="note" role="alert">{note}</p>{/if}
 	{/if}
 
-	<section class="stack">
-		<h3>Look</h3>
+	<section class="block">
+		<h2><span class="n num">06</span> Look</h2>
 		<Segmented
 			label="Theme"
 			value={theme}
@@ -272,147 +292,175 @@
 		/>
 	</section>
 
-	<section class="stack">
-		<h3>Your notes</h3>
-		<div class="stack tight">
-			<button class="btn block" type="button" onclick={sample} disabled={sampling}>
-				{sampling ? 'Setting up…' : 'Try with sample life'}
-			</button>
-			<button class="btn block" type="button" onclick={exportAll}>
-				<Icon name="download" size={20} /> Export my notes
-			</button>
-			<button class="btn quiet block" type="button" onclick={() => (confirmDelete = true)}>
-				Delete everything
-			</button>
-		</div>
+	<section class="block">
+		<h2><span class="n num">07</span> Your notes</h2>
+		<ul class="rows actions-list">
+			<li>
+				<button class="btn" type="button" onclick={askSample} disabled={sampling}>
+					{sampling ? 'Setting up…' : 'Try with sample life'}
+				</button>
+			</li>
+			<li>
+				<button class="btn" type="button" onclick={exportAll}>
+					<Icon name="download" size={20} /> Export my notes
+				</button>
+			</li>
+			<li>
+				<button class="btn quiet" type="button" onclick={() => (confirmDelete = true)}>
+					Delete everything
+				</button>
+			</li>
+		</ul>
 		{#if dataNote}<p class="note" role="alert">{dataNote}</p>{/if}
 	</section>
 
-	<section class="stack about">
-		<h3>About Kizuna</h3>
-		<div class="card">
-			<p>
-				<strong>Your notes stay on this phone.</strong> When Kizuna reads a note or hears you, the words pass
-				through to the model and back; Kizuna’s server keeps none of it. A pick-a-time link holds just your
-				first name and the times you offer, for seven days.
-			</p>
-			<p>
-				Kizuna uses Meta’s <strong>Muse Spark</strong> to understand notes, find times and draft lines, and
-				<strong>Muse Voice Transcribe</strong> to hear you. Never the contributor models that learn from what
-				people send.
-			</p>
-			<p>You send every message yourself. No streaks, no scores, no counting.</p>
-			<p class="muted">Kizuna is not a health app. It doesn’t diagnose, track moods or give advice.</p>
-		</div>
+	<section class="block about">
+		<h2><span class="n num">08</span> About Kizuna</h2>
+		<p>
+			<strong>Your notes stay on this phone.</strong> When Kizuna reads a note or hears you, the words pass
+			through to the model and back; Kizuna’s server keeps none of it. A pick-a-time link holds just your
+			first name and the times you offer, for seven days.
+		</p>
+		<p>
+			Kizuna uses Meta’s <strong>Muse Spark</strong> to understand notes, find times and draft lines, and
+			<strong>Muse Voice Transcribe</strong> to hear you. Never the contributor models that learn from what
+			people send.
+		</p>
+		<p>You send every message yourself. No streaks, no scores, no counting.</p>
+		<p class="muted">Kizuna is not a health app. It doesn’t diagnose, track moods or give advice.</p>
 	</section>
 </div>
+
+<Sheet bind:open={confirmSample} title="Try a sample life?">
+	<p class="muted">This replaces your notes with a sample. Your own notes will be deleted.</p>
+	<button class="btn primary big block" type="button" onclick={sample} disabled={sampling}>
+		{sampling ? 'Setting up…' : 'Replace with sample'}
+	</button>
+	<button class="btn line big block" type="button" onclick={() => (confirmSample = false)}>Keep my notes</button>
+</Sheet>
 
 <Sheet bind:open={confirmDelete} title="Delete everything?">
 	<p class="muted">All notes, people, dates and threads on this phone will be gone. This can’t be undone.</p>
 	<button class="btn primary big block" type="button" onclick={wipe} disabled={deleting}>
 		{deleting ? 'Deleting…' : 'Delete everything'}
 	</button>
-	<button class="btn big block" type="button" onclick={() => (confirmDelete = false)}>Keep my notes</button>
+	<button class="btn line big block" type="button" onclick={() => (confirmDelete = false)}>Keep my notes</button>
 </Sheet>
 
 <style>
-	.back {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		min-height: var(--tap);
-		margin: -8px 0 -12px -6px;
-		color: var(--text-2);
-		text-decoration: none;
-		font-weight: 560;
-		align-self: flex-start;
+	/* Numbered blocks, each topped by an ink rule. */
+	.block {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding-top: 12px;
+		border-top: 2px solid var(--rule);
 	}
-	.grow {
-		flex: 1;
+	.block h2 {
+		display: flex;
+		align-items: baseline;
+		gap: 12px;
+		font-size: 1.25rem;
+		letter-spacing: -0.02em;
+	}
+	.block .n {
+		font-size: var(--t-small);
+		color: var(--text-3);
+		min-width: 22px;
 	}
 	.days {
-		padding: 6px 10px 6px 14px;
-		gap: 0;
+		display: flex;
+		flex-direction: column;
 	}
 	.day {
 		display: grid;
-		grid-template-columns: 40px minmax(0, 1fr);
+		grid-template-columns: 44px minmax(0, 1fr);
 		align-items: start;
 		gap: 8px;
-		padding: 10px 0;
-	}
-	.day + .day {
-		border-top: 1px solid var(--line);
+		padding: 6px 0;
+		border-bottom: 1px solid var(--line);
 	}
 	.dname {
-		font-weight: 620;
+		font-weight: 500;
 		padding-top: 12px;
 	}
 	.wins {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 6px;
 	}
 	.win {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
 		align-items: center;
-		gap: 4px;
+		gap: 6px;
 		width: 100%;
 	}
 	.win input {
 		min-width: 0;
 		width: 100%;
-		padding: 8px 4px;
-		font-size: 0.9375rem;
-		text-align: center;
+		border-bottom: 0;
+		font-size: var(--t-lead);
+		text-align: left;
+		padding: 8px 0;
 	}
 	.win input::-webkit-calendar-picker-indicator {
 		display: none;
 	}
-	.win .icon-btn {
-		width: 40px;
-		margin-right: -6px;
-	}
 	.to {
 		color: var(--text-3);
+		padding-right: 8px;
 	}
 	.busy {
 		color: var(--text-3);
-		padding-top: 12px;
+		padding: 12px 0 0;
 	}
 	.add {
-		padding: 0 4px;
-		font-size: 0.9375rem;
+		font-size: var(--t-small);
 		color: var(--accent-ink);
+		min-height: 44px;
+	}
+	.quiet-row {
+		gap: 20px;
+	}
+	.langs {
+		gap: 8px;
 	}
 	.lang {
 		appearance: none;
-		min-height: var(--tap);
+		min-height: 44px;
 		padding: 0 16px;
 		border-radius: 999px;
-		border: 1px solid var(--line);
-		background: var(--surface);
+		border: 0;
+		box-shadow: inset 0 0 0 1px var(--line);
+		background: transparent;
 		color: var(--text-2);
 		font: inherit;
-		font-size: 0.9375rem;
-		font-weight: 560;
+		font-size: var(--t-small);
+		font-weight: 500;
 		cursor: pointer;
+		transition:
+			background var(--dur) var(--ease),
+			color var(--dur) var(--ease);
 	}
 	.lang[aria-pressed='true'] {
-		border-color: var(--accent);
-		color: var(--accent-ink);
-		background: var(--accent-soft);
+		background: var(--rule);
+		color: var(--on-rule);
+		box-shadow: none;
 	}
-	.tight {
-		gap: 8px;
-	}
-	.about .card {
-		gap: 12px;
+	.actions-list .btn {
+		justify-content: flex-start;
+		width: 100%;
+		border-radius: 0;
+		min-height: 52px;
 	}
 	.about p {
-		font-size: 0.9375rem;
-		line-height: 1.55;
+		font-size: var(--t-small);
+		line-height: 1.6;
+		color: var(--text-2);
+	}
+	.about strong {
+		color: var(--text);
+		font-weight: 600;
 	}
 </style>

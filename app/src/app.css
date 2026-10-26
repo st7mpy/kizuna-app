@@ -1,68 +1,89 @@
-/* Kizuna design system. One accent, warm neutrals, calm motion. */
+/* Kizuna design system.
+   Quiet and type-led: a near-monochrome paper, ink type, hairlines instead of boxes,
+   one indigo accent for the main action and a vermilion seal used only as a small flourish.
+   Names and feelings are set in an italic serif; everything else in a grotesk. */
+@import './lib/ui/fonts.css';
 
 :root {
 	color-scheme: light;
-	--bg: #fbf8f3;
-	--surface: #fffdf9;
-	--surface-2: #f3ede4;
-	--line: #e6ddd0;
-	--text: #2a231e;
-	--text-2: #6a5f56;
-	--text-3: #8a7e73;
-	/* accent: persimmon. Only for the main action, selected state and focus. */
-	--accent: #c8502a;
-	--accent-ink: #b34522;
+	/* paper and ink */
+	--bg: #f3f3f0;
+	--surface: #fafaf8; /* sheets */
+	--sunk: #e9e9e5; /* skeletons, pressed rows */
+	--text: #121214;
+	--text-2: #55545c;
+	--text-3: #6b6a72;
+	--line: #d6d5cf; /* hairlines */
+	--rule: #121214; /* thick rules, black circular buttons */
+	--on-rule: #f3f3f0;
+	/* accent: deep indigo, only for the main action, the picked state and focus */
+	--accent: #2b3a92;
+	--accent-ink: #2b3a92;
 	--on-accent: #ffffff;
-	--accent-soft: rgb(217 87 43 / 0.11);
-	--shadow: 0 1px 2px rgb(60 40 20 / 0.05), 0 6px 20px -8px rgb(60 40 20 / 0.12);
-	--scrim: rgb(30 22 16 / 0.36);
+	--accent-soft: rgb(43 58 146 / 0.08);
+	/* the seal: vermilion, a small mark when you poke someone or while the mic listens */
+	--seal: #d4432a;
+	--scrim: rgb(18 18 20 / 0.32);
 
-	--font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Devanagari',
+	--sans: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Devanagari',
 		'Helvetica Neue', Arial, sans-serif;
-	--radius: 20px;
-	--radius-s: 14px;
+	--serif: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif;
+
+	/* type scale */
+	--t-display: 2.75rem; /* 44px: one per screen */
+	--t-title: 1.875rem; /* 30px: names in rows, sheet titles */
+	--t-lead: 1.1875rem; /* 19px */
+	--t-body: 1.0625rem; /* 17px */
+	--t-small: 0.9375rem; /* 15px */
+	--t-label: 0.75rem; /* 12px caps labels */
+
 	--tap: 48px;
-	--gap: 16px;
+	--gutter: 20px;
 	--ease: cubic-bezier(0.22, 0.7, 0.2, 1);
-	--dur: 260ms;
-	--nav-h: 76px;
+	--dur: 240ms;
+	--nav-h: 72px;
 	--safe-b: env(safe-area-inset-bottom, 0px);
 	--safe-t: env(safe-area-inset-top, 0px);
+	--grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.1 -0.3'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
 		color-scheme: dark;
-		--bg: #1c1916;
-		--surface: #25211d;
-		--surface-2: #2f2a25;
-		--line: #3b352f;
-		--text: #f1ebe3;
-		--text-2: #bcb0a4;
-		--text-3: #998d81;
-		--accent: #e8703f;
-		--accent-ink: #f2895c;
-		--on-accent: #1c1410;
-		--accent-soft: rgb(232 112 63 / 0.16);
-		--shadow: 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 24px -10px rgb(0 0 0 / 0.5);
-		--scrim: rgb(0 0 0 / 0.55);
+		--bg: #0d0d0f;
+		--surface: #151518;
+		--sunk: #1c1c20;
+		--text: #ecece8;
+		--text-2: #a9a8b0;
+		--text-3: #8e8d95;
+		--line: #2b2b30;
+		--rule: #ecece8;
+		--on-rule: #0d0d0f;
+		--accent: #a3adff;
+		--accent-ink: #b4bcff;
+		--on-accent: #0d0d0f;
+		--accent-soft: rgb(163 173 255 / 0.12);
+		--seal: #f0603f;
+		--scrim: rgb(0 0 0 / 0.6);
 	}
 }
 :root[data-theme='dark'] {
 	color-scheme: dark;
-	--bg: #1c1916;
-	--surface: #25211d;
-	--surface-2: #2f2a25;
-	--line: #3b352f;
-	--text: #f1ebe3;
-	--text-2: #bcb0a4;
-	--text-3: #998d81;
-	--accent: #e8703f;
-	--accent-ink: #f2895c;
-	--on-accent: #1c1410;
-	--accent-soft: rgb(232 112 63 / 0.16);
-	--shadow: 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 24px -10px rgb(0 0 0 / 0.5);
-	--scrim: rgb(0 0 0 / 0.55);
+	--bg: #0d0d0f;
+	--surface: #151518;
+	--sunk: #1c1c20;
+	--text: #ecece8;
+	--text-2: #a9a8b0;
+	--text-3: #8e8d95;
+	--line: #2b2b30;
+	--rule: #ecece8;
+	--on-rule: #0d0d0f;
+	--accent: #a3adff;
+	--accent-ink: #b4bcff;
+	--on-accent: #0d0d0f;
+	--accent-soft: rgb(163 173 255 / 0.12);
+	--seal: #f0603f;
+	--scrim: rgb(0 0 0 / 0.6);
 }
 
 *,
@@ -82,10 +103,11 @@ body {
 	min-height: 100dvh;
 	background: var(--bg);
 	color: var(--text);
-	font-family: var(--font);
-	font-size: 17px;
+	font-family: var(--sans);
+	font-size: var(--t-body);
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 	-webkit-tap-highlight-color: transparent;
 }
 
@@ -96,43 +118,66 @@ p {
 	margin: 0;
 }
 h1 {
-	font-size: 1.75rem;
-	line-height: 1.2;
-	font-weight: 650;
-	letter-spacing: -0.015em;
+	font-size: var(--t-display);
+	line-height: 1.02;
+	font-weight: 500;
+	letter-spacing: -0.035em;
+	text-wrap: balance;
 }
 h2 {
-	font-size: 1.125rem;
+	font-size: var(--t-lead);
 	line-height: 1.3;
-	font-weight: 620;
+	font-weight: 500;
+	letter-spacing: -0.01em;
 }
-h3 {
-	font-size: 0.8125rem;
-	font-weight: 600;
-	letter-spacing: 0.06em;
+h3,
+.label {
+	font-size: var(--t-label);
+	line-height: 1.4;
+	font-weight: 500;
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: var(--text-3);
 }
 
+/* The italic serif: names and feelings. Slightly larger so it sits level with the grotesk. */
+em,
+.serif {
+	font-family: var(--serif);
+	font-style: italic;
+	font-weight: 400;
+	letter-spacing: -0.005em;
+}
+h1 em {
+	font-size: 1.08em;
+	letter-spacing: -0.01em;
+}
+
 a {
 	color: var(--accent-ink);
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
 }
 
 :focus-visible {
-	outline: 3px solid var(--accent);
-	outline-offset: 2px;
-	border-radius: 10px;
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+	border-radius: 6px;
 }
 
 .muted {
 	color: var(--text-2);
 }
 .small {
-	font-size: 0.9375rem;
+	font-size: var(--t-small);
 }
 .tiny {
 	font-size: 0.8125rem;
 	color: var(--text-3);
+}
+.num {
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.03em;
 }
 .sr-only {
 	position: absolute;
@@ -150,9 +195,22 @@ a {
 .page {
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
-	padding: 8px 20px 32px;
+	gap: 28px;
+	padding: 4px var(--gutter) 40px;
 	animation: rise var(--dur) var(--ease) both;
+}
+/* Every screen opens with a tiny label and one large title. */
+.head {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding-top: 12px;
+}
+.head .lede {
+	color: var(--text-2);
+	font-size: var(--t-lead);
+	line-height: 1.4;
+	max-width: 30ch;
 }
 .stack {
 	display: flex;
@@ -173,38 +231,51 @@ a {
 	justify-content: space-between;
 	gap: 12px;
 }
+.grow {
+	flex: 1;
+}
 
-/* ---------- cards ---------- */
-.card {
-	background: var(--surface);
-	border: 1px solid var(--line);
-	border-radius: var(--radius);
-	padding: 18px 18px 16px;
-	box-shadow: var(--shadow);
+/* A section: tiny label over hairline rows. */
+.section {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
 }
-.card .reason {
-	color: var(--text-2);
-	font-size: 1rem;
+.section > h3,
+.section > .label {
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--line);
 }
-.card .actions {
+.rows {
+	list-style: none;
+	margin: 0;
+	padding: 0;
 	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-top: 4px;
+	flex-direction: column;
 }
-a.card {
-	color: inherit;
+.rows > * {
+	border-bottom: 1px solid var(--line);
+}
+.rows.open-top > :first-child {
+	border-top: 1px solid var(--line);
+}
+
+/* Back link above a title. */
+.back {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 44px;
+	margin: 0 0 -14px -4px;
+	padding-right: 8px;
+	color: var(--text-2);
 	text-decoration: none;
-	transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
-}
-a.card:active {
-	transform: scale(0.985);
+	font-size: var(--t-small);
+	font-weight: 500;
+	align-self: flex-start;
 }
 
 /* ---------- buttons ---------- */
+/* Base is a text button: no box, just words with a generous tap area. */
 .btn {
 	appearance: none;
 	display: inline-flex;
@@ -212,83 +283,117 @@ a.card:active {
 	justify-content: center;
 	gap: 8px;
 	min-height: var(--tap);
-	padding: 0 18px;
+	padding: 0 2px;
+	border: 0;
 	border-radius: 999px;
-	border: 1px solid var(--line);
-	background: var(--surface);
+	background: transparent;
 	color: var(--text);
 	font: inherit;
-	font-size: 1rem;
-	font-weight: 560;
+	font-size: var(--t-body);
+	font-weight: 500;
+	letter-spacing: -0.005em;
 	text-decoration: none;
 	cursor: pointer;
+	user-select: none;
 	transition:
 		transform 160ms var(--ease),
 		background var(--dur) var(--ease),
+		color var(--dur) var(--ease),
 		opacity var(--dur) var(--ease);
-	user-select: none;
 }
 .btn:active {
 	transform: scale(0.97);
 }
 .btn:disabled {
-	opacity: 0.5;
+	opacity: 0.45;
 	cursor: default;
 	transform: none;
 }
+/* The one main action on a screen. */
 .btn.primary {
+	padding: 0 24px;
 	background: var(--accent);
-	border-color: var(--accent);
 	color: var(--on-accent);
-	font-weight: 620;
 }
-.btn.soft {
-	background: var(--accent-soft);
-	border-color: transparent;
+.btn.primary:disabled {
+	opacity: 1;
+	background: transparent;
+	color: var(--text-3);
+	box-shadow: inset 0 0 0 1px var(--line);
+}
+/* A quiet outlined pill, for a second choice that still needs presence. */
+.btn.line {
+	padding: 0 20px;
+	box-shadow: inset 0 0 0 1px var(--line);
+}
+.btn.line:active {
+	background: var(--sunk);
+}
+.btn.accent {
 	color: var(--accent-ink);
-	font-weight: 620;
+	font-weight: 600;
 }
 .btn.quiet {
-	background: transparent;
-	border-color: transparent;
-	color: var(--text-2);
-	padding: 0 12px;
+	color: var(--text-3);
 }
 .btn.block {
 	width: 100%;
 }
 .btn.big {
-	min-height: 56px;
-	font-size: 1.0625rem;
+	min-height: 54px;
 }
+
+/* Circular icon buttons. .solid is the black circle from the references. */
 .icon-btn {
 	appearance: none;
+	flex: none;
 	display: inline-grid;
 	place-items: center;
-	width: var(--tap);
-	height: var(--tap);
-	border-radius: 999px;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border-radius: 50%;
 	border: 0;
 	background: transparent;
-	color: var(--text-2);
+	color: var(--text);
+	box-shadow: inset 0 0 0 1px var(--line);
 	cursor: pointer;
+	text-decoration: none;
+	transition:
+		transform 160ms var(--ease),
+		background var(--dur) var(--ease);
 }
 .icon-btn:active {
-	background: var(--surface-2);
+	transform: scale(0.94);
+	background: var(--sunk);
+}
+.icon-btn.solid {
+	background: var(--rule);
+	color: var(--on-rule);
+	box-shadow: none;
+}
+.icon-btn.bare {
+	box-shadow: none;
+	color: var(--text-2);
+}
+.icon-btn:focus-visible {
+	border-radius: 50%;
 }
 
 /* ---------- form ---------- */
 .field {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 2px;
 }
-.field > span,
-.label {
-	font-size: 0.9375rem;
-	font-weight: 560;
-	color: var(--text-2);
+.field > span:first-child {
+	font-size: var(--t-label);
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-3);
 }
+/* Fields are a line, not a box. */
 input[type='text'],
 input[type='tel'],
 input[type='url'],
@@ -297,13 +402,16 @@ input:not([type]),
 select,
 textarea {
 	font: inherit;
+	font-size: var(--t-body);
 	color: var(--text);
-	background: var(--surface);
-	border: 1px solid var(--line);
-	border-radius: var(--radius-s);
-	padding: 12px 14px;
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--line);
+	border-radius: 0;
+	padding: 10px 0;
 	min-height: var(--tap);
 	width: 100%;
+	transition: border-color var(--dur) var(--ease);
 }
 textarea {
 	resize: vertical;
@@ -312,30 +420,70 @@ textarea {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-	outline: 3px solid var(--accent);
-	outline-offset: 0;
-	border-color: transparent;
+	outline: none;
+	border-bottom-color: var(--accent);
+	box-shadow: 0 1px 0 0 var(--accent);
 }
 ::placeholder {
 	color: var(--text-3);
+	opacity: 1;
 }
 
-.chip {
+/* A small tag for things Kizuna understood. */
+.tag {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: 8px;
 	min-height: 34px;
 	padding: 4px 14px;
 	border-radius: 999px;
-	background: var(--surface-2);
+	box-shadow: inset 0 0 0 1px var(--line);
 	color: var(--text);
-	font-size: 0.9375rem;
+	font-size: var(--t-small);
 	animation: rise var(--dur) var(--ease) both;
+}
+
+/* A person's colour, as a dot. */
+.dot {
+	flex: none;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--hue, var(--text-3));
+}
+
+/* A grainy gradient window, tinted by --hue. */
+.window {
+	position: relative;
+	overflow: hidden;
+	border-radius: 28px;
+	/* Same in both themes: a pastel that fades toward white, like light through paper. */
+	background:
+		radial-gradient(130% 100% at 15% 0%, color-mix(in srgb, var(--hue) 70%, #3b3f8f 30%) 0%, transparent 62%),
+		linear-gradient(172deg, var(--hue) 0%, color-mix(in srgb, var(--hue) 45%, #ffffff) 100%);
+}
+.window::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background-image: var(--grain);
+	background-size: 180px;
+	mix-blend-mode: multiply;
+	opacity: 0.38;
+	pointer-events: none;
 }
 
 .note {
 	color: var(--text-2);
-	font-size: 0.9375rem;
+	font-size: var(--t-small);
+}
+
+/* Calm empty states: one sentence in large type. */
+.calm {
+	font-size: 1.75rem;
+	line-height: 1.15;
+	font-weight: 500;
+	letter-spacing: -0.025em;
 }
 
 /* ---------- motion ---------- */
@@ -367,8 +515,4 @@ textarea:focus-visible {
 		transition-duration: 1ms !important;
 		scroll-behavior: auto !important;
 	}
-}
-
-h1 + p.muted {
-	margin-top: 4px;
 }

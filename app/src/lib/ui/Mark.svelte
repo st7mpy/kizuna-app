@@ -33,7 +33,7 @@
 		stroke: currentColor;
 	}
 	.acc {
-		stroke: var(--accent);
+		stroke: var(--seal);
 	}
 	.paper {
 		stroke: var(--mark-paper, var(--bg));

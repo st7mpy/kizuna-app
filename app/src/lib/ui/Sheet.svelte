@@ -6,9 +6,17 @@
 	let {
 		open = $bindable(false),
 		title,
+		em,
 		onclose,
 		children
-	}: { open?: boolean; title: string; onclose?: () => void; children: Snippet } = $props();
+	}: {
+		open?: boolean;
+		title: string;
+		/** Set after the title in the italic serif, e.g. a name. */
+		em?: string;
+		onclose?: () => void;
+		children: Snippet;
+	} = $props();
 
 	let dialog: HTMLDialogElement | undefined = $state();
 	const titleId = $props.id();
@@ -35,10 +43,10 @@
 >
 	<div class="sheet">
 		<div class="grab" aria-hidden="true"></div>
-		<header class="spread">
-			<h2 id="sheet-{titleId}">{title}</h2>
-			<button class="icon-btn" type="button" aria-label="Close" onclick={() => (open = false)}>
-				<Icon name="close" />
+		<header>
+			<h2 id="sheet-{titleId}">{title}{#if em}{' '}<em>{em}</em>{/if}</h2>
+			<button class="icon-btn solid" type="button" aria-label="Close" onclick={() => (open = false)}>
+				<Icon name="close" size={20} />
 			</button>
 		</header>
 		{#if open}
@@ -61,31 +69,46 @@
 	}
 	dialog::backdrop {
 		background: var(--scrim);
+		backdrop-filter: blur(2px);
 		animation: fade var(--dur) var(--ease);
 	}
 	dialog[open] .sheet {
 		animation: up 320ms var(--ease);
 	}
 	.sheet {
-		background: var(--bg);
-		border-radius: 28px 28px 0 0;
-		padding: 8px 20px calc(24px + var(--safe-b));
+		background: var(--surface);
+		border-radius: 24px 24px 0 0;
+		box-shadow: inset 0 1px 0 var(--line);
+		padding: 8px var(--gutter) calc(24px + var(--safe-b));
 		max-height: 92dvh;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		box-shadow: 0 -10px 40px -12px rgb(0 0 0 / 0.25);
+		gap: 20px;
 	}
 	.grab {
-		width: 40px;
-		height: 4px;
-		border-radius: 4px;
+		width: 36px;
+		height: 3px;
+		border-radius: 3px;
 		background: var(--line);
 		margin: 4px auto 0;
 	}
 	header {
-		margin-right: -10px;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		padding-top: 6px;
+	}
+	h2 {
+		font-size: var(--t-title);
+		line-height: 1.08;
+		font-weight: 500;
+		letter-spacing: -0.03em;
+		padding-top: 4px;
+	}
+	h2 em {
+		font-size: 1.1em;
 	}
 	@keyframes up {
 		from {

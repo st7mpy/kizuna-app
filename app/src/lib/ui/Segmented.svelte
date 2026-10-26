@@ -1,5 +1,5 @@
 <script lang="ts" generics="T extends string">
-	// A row of choices; one can be picked. Picked uses the accent.
+	// A row of choices; one can be picked. Picked is underlined.
 	let {
 		options,
 		value,
@@ -28,33 +28,49 @@
 </div>
 
 <style>
+	/* Words on a hairline; the picked one is underlined in ink. */
 	.seg {
 		display: grid;
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
-		gap: 4px;
-		padding: 4px;
-		background: var(--surface-2);
-		border-radius: 999px;
+		border-bottom: 1px solid var(--line);
 	}
 	button {
 		appearance: none;
-		min-height: 48px;
+		position: relative;
+		min-height: 52px;
+		padding: 0;
 		border: 0;
-		border-radius: 999px;
+		border-radius: 0;
 		background: transparent;
-		color: var(--text-2);
+		color: var(--text-3);
 		font: inherit;
-		font-size: 1rem;
-		font-weight: 560;
+		font-size: var(--t-body);
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		text-align: left;
 		cursor: pointer;
-		transition:
-			background var(--dur) var(--ease),
-			color var(--dur) var(--ease);
+		transition: color var(--dur) var(--ease);
+	}
+	button::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 14px;
+		bottom: -1px;
+		height: 2px;
+		background: var(--text);
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform var(--dur) var(--ease);
 	}
 	button.on {
-		background: var(--surface);
-		color: var(--accent-ink);
-		box-shadow: var(--shadow), inset 0 0 0 1.5px var(--accent);
+		color: var(--text);
+	}
+	button.on::after {
+		transform: none;
+	}
+	button:focus-visible {
+		border-radius: 4px;
 	}
 </style>

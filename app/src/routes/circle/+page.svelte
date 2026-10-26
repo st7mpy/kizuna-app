@@ -5,6 +5,7 @@
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { fold, soft } from '#lib/ui/motion.js';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { hueFor } from '#lib/ui/hue.js';
 
 	const circle = watch<Person[]>(() => circlePeople(), []);
 	const suggested = watch<Person[]>(() => suggestedPeople(), []);
@@ -33,89 +34,113 @@
 <svelte:head><title>Circle · Kizuna</title></svelte:head>
 
 <div class="page">
-	<div>
+	<div class="head">
+		<p class="label">Circle</p>
 		<h1>Your circle</h1>
-		<p class="muted">The people you want to keep close.</p>
+		<p class="lede">The people you want to keep <em>close</em>.</p>
 	</div>
 
 	{#if suggested.value.length}
-		<section class="stack" aria-labelledby="noticed">
+		<section class="section" aria-labelledby="noticed">
 			<h3 id="noticed">Kizuna noticed these people come up a lot</h3>
-			{#each suggested.value as p (p.id)}
-				<article class="card suggest" out:fold in:soft>
-					<h2>{p.name}</h2>
-					{#if p.why}<p class="reason">{p.why}</p>{/if}
-					<div class="actions">
-						<button class="btn soft" type="button" onclick={() => decide(p, true)}>Keep close</button>
-						<button class="btn quiet" type="button" onclick={() => decide(p, false)}>Not now</button>
-					</div>
-				</article>
-			{/each}
+			<div class="rows">
+				{#each suggested.value as p (p.id)}
+					<article class="suggest" out:fold in:soft>
+						<h2 class="who">
+							<span class="dot" style="--hue:{hueFor(p.id)}" aria-hidden="true"></span><em>{p.name}</em>
+						</h2>
+						{#if p.why}<p class="muted">{p.why}</p>{/if}
+						<div class="row actions">
+							<button class="btn accent" type="button" onclick={() => decide(p, true)}>Keep close</button>
+							<button class="btn quiet" type="button" onclick={() => decide(p, false)}>Not now</button>
+						</div>
+					</article>
+				{/each}
+			</div>
 			{#if note}<p class="note" role="alert">{note}</p>{/if}
 		</section>
 	{/if}
 
-	<section class="stack" aria-label="People in your circle">
+	<section class="section" aria-label="People in your circle">
 		{#if suggested.value.length && circle.value.length}<h3>In your circle</h3>{/if}
-		{#each circle.value as p (p.id)}
-			<a class="card person" href="/circle/{p.id}" in:soft>
-				<span class="initial" aria-hidden="true">{p.name.slice(0, 1).toUpperCase()}</span>
-				<span class="who">
-					<span class="name">{p.name}</span>
-					<span class="sum">{p.summary || RELATION[p.relation] || 'In your circle'}</span>
-				</span>
-				<Icon name="chevron" size={20} />
-			</a>
-		{/each}
+		<div class="rows" class:open-top={!suggested.value.length}>
+			{#each circle.value as p (p.id)}
+				<a class="person" href="/circle/{p.id}" in:soft>
+					<span class="window swatch" style="--hue:{hueFor(p.id)}" aria-hidden="true"></span>
+					<span class="who-col">
+						<span class="name">{p.name}</span>
+						<span class="sum">{p.summary || RELATION[p.relation] || 'In your circle'}</span>
+					</span>
+					<Icon name="chevron" size={18} />
+				</a>
+			{/each}
+		</div>
 		{#if circle.ready && suggested.ready && !circle.value.length && !suggested.value.length}
 			<div class="empty">
-				<p class="calm">Your circle builds itself.</p>
+				<p class="calm">Your circle <em>builds itself</em>.</p>
 				<p class="muted">Talk about your day and Kizuna will notice who matters. You decide who stays.</p>
 				<a href="/talk" class="btn primary big"><Icon name="mic" size={22} /> Talk to Kizuna</a>
 			</div>
 		{:else if circle.ready && !circle.value.length}
-			<p class="note">Keep someone above and they’ll show up here.</p>
+			<p class="note pad">Keep someone above and they’ll show up here.</p>
 		{/if}
 	</section>
 </div>
 
 <style>
 	.suggest {
-		background: var(--surface-2);
-		box-shadow: none;
-		border-color: transparent;
-	}
-	.person {
-		flex-direction: row;
-		align-items: center;
-		gap: 14px;
-		padding: 14px 14px 14px 16px;
-	}
-	.initial {
-		flex: none;
-		width: 44px;
-		height: 44px;
-		border-radius: 50%;
-		display: grid;
-		place-items: center;
-		background: var(--surface-2);
-		color: var(--text-2);
-		font-weight: 650;
-		font-size: 1.125rem;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 18px 0 8px;
 	}
 	.who {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: var(--t-title);
+		line-height: 1.1;
+	}
+	.who em {
+		font-size: 1.12em;
+	}
+	.who .dot {
+		width: 12px;
+		height: 12px;
+		margin-top: 4px;
+	}
+	.actions {
+		gap: 22px;
+	}
+	.person {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 14px 0;
+		color: var(--text);
+		text-decoration: none;
+	}
+	.swatch {
+		flex: none;
+		width: 52px;
+		height: 52px;
+		border-radius: 16px;
+	}
+	.who-col {
 		flex: 1;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
 	}
 	.name {
-		font-weight: 620;
-		font-size: 1.0625rem;
+		font-family: var(--serif);
+		font-style: italic;
+		font-size: 1.75rem;
+		line-height: 1.1;
 	}
 	.sum {
 		color: var(--text-2);
-		font-size: 0.9375rem;
+		font-size: var(--t-small);
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
@@ -125,6 +150,9 @@
 	.person :global(svg) {
 		color: var(--text-3);
 	}
+	.person:focus-visible {
+		outline-offset: -2px;
+	}
 	.empty {
 		display: flex;
 		flex-direction: column;
@@ -133,10 +161,9 @@
 		padding-top: 8px;
 	}
 	.empty .btn {
-		margin-top: 10px;
+		margin-top: 14px;
 	}
-	.calm {
-		font-size: 1.375rem;
-		font-weight: 620;
+	.pad {
+		padding-top: 14px;
 	}
 </style>

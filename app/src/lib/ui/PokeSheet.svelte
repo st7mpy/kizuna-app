@@ -11,6 +11,7 @@
 	} from '#lib/core/index.js';
 	import Sheet from './Sheet.svelte';
 	import Icon from './Icon.svelte';
+	import Seal from './Seal.svelte';
 
 	let {
 		open = $bindable(false),
@@ -119,19 +120,20 @@
 	}
 </script>
 
-<Sheet bind:open title={person ? `Poke ${person.name}` : 'Poke'}>
+<Sheet bind:open title={person ? 'Say hi to' : 'Say hi'} em={person?.name}>
 	{#if sent}
 		<div class="done">
-			<p class="big">Over to WhatsApp.</p>
+			<Seal size={84} />
+			<p class="calm">Over to <em>WhatsApp</em>.</p>
 			<p class="muted">Send it when it feels right.</p>
-			<button class="btn block big" type="button" onclick={() => (open = false)}>Close</button>
+			<button class="btn line block big" type="button" onclick={() => (open = false)}>Close</button>
 		</div>
 	{:else}
-		{#if reason}<p class="muted small">{reason}</p>{/if}
-		<label class="field">
-			<span class="sr-only">Message</span>
+		{#if reason}<p class="muted why">{reason}</p>{/if}
+		<label class="field draft">
+			<span>Your line</span>
 			<textarea
-				rows="4"
+				rows="3"
 				bind:value={text}
 				aria-busy={loading}
 				placeholder={loading ? 'Finding the words…' : 'Say hello'}
@@ -141,9 +143,11 @@
 		{#if fallback}
 			<p class="note">Here’s a simple line to start. Change it however you like.</p>
 		{/if}
-		<div class="row wrap">
+		<div class="row tools">
 			{#if !triedAnother}
-				<button class="btn" type="button" onclick={another} disabled={loading}>Try another</button>
+				<button class="btn" type="button" onclick={another} disabled={loading}>
+					<Icon name="refresh" size={20} /> Try another
+				</button>
 			{/if}
 			<label class="switch">
 				<input type="checkbox" bind:checked={withTime} onchange={toggleTime} disabled={timeBusy} />
@@ -160,28 +164,40 @@
 </Sheet>
 
 <style>
+	.why {
+		margin-top: -8px;
+	}
+	.draft textarea {
+		font-size: 1.3125rem;
+		line-height: 1.4;
+		letter-spacing: -0.01em;
+		padding: 12px 0 14px;
+	}
+	.tools {
+		justify-content: space-between;
+		margin-top: -8px;
+	}
 	.done {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 8px 0;
+		align-items: flex-start;
+		gap: 10px;
+		padding: 4px 0;
 	}
-	.big {
-		font-size: 1.375rem;
-		font-weight: 620;
+	.done :global(.seal) {
+		margin-bottom: 8px;
 	}
 	.done .btn {
-		margin-top: 12px;
+		margin-top: 16px;
 	}
 	.switch {
 		display: inline-flex;
 		align-items: center;
 		gap: 10px;
 		min-height: var(--tap);
-		padding: 0 6px;
 		cursor: pointer;
-		font-weight: 560;
-		color: var(--text-2);
+		font-weight: 500;
+		color: var(--text);
 	}
 	.switch input {
 		position: absolute;
@@ -190,35 +206,36 @@
 		height: 1px;
 	}
 	.track {
-		width: 42px;
-		height: 26px;
+		width: 40px;
+		height: 24px;
 		border-radius: 999px;
-		background: var(--surface-2);
-		border: 1px solid var(--line);
+		box-shadow: inset 0 0 0 1.5px var(--text-3);
 		position: relative;
 		transition: background var(--dur) var(--ease);
 	}
 	.track::after {
 		content: '';
 		position: absolute;
-		top: 2px;
-		left: 2px;
-		width: 20px;
-		height: 20px;
+		top: 5px;
+		left: 5px;
+		width: 14px;
+		height: 14px;
 		border-radius: 50%;
-		background: var(--surface);
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
-		transition: transform var(--dur) var(--ease);
+		background: var(--text-3);
+		transition:
+			transform var(--dur) var(--ease),
+			background var(--dur) var(--ease);
 	}
 	.switch input:checked + .track {
 		background: var(--accent);
-		border-color: var(--accent);
+		box-shadow: none;
 	}
 	.switch input:checked + .track::after {
 		transform: translateX(16px);
+		background: var(--on-accent);
 	}
 	.switch input:focus-visible + .track {
-		outline: 3px solid var(--accent);
-		outline-offset: 2px;
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
 	}
 </style>

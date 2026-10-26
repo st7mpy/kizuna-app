@@ -1,28 +1,36 @@
 <script lang="ts">
-	// Three places: Today, Talk (centre), Circle.
+	// Numbered places on the left, Talk on the right under the thumb.
+	// Add a place here (e.g. a map) and the bar makes room for it.
 	import { page } from '$app/state';
 	import Icon from './Icon.svelte';
 
+	const PLACES: { href: string; label: string; match: (p: string) => boolean }[] = [
+		{
+			href: '/',
+			label: 'Today',
+			match: (p) => p === '/' || p.startsWith('/threads') || p.startsWith('/settings')
+		},
+		{ href: '/circle', label: 'Circle', match: (p) => p.startsWith('/circle') }
+	];
+
 	const path = $derived(page.url.pathname);
-	const at = $derived({
-		today: path === '/' || path.startsWith('/threads') || path.startsWith('/settings'),
-		talk: path.startsWith('/talk'),
-		circle: path.startsWith('/circle')
-	});
+	const talking = $derived(path.startsWith('/talk'));
 </script>
 
 <nav aria-label="Main">
-	<a href="/" class="tab" aria-current={at.today ? 'page' : undefined}>
-		<Icon name="today" />
-		<span>Today</span>
-	</a>
-	<a href="/talk" class="talk" aria-current={at.talk ? 'page' : undefined} aria-label="Talk">
-		<span class="disc"><Icon name="mic" size={28} /></span>
-		<span class="lbl">Talk</span>
-	</a>
-	<a href="/circle" class="tab" aria-current={at.circle ? 'page' : undefined}>
-		<Icon name="circle" />
-		<span>Circle</span>
+	<ul>
+		{#each PLACES as place, i (place.href)}
+			<li>
+				<a href={place.href} class="tab" aria-current={place.match(path) ? 'page' : undefined}>
+					<span class="n num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+					<span class="t">{place.label}</span>
+				</a>
+			</li>
+		{/each}
+	</ul>
+	<a href="/talk" class="talk" aria-current={talking ? 'page' : undefined}>
+		<span class="t">Talk</span>
+		<span class="disc" aria-hidden="true"><Icon name="mic" size={24} stroke={1.8} /></span>
 	</a>
 </nav>
 
@@ -33,66 +41,105 @@
 		right: 0;
 		bottom: 0;
 		z-index: 10;
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
-		align-items: end;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
 		max-width: 560px;
 		margin: 0 auto;
-		padding: 6px 28px calc(8px + var(--safe-b));
-		background: color-mix(in srgb, var(--bg) 88%, transparent);
-		backdrop-filter: blur(14px);
-		-webkit-backdrop-filter: blur(14px);
+		padding: 8px 12px calc(10px + var(--safe-b)) 8px;
+		background: color-mix(in srgb, var(--bg) 86%, transparent);
+		backdrop-filter: blur(16px) saturate(1.2);
+		-webkit-backdrop-filter: blur(16px) saturate(1.2);
 		border-top: 1px solid var(--line);
 	}
+	ul {
+		display: flex;
+		gap: 2px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
 	a {
-		color: var(--text-3);
+		color: var(--text-2);
 		text-decoration: none;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		letter-spacing: 0.01em;
 	}
 	.tab {
+		position: relative;
 		display: flex;
 		flex-direction: column;
-		align-items: center;
 		justify-content: center;
-		gap: 2px;
+		min-width: 76px;
 		min-height: 56px;
-		border-radius: 16px;
+		padding: 0 12px;
+		border-radius: 12px;
 		transition: color var(--dur) var(--ease);
 	}
+	.n {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		line-height: 1;
+		letter-spacing: 0.02em;
+		color: var(--text-3);
+	}
+	.t {
+		font-size: 1rem;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		line-height: 1.5;
+	}
+	.tab::after {
+		content: '';
+		position: absolute;
+		left: 12px;
+		bottom: 8px;
+		width: 18px;
+		height: 2px;
+		background: var(--text);
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform var(--dur) var(--ease);
+	}
 	.tab[aria-current='page'] {
-		color: var(--accent-ink);
+		color: var(--text);
+	}
+	.tab[aria-current='page']::after {
+		transform: none;
 	}
 	.talk {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		gap: 2px;
-		margin-top: -26px;
+		gap: 12px;
+		min-height: 56px;
+		padding-left: 14px;
 		border-radius: 999px;
+		color: var(--text);
+	}
+	.talk .t {
+		font-weight: 500;
 	}
 	.disc {
+		position: relative;
 		display: grid;
 		place-items: center;
-		width: 68px;
-		height: 68px;
+		width: 56px;
+		height: 56px;
 		border-radius: 50%;
 		background: var(--accent);
 		color: var(--on-accent);
-		box-shadow:
-			0 0 0 6px var(--bg),
-			0 10px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent);
 		transition: transform 180ms var(--ease);
 	}
 	.talk:active .disc {
 		transform: scale(0.94);
 	}
-	.talk[aria-current='page'] .lbl {
-		color: var(--accent-ink);
+	.talk[aria-current='page'] .disc::after {
+		content: '';
+		position: absolute;
+		inset: -5px;
+		border-radius: 50%;
+		box-shadow: 0 0 0 1px var(--accent);
 	}
-	.lbl {
-		padding-bottom: 6px;
-		color: var(--text-2);
+	.talk:focus-visible {
+		outline-offset: 2px;
 	}
 </style>

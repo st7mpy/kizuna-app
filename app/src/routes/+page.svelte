@@ -11,6 +11,7 @@
 	import PokeSheet from '#lib/ui/PokeSheet.svelte';
 	import TimeSheet from '#lib/ui/TimeSheet.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { hueFor } from '#lib/ui/hue.js';
 
 	const settings = watch<Settings | undefined>(() => settingsLive(), undefined);
 	const hasData = watch(() => hasAnyData(), false);
@@ -35,7 +36,8 @@
 	let sampleFailed = $state(false);
 
 	const now = new Date();
-	const hello = $derived(greeting(now.getHours(), settings.value?.myName));
+	const hello = greeting(now.getHours());
+	const myName = $derived(settings.value?.myName?.trim() ?? '');
 	const dateLine = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 	const room = $derived<Room | null>(
 		settings.value?.room?.day === dayKey() ? settings.value.room.level : null
@@ -123,33 +125,38 @@
 <svelte:head><title>Today · Kizuna</title></svelte:head>
 
 <div class="page">
-	<div class="top">
-		<div>
-			<h1>{hello}</h1>
-			<p class="muted">{dateLine}</p>
-		</div>
-		<a href="/settings" class="icon-btn" aria-label="Settings"><Icon name="gear" /></a>
-	</div>
-
 	{#if firstRun}
-		<section class="card welcome" in:soft>
-			<h2>Kizuna keeps your thoughts and your people from slipping away.</h2>
-			<p class="muted">
-				Say what’s on your mind. It remembers the people and dates, and speaks up only when there’s a good moment.
-			</p>
+		<section class="welcome" in:soft>
+			<div class="head">
+				<p class="label">Welcome</p>
+				<h1>Keep your thoughts and your <em>people</em> from slipping away.</h1>
+			</div>
 			<div class="stack">
 				<a href="/talk" class="btn primary big block"><Icon name="mic" size={22} /> Talk to Kizuna</a>
-				<button class="btn big block" type="button" onclick={trySample} disabled={sampling}>
+				<button class="btn line big block" type="button" onclick={trySample} disabled={sampling}>
 					{sampling ? 'Setting up a sample life…' : 'Try with sample life'}
 				</button>
+			</div>
+			<ol class="rows open-top steps">
+				<li><span class="n num">01</span><span>Say what’s on your mind, in English, Hindi or both.</span></li>
+				<li><span class="n num">02</span><span>Kizuna remembers the people, dates and plans.</span></li>
+				<li><span class="n num">03</span><span>It speaks up only when there’s a good moment, or stays quiet.</span></li>
+			</ol>
+			<div class="window hero" style="--hue:#9cc6ee" aria-hidden="true">
+				<span class="sun"></span>
 			</div>
 			{#if sampleFailed}
 				<p class="note" role="status">Couldn’t load the sample just now. Try again in a moment.</p>
 			{/if}
 		</section>
 	{:else}
-		<section class="stack room">
-			<h2 id="room-q">How much room today?</h2>
+		<div class="head">
+			<p class="label">{dateLine}</p>
+			<h1>{hello}{#if myName},<br /><em>{myName}</em>{/if}</h1>
+		</div>
+
+		<section class="room" aria-labelledby="room-q">
+			<h2 id="room-q" class="label">How much room today?</h2>
 			<Segmented
 				label="How much room today?"
 				value={room}
@@ -162,36 +169,39 @@
 			/>
 		</section>
 
-		<section class="stack cards" aria-label="For today" aria-live="polite">
+		<section class="moments" aria-label="For today" aria-live="polite">
 			{#each cards as card (card.promptId)}
-				<article class="card" class:thread={card.kind === 'thread'} out:fold in:soft>
+				<article class="moment" class:thread={card.kind === 'thread'} out:fold in:soft>
 					{#if card.kind === 'suggest_circle'}
-						<p class="kicker">Someone who comes up a lot</p>
-						<h2>Keep {card.title} close?</h2>
+						<p class="label">Someone who comes up a lot</p>
+						<h2 class="who">Keep <em>{card.title}</em> close?</h2>
 						<p class="reason">{card.reason}</p>
 						<div class="actions">
-							<button class="btn soft" type="button" onclick={() => answer(card, 'keep')}>Keep</button>
+							<button class="btn accent" type="button" onclick={() => answer(card, 'keep')}>Keep close</button>
 							<button class="btn quiet" type="button" onclick={() => answer(card, 'not_now')}>Not now</button>
 						</div>
 					{:else if card.kind === 'thread'}
-						<p class="kicker">Yours</p>
-						<h2>{card.title}</h2>
+						<p class="label">Yours</p>
+						<h2 class="what">{card.title}</h2>
 						{#if card.reason}<p class="reason">{card.reason}</p>{/if}
 						<div class="actions">
-							<button class="btn soft" type="button" onclick={() => answer(card, 'done')}>
+							<button class="btn accent" type="button" onclick={() => answer(card, 'done')}>
 								<Icon name="check" size={20} /> Done
 							</button>
 							<button class="btn quiet" type="button" onclick={() => answer(card, 'not_now')}>Not now</button>
 						</div>
 					{:else}
-						{#if card.personId}
-							<a class="name" href="/circle/{card.personId}"><h2>{card.title}</h2></a>
-						{:else}
-							<h2>{card.title}</h2>
-						{/if}
+						<h2 class="who">
+							<span class="dot" style="--hue:{hueFor(card.personId)}" aria-hidden="true"></span>
+							{#if card.personId}
+								<a class="name" href="/circle/{card.personId}"><em>{card.title}</em></a>
+							{:else}
+								<em>{card.title}</em>
+							{/if}
+						</h2>
 						<p class="reason">{card.reason}</p>
 						<div class="actions">
-							<button class="btn soft" type="button" onclick={() => poke(card)}>Poke</button>
+							<button class="btn accent" type="button" onclick={() => poke(card)}>Poke</button>
 							<button class="btn" type="button" onclick={() => findTime(card)}>Find a time</button>
 							<button class="btn quiet" type="button" onclick={() => answer(card, 'not_now')}>Not now</button>
 						</div>
@@ -202,22 +212,21 @@
 			{#if loaded && cards.length === 0}
 				<div class="empty" in:soft>
 					{#if failed}
-						<p class="calm">Today is still waking up.</p>
+						<p class="calm">Today is still <em>waking up</em>.</p>
 						<p class="muted">Your notes are safe. Try again in a moment.</p>
-						<button class="btn" type="button" onclick={load}>Try again</button>
+						<button class="btn line" type="button" onclick={load}>Try again</button>
 					{:else}
-						<p class="calm">Nothing needs you today.</p>
+						<p class="calm">Nothing needs you <em>today</em>.</p>
 						<p class="muted">Kizuna will speak up when there’s a good reason.</p>
 					{/if}
 				</div>
 			{/if}
 		</section>
 
-		<a href="/threads" class="card link-row">
-			<Icon name="threads" />
-			<span>Your threads</span>
-			<span class="sub muted">ideas, plans, promises, errands</span>
-			<Icon name="chevron" size={20} />
+		<a href="/threads" class="threads">
+			<span class="t">Your threads</span>
+			<span class="sub"><em>ideas, plans, promises, errands</em></span>
+			<span class="icon-btn solid" aria-hidden="true"><Icon name="arrow" size={20} /></span>
 		</a>
 	{/if}
 </div>
@@ -237,93 +246,139 @@
 />
 
 <style>
-	.top {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 12px;
-		padding-top: 8px;
-	}
-	.top .icon-btn {
-		margin-right: -10px;
-	}
 	.welcome {
-		gap: 14px;
-		padding: 24px 20px 20px;
+		display: flex;
+		flex-direction: column;
+		gap: 28px;
 	}
-	.welcome h2 {
-		font-size: 1.3125rem;
-		line-height: 1.35;
+	.welcome h1 {
+		font-size: 2.625rem;
+	}
+	.hero {
+		height: 132px;
+		border-radius: 28px;
+	}
+	.sun {
+		position: absolute;
+		right: 28px;
+		top: 26px;
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		background: var(--seal);
+		opacity: 0.9;
+	}
+	.steps {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.steps li {
+		display: grid;
+		grid-template-columns: 36px 1fr;
+		gap: 8px;
+		padding: 14px 0;
+		color: var(--text-2);
+		line-height: 1.45;
+	}
+	.steps .n {
+		font-size: var(--t-small);
+		color: var(--text);
+		font-weight: 500;
 	}
 	.room {
-		gap: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		margin-top: -4px;
 	}
-	.room h2 {
-		font-size: 1rem;
-		color: var(--text-2);
-		font-weight: 560;
+	.moments {
+		display: flex;
+		flex-direction: column;
+		margin-top: -14px;
 	}
-	.cards {
-		gap: 14px;
+	.moment {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 22px 0 10px;
+		border-bottom: 1px solid var(--line);
 	}
-	.kicker {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		color: var(--text-3);
+	.who {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: var(--t-title);
+		line-height: 1.1;
+		letter-spacing: -0.02em;
 	}
-	.card h2 {
-		font-size: 1.25rem;
+	.who em {
+		font-size: 1.12em;
 	}
-	.card.thread {
-		background: var(--surface-2);
-		box-shadow: none;
-		border-color: transparent;
+	.who .dot {
+		width: 12px;
+		height: 12px;
+		margin-top: 4px;
 	}
 	.name {
 		color: inherit;
 		text-decoration: none;
-		align-self: flex-start;
+	}
+	.what {
+		font-size: 1.375rem;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+	}
+	.reason {
+		color: var(--text-2);
+		max-width: 34ch;
+	}
+	.actions {
+		display: flex;
+		align-items: center;
+		gap: 22px;
+		margin-top: 4px;
+	}
+	.actions .quiet {
+		margin-left: auto;
 	}
 	.empty {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 6px;
-		padding: 28px 4px 8px;
+		gap: 8px;
+		padding: 28px 0 8px;
 	}
 	.empty .btn {
 		margin-top: 10px;
 	}
-	.calm {
-		font-size: 1.375rem;
-		font-weight: 620;
-		line-height: 1.3;
-	}
-	.link-row {
+	.threads {
 		display: grid;
-		grid-template-columns: auto 1fr auto;
-		grid-template-areas: 'i t c' 'i s c';
+		grid-template-columns: 1fr auto;
+		grid-template-areas: 't i' 's i';
 		align-items: center;
 		column-gap: 14px;
-		row-gap: 0;
-		padding: 14px 16px;
-		box-shadow: none;
+		padding: 18px 0;
+		border-top: 2px solid var(--rule);
+		color: var(--text);
+		text-decoration: none;
+		margin-top: 8px;
 	}
-	.link-row > :global(svg:first-child) {
-		grid-area: i;
-		color: var(--text-2);
-	}
-	.link-row > span:first-of-type {
+	.threads .t {
 		grid-area: t;
-		font-weight: 600;
+		font-size: 1.375rem;
+		font-weight: 500;
+		letter-spacing: -0.02em;
 	}
-	.link-row .sub {
+	.threads .sub {
 		grid-area: s;
-		font-size: 0.875rem;
+		color: var(--text-2);
+		font-size: var(--t-lead);
 	}
-	.link-row > :global(svg:last-child) {
-		grid-area: c;
-		color: var(--text-3);
+	.threads .icon-btn {
+		grid-area: i;
+	}
+	.threads:focus-visible {
+		outline-offset: 4px;
 	}
 </style>
