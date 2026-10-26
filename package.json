@@ -1,0 +1,26 @@
+{
+  "name": "kizuna",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "app",
+    "relay",
+    "tools/fake-meta",
+    "eval"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace app",
+    "dev:relay": "npm run dev --workspace relay",
+    "dev:fake": "npm run start --workspace tools/fake-meta",
+    "test": "npm test --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "eval": "npm run eval --workspace eval"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "allowScripts": {
+    "workerd@1.20261023.1": true,
+    "esbuild@0.28.2": true
+  }
+}

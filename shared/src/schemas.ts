@@ -1,0 +1,80 @@
+// JSON schemas for Spark structured output (strict mode: every object has
+// additionalProperties:false and lists every property as required; no recursion).
+// Owner: AI pipeline. Must match the *Output types in api.ts.
+import type { TaskName } from './api.ts';
+
+export const RELATIONS = ['parent', 'sibling', 'partner', 'child', 'family', 'friend', 'colleague', 'other', 'unknown'] as const;
+export const EVENT_KINDS = ['birthday', 'appointment', 'milestone', 'plan', 'trip', 'other'] as const;
+export const THREAD_KINDS = ['idea', 'plan', 'promise', 'errand'] as const;
+export const LANGUAGES = ['en', 'hi', 'mixed', 'other'] as const;
+
+type Schema = Record<string, unknown>;
+
+/** A strict object: every property required, nothing extra. */
+function obj(properties: Record<string, Schema>): Schema {
+	return { type: 'object', properties, required: Object.keys(properties), additionalProperties: false };
+}
+const str = (description?: string): Schema => (description ? { type: 'string', description } : { type: 'string' });
+const nstr = (description?: string): Schema =>
+	description ? { type: ['string', 'null'], description } : { type: ['string', 'null'] };
+const strEnum = (values: readonly string[]): Schema => ({ type: 'string', enum: [...values] });
+const arr = (items: Schema): Schema => ({ type: 'array', items });
+
+const extract = obj({
+	language: strEnum(LANGUAGES),
+	sensitive: { type: 'boolean', description: 'true if health, money or conflict is mentioned' },
+	people: arr(
+		obj({
+			name: str('display name; reuse a known name when it is the same person'),
+			relation: strEnum(RELATIONS)
+		})
+	),
+	events: arr(
+		obj({
+			what: str('short, e.g. "knee appointment"'),
+			kind: strEnum(EVENT_KINDS),
+			people: arr(str()),
+			date: nstr('YYYY-MM-DD or null'),
+			time: nstr('HH:MM 24h or null'),
+			date_text: nstr('the exact date words used, or null')
+		})
+	),
+	promises: arr(obj({ what: str(), person: nstr(), date_text: nstr() })),
+	threads: arr(obj({ title: str(), kind: strEnum(THREAD_KINDS), people: arr(str()) }))
+});
+
+const weave = obj({
+	people: arr(
+		obj({
+			id: nstr('existing person id, or null for someone new'),
+			name: str(),
+			aliases: arr(str()),
+			merge_ids: arr(str()),
+			relation: strEnum(RELATIONS),
+			closeness: strEnum(['inner', 'close', 'around']),
+			suggest_circle: { type: 'boolean' },
+			why: str('one short sentence'),
+			summary: str('what is going on with them now, at most 80 characters')
+		})
+	),
+	threads: arr(
+		obj({
+			title: str(),
+			kind: strEnum(THREAD_KINDS),
+			people: arr(str()),
+			note_ids: arr(str()),
+			status: strEnum(['open', 'done'])
+		})
+	)
+});
+
+const draft = obj({
+	line: str('one message, at most 200 characters'),
+	language: strEnum(LANGUAGES)
+});
+
+const rank = obj({
+	order: arr(str())
+});
+
+export const SCHEMAS: Record<Exclude<TaskName, 'plan'>, object> = { extract, weave, draft, rank };
