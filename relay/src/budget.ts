@@ -28,7 +28,11 @@ const FLUSH_USD = 0.1;
 const FLUSH_WRITES = 20;
 
 export class Ledger {
-	private id = crypto.randomUUID().slice(0, 12);
+	private _id = '';
+	// Workers forbid random values at module load, so the id is made on first use.
+	private get id(): string {
+		return (this._id ||= crypto.randomUUID().slice(0, 12));
+	}
 	private day = '';
 	private mine = zero();
 	private saved = zero();
