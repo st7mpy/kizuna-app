@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `wrangler dev`.
+# Point at the local fake (npm run dev:fake from the repo root) so no key is needed.
+META_BASE_URL=http://localhost:8788/v1
+MODEL_API_KEY=dev-fake-key

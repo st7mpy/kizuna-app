@@ -1,0 +1,28 @@
+// Kizuna: one Worker serves the built app (static assets) and the API on the same origin.
+// First-time setup:
+//   npx wrangler kv namespace create INVITES            -> put the id below
+//   npx wrangler kv namespace create INVITES --preview  -> put the preview_id below
+//   npx wrangler secret put MODEL_API_KEY
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "kizuna",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "../app/build",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/p/*"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "INVITES",
+      "id": "00000000000000000000000000000000",
+      "preview_id": "11111111111111111111111111111111"
+    }
+  ],
+  "vars": {
+    "META_BASE_URL": "https://api.meta.ai/v1"
+  },
+  "observability": { "enabled": true }
+}

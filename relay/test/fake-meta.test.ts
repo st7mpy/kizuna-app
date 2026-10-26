@@ -1,0 +1,109 @@
+// End to end through the relay with real task building and the local fake model.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SCHEMAS } from '@kizuna/shared';
+import { fakeCompletion, fakeExtract, planArgs } from '../../tools/fake-meta/fake.ts';
+import { route } from '../src/index.ts';
+import { resetAllLimits } from '../src/ratelimit.ts';
+import { schemaErrors } from '../src/validate.ts';
+import { makeEnv, post } from './helpers.ts';
+
+beforeEach(() => {
+	resetAllLimits();
+	vi.stubGlobal('fetch', async (_url: string, init: any) => {
+		const out = fakeCompletion(JSON.parse(init.body));
+		return new Response(JSON.stringify(out.json), { status: out.status, headers: { 'content-type': 'application/json' } });
+	});
+});
+afterEach(() => vi.unstubAllGlobals());
+
+const NOTE = "Mum ka knee appointment Thursday hai, Kabir ne naya job join kiya, should call him, and Riya wants to do something for Papa's birthday.";
+
+async function spark(task: string, input: unknown) {
+	const res = await route(post('/api/spark', { task, input }), makeEnv());
+	return (await res.json()) as any;
+}
+
+describe('fake model through the relay', () => {
+	it('extract gives people, a dated appointment and a promise', async () => {
+		const r = await spark('extract', { text: NOTE, today: '2026-11-02', weekday: 'Monday', knownPeople: [] });
+		expect(r.ok).toBe(true);
+		expect(schemaErrors(SCHEMAS.extract, r.output)).toBeNull();
+		const names = r.output.people.map((p: any) => p.name);
+		expect(names).toEqual(expect.arrayContaining(['Mum', 'Kabir', 'Riya', 'Papa']));
+		expect(r.output.language).toBe('mixed');
+		expect(r.output.sensitive).toBe(true);
+		const appt = r.output.events.find((e: any) => e.kind === 'appointment');
+		expect(appt).toMatchObject({ date: '2026-11-05', date_text: 'thursday', people: ['Mum'] });
+		expect(r.output.events.find((e: any) => e.kind === 'birthday').people).toEqual(['Papa']);
+		expect(r.output.promises[0]).toMatchObject({ person: 'Kabir' });
+	});
+
+	it('extract reuses known names for aliases', () => {
+		const out = fakeExtract(`Today is Monday, 2026-11-02.\n\nKnown people:\n- Mummy (parent), also called: ma, mum\n\nNote:\n"""\nMa called today\n"""`);
+		expect(out.people).toEqual([{ name: 'Mummy', relation: 'parent' }]);
+	});
+
+	it('weave, draft and rank are schema-valid', async () => {
+		const weave = await spark('weave', {
+			today: '2026-11-02',
+			notes: [
+				{ id: 'n1', day: '2026-10-30', text: NOTE },
+				{ id: 'n2', day: '2026-11-01', text: 'Mummy ne bola Nani ko Sunday call karna. Kabir sent photos from the new office.' }
+			],
+			people: [
+				{ id: 'p1', name: 'Mum', aliases: ['mum'], relation: 'parent', circle: 'in' },
+				{ id: 'p2', name: 'Mummy', aliases: [], relation: 'parent', circle: 'none' }
+			]
+		});
+		expect(weave.ok).toBe(true);
+		const mum = weave.output.people.find((p: any) => p.name === 'Mum');
+		expect(mum.id).toBe('p1');
+		expect(mum.merge_ids).toEqual(['p2']);
+		expect(weave.output.people.length).toBeLessThanOrEqual(8);
+
+		const draft = await spark('draft', { personName: 'Kabir', relation: 'friend', reason: 'new job', context: [], myRecentLines: [], language: 'mixed', withTime: 'Sat 7 Nov, 10:00 to 11:00' });
+		expect(draft.output.line).toBe('Kabir, kaise ho? Sat 7 Nov, 10:00 pe ek call karein?');
+		expect(draft.output.line).not.toContain('!');
+
+		const rank = await spark('rank', { room: 'low', candidates: [{ id: 'a', title: 'Ishaan', reason: 'moving out' }, { id: 'b', title: 'Papa', reason: 'birthday tomorrow' }] });
+		expect(rank.output.order).toEqual(['b', 'a']);
+	});
+
+	it('plan runs the tool loop: next weekend, not Sunday', async () => {
+		const r = await spark('plan', {
+			request: 'next weekend, not Sunday',
+			now: '2026-11-02T09:00:00+05:30',
+			timeZone: 'Asia/Kolkata',
+			freeHours: [
+				{ day: 6, start: '10:00', end: '18:00' },
+				{ day: 0, start: '10:00', end: '18:00' },
+				{ day: 2, start: '19:00', end: '21:00' }
+			],
+			busy: [],
+			durationMinutes: 60
+		});
+		expect(r.ok).toBe(true);
+		expect(r.output.slots.length).toBeGreaterThanOrEqual(1);
+		for (const s of r.output.slots) expect(s.label.startsWith('Sat 7 Nov')).toBe(true);
+	});
+
+	it('plan widens the range when nothing fits', async () => {
+		const r = await spark('plan', {
+			request: 'tomorrow evening',
+			now: '2026-11-02T09:00:00+05:30',
+			timeZone: 'Asia/Kolkata',
+			freeHours: [{ day: 6, start: '10:00', end: '18:00' }],
+			busy: [],
+			durationMinutes: 60
+		});
+		expect(r.output.slots.length).toBe(2);
+		expect(r.output.note).toBeTruthy();
+	});
+
+	it('planArgs reads common phrasing', () => {
+		const u = (req: string) => `Now: 2026-11-02T09:00:00+05:30 (Asia/Kolkata)\nMeeting length: 60 minutes\nRequest: "${req}"`;
+		expect(planArgs(u('next weekend, not Sunday'))).toEqual({ from: '2026-11-07', to: '2026-11-08', partOfDay: null, excludeWeekdays: [0] });
+		expect(planArgs(u('kal shaam ko'))).toMatchObject({ from: '2026-11-03', to: '2026-11-03', partOfDay: 'evening' });
+		expect(planArgs(u('friday morning'))).toMatchObject({ from: '2026-11-06', partOfDay: 'morning' });
+	});
+});
