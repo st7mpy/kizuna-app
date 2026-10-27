@@ -63,31 +63,31 @@ export function calendarLines(today: string, back: number, ahead: number): strin
 // ---------------------------------------------------------------- extract
 export const EXTRACT_PROMPT = `You read one short note a person said or typed about their own life, and pull out the people, dated events, promises and open threads in it.
 
-The note may be English, Hindi written in Latin script (Hinglish), or both mixed in one sentence. Read it as a fluent Hinglish speaker would.
+The note may be in any language, or mix two languages in one sentence. Read it as a fluent speaker of those languages would, and keep names and words as the user said them.
 
 People
-- Only real people the user knows. Never include the user themself ("main", "mujhe", "I").
-- If someone matches a known person or one of their aliases, use the known name exactly. "Ma", "Mummy", "Maa", "Mom" are the same person as a known "Mum"; "Papa", "Dad", "Pappa" match a known "Papa"; "Nani", "Naniji" match "Nani".
-- New people: use the name as said, with a capital letter ("Kabir"). For family without a name use the role the user says ("Mum", "Papa", "Nani", "Didi").
+- Only real people the user knows. Never include the user themself ("I", "me").
+- If someone matches a known person or one of their aliases, use the known name exactly. "Mom", "Mommy", "Ma", "Mum" are the same person as a known "Mom"; "Dad", "Daddy", "Pop" match a known "Dad"; "Grandma", "Gran" match "Grandma".
+- New people: use the name as said, with a capital letter ("Jordan"). For family without a name use the role the user says ("Mom", "Dad", "Grandma", "Aunt Linda").
 - relation: parent, sibling, partner, child, family (other relatives), friend, colleague, other, or unknown.
-- Hindi possessives and particles are not part of names: "Kabir ne", "Riya ka", "Mum ki", "Papa ko", "Meera se" are Kabir, Riya, Mum, Papa, Meera.
+- Possessives, case endings and particles are not part of names: "Jordan's", "Mom's", "Lucas said" are Jordan, Mom, Lucas.
 
-Events (things with a time, past or future): appointments, birthdays, milestones (new job, moving, baby, exam result), plans to meet, trips.
+Events (things with a time, past or future): appointments, birthdays, anniversaries, milestones (new job, moving, baby, exam result), plans to meet, trips.
 - date: the calendar day as YYYY-MM-DD, using the calendar given. Null if no day is said or implied.
-- date_text: the exact date words from the note ("Thursday ko", "kal", "agle hafte", "12 Nov"). Null if none.
-- Date words: aaj = today. kal = tomorrow with future tense (hai, hoga, jaana hai, karna hai) and yesterday with past tense (tha, thi, gaya, kiya, hua). parso = day after tomorrow (or day before yesterday with past tense). agle hafte = next week. is hafte = this week. "Thursday ko" = on Thursday: the coming Thursday for future tense, the most recent one for past tense. weekend = Saturday and Sunday.
-- time: HH:MM 24h only if a clock time is said ("4 baje" in the afternoon = 16:00, "subah 10 baje" = 10:00, "shaam 6 baje" = 18:00).
+- date_text: the exact date words from the note ("on Thursday", "tomorrow", "next week", "12 Nov"). Null if none.
+- Date words: today, tomorrow, the day after tomorrow, next week (Monday to Sunday), this week, weekend = Saturday and Sunday. A bare weekday ("Thursday") is the coming one for future tense and the most recent one for past tense. In languages where one word means both tomorrow and yesterday, the tense decides.
+- time: HH:MM 24h only if a clock time is said ("4 in the afternoon" = 16:00, "10 in the morning" = 10:00, "6 in the evening" = 18:00).
 - people: names from your people list.
 
-Promises: something the user means to do for or with someone: "should call Kabir", "Kabir ko phone karna hai", "Riya ko gift bhejna hai", "need to check on Meera". A plan the user merely mentions is an event, not a promise; an intention of theirs is a promise. person is the name from your people list, or null.
+Promises: something the user means to do for or with someone: "should call Jordan", "need to send Maya a card", "check on Lucas after his exams". A plan the user merely mentions is an event, not a promise; an intention of theirs is a promise. person is the name from your people list, or null.
 
-Threads: the user's own open loops, worth seeing again: an idea, a plan being made, a promise, an errand ("buy a gift for Papa", "book Goa tickets", "app idea for plants"). Short title in the note's language. Skip small talk.
+Threads: the user's own open loops, worth seeing again: an idea, a plan being made, a promise, an errand ("buy a gift for Dad", "book flights for Thanksgiving", "app idea for plants"). Short title in the note's language. Skip small talk.
 
-Gift hints: things someone in the note wants, needs or would like to have ("Papa wants a brighter reading lamp", "Riya ko naya yoga mat chahiye", "Mum said she'd love a good pressure cooker"). person is the name from your people list; what is the thing itself, 2 to 8 words ("a brighter reading lamp"). Never include prices, money, budgets, shops or links, and nothing about health (no medicines, no medical devices). A thing the user wants for themself is not a gift hint. Empty if none.
+Gift hints: things someone in the note wants, needs or would like to have ("Dad wants new running shoes", "Maya needs a good desk lamp", "Mom said she'd love a bread maker"). person is the name from your people list; what is the thing itself, 2 to 8 words ("new running shoes"). Never include prices, money, budgets, shops or links, and nothing about health (no medicines, no medical devices). A thing the user wants for themself is not a gift hint. Empty if none.
 
 sensitive: true if the note mentions health (illness, surgery, appointments with a doctor, injuries, pregnancy complications, mental health), money (loans, debt, salary troubles) or conflict (fights, breakups, someone upset). Otherwise false.
 
-language: en, hi (Hindi only), mixed (Hindi and English mixed), or other.
+language: the note's language as one of the codes en, hi, mixed (more than one language in the note), or other.
 
 Keep "what" short (2 to 6 words) and in the note's language. Never invent people, dates or plans that are not in the note. Empty lists are fine.`;
 
@@ -116,7 +116,7 @@ export const WEAVE_PROMPT = `You see every note a person has kept so far, oldest
 
 People
 - Return one entry for every distinct real person in the notes or on file (never the user themself).
-- Merge nicknames and spellings of the same person: "Ma", "Mum", "Mummy", "Mom" are one person; "Kabir" and "Kabs" may be one. Keep the existing id (id field) of the record you keep, put every other existing id for that same person in merge_ids, and list all names they go by in aliases (lower case).
+- Merge nicknames and spellings of the same person: "Mom", "Mum", "Ma", "Mommy" are one person; "Benjamin" and "Ben" may be one. Keep the existing id (id field) of the record you keep, put every other existing id for that same person in merge_ids, and list all names they go by in aliases (lower case).
 - id: the existing id when the person is on file, else null. Never invent ids.
 - relation: parent, sibling, partner, child, family, friend, colleague, other, unknown.
 - closeness: inner (family and the closest friends, mentioned warmly and often), close, or around (mentioned in passing).
@@ -153,15 +153,15 @@ ${notes}`;
 export const DRAFT_PROMPT = `You write one short message the user could send on WhatsApp to someone they care about. The user will read it, edit it if they like, and send it themselves.
 
 Rules
-- One line, at most 200 characters. Sound like the user: match the language, spelling, casing and warmth of their recent lines. If they write Hinglish, write Hinglish; if they write in lower case, so do you.
+- One line, at most 200 characters. Sound like the user: match the language, spelling, casing and warmth of their recent lines. If they mix languages, mix them the same way; if they write in lower case, so do you.
 - Warm and easy to answer. Simple and specific to the reason, like a friend thinking of them.
 - No guilt and no apologies for being out of touch. Never write "long time", "it's been ages", "sorry I've been busy", "you must be angry", or anything that counts time.
 - No fake urgency: no "ASAP", "urgent", "need to talk", no deadlines.
-- Never repeat health, money or conflict details. Ask kindly in general words instead: "How's your knee doing?" becomes "How are you doing?" or "How's Mum doing?".
+- Never repeat health, money or conflict details. Ask kindly in general words instead: "How's your knee doing?" becomes "How are you doing?" or "How's Mom doing?".
 - At most one emoji, and only if the user uses emoji. No hashtags, no quotation marks around the message.
-- If a time is offered (withTime), suggest it lightly as a question, e.g. "Free for chai on Sat 9 Nov, 10:00?". Never insist.
+- If a time is offered (withTime), suggest it lightly as a question, e.g. "Free for a coffee on Sat 9 Nov, 10:00?". Never insist.
 - Do not sign the message or add a greeting line; just the message.
-- language: the language of your line (en, hi, mixed, other).`;
+- language: the code for the language of your line (en, hi, mixed, other).`;
 
 function draftUser(i: DraftInput): string {
 	return `To: ${i.personName} (${i.relation})
@@ -261,10 +261,10 @@ export const PLAN_TOOLS = [
 	}
 ];
 
-export const PLAN_PROMPT = `You find two good times for the user to meet someone, from a request in plain words (English, Hindi or both), like "next weekend, not Sunday", "agle hafte shaam ko", or nothing at all.
+export const PLAN_PROMPT = `You find two good times for the user to meet someone, from a request in plain words, in any language, like "next weekend, not Sunday", "some evening next week", or nothing at all.
 
 How to work
-1. Turn the request into days using the calendar given: from, to, partOfDay (morning before 12:00, afternoon 12:00 to 17:00, evening after 17:00) and weekdays to skip. "weekend" = Saturday and Sunday; "not Sunday" = skip 0; "shaam" = evening; "subah" = morning; "agle hafte" = next week (Monday to Sunday). With no request, look at the next 7 days.
+1. Turn the request into days using the calendar given: from, to, partOfDay (morning before 12:00, afternoon 12:00 to 17:00, evening after 17:00) and weekdays to skip. "weekend" = Saturday and Sunday; "not Sunday" = skip 0; "next week" = Monday to Sunday. With no request, look at the next 7 days.
 2. Call free_slots. If it finds nothing, widen once (the following week, or any part of day) and call it again.
 3. Call finish with the two best slot ids, best first: prefer what the request asked for, then sooner, then two different days. If you had to stray from the request, add a short note in plain words, e.g. "Nothing free on Saturday, so Friday evening instead." Else note is null.
 Always end by calling finish, even with no slots. Never make up slot ids.`;
@@ -282,18 +282,18 @@ ${calendarLines(today, 0, 21)}`;
 // ---------------------------------------------------------------- windows
 export const WINDOWS_PROMPT = `You read a short reply from a family member or friend saying when they are free for a call, and turn it into at most three time windows in their own local time.
 
-The reply may be English, Hindi (Latin or Devanagari script), or Hinglish mixed in one sentence: "Sunday shaam ko free hoon", "Sat after lunch, not before 2", "kal subah thoda time hai", "is weekend nahi ho payega". Read it as a fluent Hinglish speaker would.
+The reply may be in any language, or mix two languages: "Sunday afternoon works for me", "Sat after lunch, not before 2", "tomorrow morning I have a little time", "can't do this weekend". Read it as a fluent speaker would.
 
 Windows
-- day: YYYY-MM-DD, using the calendar given. Only days in the calendar. weekend = the coming Saturday and Sunday. aaj = today, kal = tomorrow, parso = the day after tomorrow.
+- day: YYYY-MM-DD, using the calendar given. Only days in the calendar. weekend = the coming Saturday and Sunday. today, tomorrow, the day after tomorrow as usual.
 - start and end: HH:MM, 24 hour, local time, on that same day (end after start).
-- Parts of the day: subah / morning = 09:00 to 12:00; dopahar / afternoon / after lunch = 13:00 to 16:00; shaam / evening = 17:00 to 20:00; raat / night = 20:00 to 22:00. A whole day without a part ("Sunday free hoon") = 10:00 to 20:00.
-- Clock words: "2 baje" or "2" in the afternoon = 14:00; "after 2" or "not before 2" starts at 14:00; "before 6" ends at 18:00. Afternoon and evening hours below 8 are pm. A single clock time alone = one hour from it.
+- Parts of the day: morning = 09:00 to 12:00; afternoon / after lunch = 13:00 to 16:00; evening = 17:00 to 20:00; night = 20:00 to 22:00. A whole day without a part ("free Sunday") = 10:00 to 20:00.
+- Clock words: "2" in the afternoon = 14:00; "after 2" or "not before 2" starts at 14:00; "before 6" ends at 18:00. Afternoon and evening hours below 8 are pm. A single clock time alone = one hour from it.
 - At most 3 windows, soonest first. If they give more, keep the three clearest.
 
-not_this_weekend: true when they say they can't this weekend ("not this weekend", "is weekend nahi", "busy all weekend"). Then windows is empty unless they also name another time.
+not_this_weekend: true when they say they can't this weekend ("not this weekend", "busy all weekend"). Then windows is empty unless they also name another time.
 
-language: en, hi (Hindi only), mixed (Hindi and English), or other.
+language: the reply's language as one of the codes en, hi, mixed (more than one language), or other.
 
 If the reply gives no time at all, windows is empty. Never invent times that are not in the reply.`;
 
@@ -427,7 +427,7 @@ export const WEEKEND_TOOLS = [
 							additionalProperties: false
 						}
 					},
-					reason: { type: 'string', description: 'one kind line, e.g. "It\'s Diwali morning."' },
+					reason: { type: 'string', description: 'one kind line, e.g. "It\'s Thanksgiving morning."' },
 					occasion: { type: ['string', 'null'], description: 'the occasion name if the plan is built around one, else null' }
 				},
 				required: ['slot_id', 'person_ids', 'skipped', 'reason', 'occasion'],
@@ -441,9 +441,9 @@ export const WEEKEND_PROMPT = `You plan one call this weekend between the user a
 
 How to work
 1. In your first turn call, all at once: get_windows for everyone over the weekend, get_occasions for the next 10 days, and get_reasons for each person.
-2. Choose one slot from get_windows. Prefer, in order: the most people; what the user's request asks ("not Sunday, Papa has puja" means no Sunday slot); an occasion day ("Diwali morning"); a time that is daytime for everyone; sooner.
+2. Choose one slot from get_windows. Prefer, in order: the most people; what the user's request asks ("not Sunday, Dad has a game" means no Sunday slot); an occasion day ("Thanksgiving morning"); a time that is daytime for everyone; sooner.
 3. For a person who has windows but is not in that slot, you may call get_local_time to see why (asleep, late night). Offer them an alt slot id where they and the user are both free, or null.
-4. Call finish. slot_id is an id from get_windows, or null when nothing works. person_ids: the people free in that slot (never the user). reason: one short, kind line, e.g. "It's Diwali morning." or "Kabir just started his new job." occasion: the occasion's name if the plan is built around it, else null.
+4. Call finish. slot_id is an id from get_windows, or null when nothing works. person_ids: the people free in that slot (never the user). reason: one short, kind line, e.g. "It's Thanksgiving morning." or "Jordan just started his new job." occasion: the occasion's name if the plan is built around it, else null.
 
 Rules
 - Never make up ids or times. Use only what the tools return.

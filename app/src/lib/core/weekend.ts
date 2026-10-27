@@ -17,7 +17,7 @@ import type {
 import { bestWeekendSlot, draftProblems, slotLabel as zonedSlotLabel, zonedDay, zonedIso } from '@kizuna/shared';
 import { db, readSettings } from '../db.ts';
 import { SAMPLE_CIRCLE_ID, freeWindows } from './circle.ts';
-import { addDays, dayDiff, dayPhrase, deviceTimeZone, isoWithOffset, localDay, WEEKDAYS } from './days.ts';
+import { addDays, dayDiff, dayPhrase, dayToDate, deviceTimeZone, hourOf as hourAt, isoWithOffset, localDay, weekdayOf, WEEKDAYS } from './days.ts';
 import { capUsed } from './nudges.ts';
 import { occasionsBetween } from './occasions.ts';
 import { buildDraftInput, buildMyLines, likelyLanguage, looksSensitive, templateLine, whatsappLink } from './poke.ts';
@@ -57,18 +57,17 @@ export function weekendForced(s: Pick<Settings, 'forceWeekend' | 'circle'>): boo
  * Sunday; otherwise null, unless forced (then the coming weekend, or the next one late on Sunday).
  */
 export function weekendRange(now: Date, force = false): WeekendRange | null {
-	const wd = now.getDay();
 	const today = localDay(now);
-	const inWeekend = (wd === 5 && now.getHours() >= 18) || wd === 6 || wd === 0;
+	const wd = weekdayOf(today);
+	const hour = hourAt(now);
+	const inWeekend = (wd === 5 && hour >= 18) || wd === 6 || wd === 0;
 	let friday: string;
-	if (inWeekend && !(force && wd === 0 && now.getHours() >= 14)) friday = addDays(today, wd === 5 ? 0 : wd === 6 ? -1 : -2);
+	if (inWeekend && !(force && wd === 0 && hour >= 14)) friday = addDays(today, wd === 5 ? 0 : wd === 6 ? -1 : -2);
 	else if (force) friday = addDays(today, wd === 0 ? 5 : 5 - wd);
 	else return null;
 	const sunday = addDays(friday, 2);
-	const [y, m, d] = friday.split('-').map(Number);
-	const fridayEvening = new Date(y, m - 1, d, 18, 0).getTime();
-	const [y2, m2, d2] = addDays(sunday, 1).split('-').map(Number);
-	const end = new Date(y2, m2 - 1, d2, 0, 0).getTime();
+	const fridayEvening = dayToDate(friday, '18:00').getTime();
+	const end = dayToDate(addDays(sunday, 1)).getTime();
 	return {
 		from: Math.max(now.getTime(), fridayEvening),
 		to: end,
@@ -138,7 +137,7 @@ const toSlot = (c: { start: number; end: number }, tz: string): Slot => ({
 });
 
 /** Festivals big enough to plan a family call around. */
-export const MAJOR_FESTIVALS = new Set(['Diwali', 'Holi', 'Christmas', "New Year's Day", 'Raksha Bandhan', 'Bhai Dooj', 'Eid al-Fitr', 'Eid al-Adha', 'Lohri', 'Onam', 'Dussehra', 'Ganesh Chaturthi', 'Guru Nanak Jayanti', 'Chhath Puja']);
+export const MAJOR_FESTIVALS = new Set(['Thanksgiving', 'Christmas Eve', 'Christmas', "New Year's Eve", "New Year's Day", "Mother's Day", "Father's Day"]);
 
 /** Pure: the reason line for a plan: the day itself, then someone's birthday, then a big festival, then a thread. */
 export function weekendReason(input: WeekendInput, slotStart: number | null, personIds: string[] = []): { reason: string; occasion: string | null } {
@@ -316,7 +315,8 @@ export async function weekendContext(now: Date, request = ''): Promise<WeekendCo
 		reasons: reasonsFor(plannedPeople, threads, events, new Set(sensitive as string[]), today),
 		minMinutes: WEEKEND_MIN_MINUTES
 	};
-	if (s.circle?.id === SAMPLE_CIRCLE_ID && !localWeekendPlan(input).slot) {
+	// Sample life: the visitor's own free hours are unknown, so any waking hour this weekend counts.
+	if (s.circle?.id === SAMPLE_CIRCLE_ID) {
 		myWindows = wholeDays(range, tz, nowMs);
 		input.me.windows = myWindows;
 	}
@@ -387,7 +387,7 @@ export async function weekendCard(now = new Date()): Promise<WeekendCard | null>
 	return card;
 }
 
-/** A plain-language change ("not Sunday, Papa has puja"). Returns the new card, or null if nothing fits. */
+/** A plain-language change ("not Sunday, Dad has a game"). Returns the new card, or null if nothing fits. */
 export async function planWeekend(request: string, now = new Date()): Promise<WeekendCard | null> {
 	const ctx = await weekendContext(now, request);
 	if (!ctx) return null;
@@ -426,7 +426,7 @@ async function sparkLine(input: DraftInput): Promise<string | null> {
 	}
 }
 
-/** 'Sunday', '11 baje' style words for a slot in a zone. */
+/** 'Sunday', '11' style words for a slot in a zone. */
 function slotWords(slot: Slot, tz: string): { day: string; time: string; part: string } {
 	const ms = Date.parse(slot.start);
 	const day = WEEKDAYS[new Date(`${zonedDay(ms, tz)}T12:00:00Z`).getUTCDay()];
@@ -434,16 +434,11 @@ function slotWords(slot: Slot, tz: string): { day: string; time: string; part: s
 	return { day, time: clock.endsWith(':00') ? String(Number(clock.slice(0, 2))) : clock, part: partOfDay(ms, tz) };
 }
 
-/** Pure: the group line when the planner can't be reached. Hinglish for family. */
-export function groupTemplate(card: WeekendCard, language: Language, tz: string): string {
+/** Pure: the group line when the planner can't be reached. Plain English. */
+export function groupTemplate(card: WeekendCard, _language: Language, tz: string): string {
 	const w = slotWords(card.slot, tz);
-	const diya = card.occasion === 'Diwali' ? ' 🪔' : '';
-	if (language === 'hi' || language === 'mixed') {
-		const lead = card.occasion ? `${card.occasion} ${w.part === 'morning' ? 'morning' : w.part} video call?` : 'Family video call?';
-		return `${lead} ${w.day} ${w.time} baje, sab free hain${diya}`;
-	}
 	const lead = card.occasion ? `${card.occasion} video call?` : 'Family video call?';
-	return `${lead} ${w.day} at ${w.time}${w.time.includes(':') ? '' : ':00'}, everyone's free then${diya}`;
+	return `${lead} ${w.day} at ${w.time}${w.time.includes(':') ? '' : ':00'}, everyone's free then.`;
 }
 
 /** A line for the family group (wa.me without a number, so the user picks the group). */
@@ -451,17 +446,16 @@ export async function draftForGroup(card: WeekendCard): Promise<{ line: string; 
 	const tz = deviceTimeZone();
 	const people = (await db.people.bulkGet(card.personIds)).filter((p): p is Person => !!p);
 	const family = people.some((p) => ['parent', 'sibling', 'family', 'child', 'partner'].includes(p.relation));
-	let language: Language = family ? 'mixed' : 'en';
+	let language: Language = 'en';
 	if (people[0]) {
 		const about = await db.fragments.where('personIds').equals(people[0].id).toArray();
-		const l = likelyLanguage(people[0], about);
-		if (l !== 'en' || !family) language = l;
+		language = likelyLanguage(people[0], about);
 	}
 	const mine = await db.fragments.orderBy('createdAt').reverse().limit(20).toArray();
 	const fromSpark = await sparkLine({
 			// addressed to everyone, so the line opens like a group message
-			personName: language === 'en' ? 'everyone' : 'Sab log',
-			relation: 'family',
+			personName: 'everyone',
+			relation: family ? 'family' : 'friend',
 			reason: `A group video call at this time; everyone named is free. ${looksSensitive(card.reason) ? '' : card.reason}`.trim(),
 			context: people.map((p) => `${p.name} is free then`).slice(0, 5),
 			myRecentLines: buildMyLines(mine),
@@ -469,7 +463,7 @@ export async function draftForGroup(card: WeekendCard): Promise<{ line: string; 
 			withTime: card.slot.label
 		});
 	// a line written to one person (or naming "the group") doesn't fit a group chat
-	const line = fromSpark && !/family group|kaise ho|how are you/i.test(fromSpark) ? fromSpark : groupTemplate(card, language, tz);
+	const line = fromSpark && !/family group|how are you/i.test(fromSpark) ? fromSpark : groupTemplate(card, language, tz);
 	return { line, link: whatsappLink(line) };
 }
 
@@ -488,11 +482,8 @@ export async function draftForPerson(card: WeekendCard, personId: string): Promi
 }
 
 /** Pure: the fallback line for one person. */
-export function personTemplate(name: string, language: Language, label?: string): string {
+export function personTemplate(name: string, _language: Language, label?: string): string {
 	const when = label ? label.replace(/ to \d\d:\d\d$/, '') : null;
-	if (language === 'hi' || language === 'mixed') {
-		return when ? `Hi ${name}, is weekend family call kar rahe hain. ${when} chalega?` : `Hi ${name}, is weekend family call kar rahe hain. Kab free ho?`;
-	}
 	return when ? `Hi ${name}, we're doing a family call this weekend. Would ${when} work for you?` : `Hi ${name}, we're doing a family call this weekend. When works for you?`;
 }
 

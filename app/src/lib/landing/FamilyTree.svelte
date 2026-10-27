@@ -45,7 +45,7 @@
 		};
 	});
 
-	const myTz = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Asia/Kolkata';
+	const myTz = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'America/Chicago';
 	const label = $derived(treeLabel(people, now));
 	// Growth timing: near branches arrive first, far ones a little later.
 	const dur = (far: boolean) => (far ? 1.3 : 0.95);

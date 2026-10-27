@@ -6,6 +6,7 @@
 	import Mark from '#lib/ui/Mark.svelte';
 	import NavBar from '#lib/ui/NavBar.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
+	import Sky from '#lib/ui/Sky.svelte';
 	import { chrome } from '#lib/ui/chrome.svelte.js';
 	import type { LayoutProps } from './$types';
 
@@ -23,6 +24,7 @@
 
 <div class="shell" class:bare={chrome.bare}>
 	{#if !chrome.bare}
+		<Sky />
 		<header>
 			<a href="/" class="brand" aria-label="Kizuna, Today">
 				<Mark size={24} />
@@ -60,7 +62,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: calc(8px + var(--safe-t)) 10px 0 var(--gutter);
-		animation: fade 900ms var(--ease) both;
+		animation: fade 900ms var(--ease) backwards;
 	}
 	.brand {
 		display: inline-flex;

@@ -36,7 +36,7 @@ export { inviteFamilyLine } from './invite.ts';
 export { draftPoke, whatsappLink } from './poke.ts';
 export { suggestSlots, createInvite, googleCalendarLink, icsFile } from './time.ts';
 export { updatePerson, mergePeople, removePerson, updateThread, markReached } from './people.ts';
-export { loadSampleLife } from './sample.ts';
+export { loadSampleLife, loadSample, SAMPLES, type SampleKey } from './sample.ts';
 export { deleteEverything, exportNotes } from './data.ts';
 export { isOnline } from './relay.ts';
 

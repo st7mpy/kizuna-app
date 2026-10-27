@@ -3,7 +3,7 @@
 	// Shown at "/" to a first-time visitor and always at /about. Hides the app's header and tabs.
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { loadSampleLife } from '#lib/core/index.js';
+	import { loadSample, SAMPLES, type SampleKey } from '#lib/core/index.js';
 	import { chrome } from '#lib/ui/chrome.svelte.js';
 	import Mark from '#lib/ui/Mark.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
@@ -34,12 +34,13 @@
 		return () => removeEventListener('scroll', onScroll);
 	});
 
-	async function trySample() {
+	// The first sample is the default; the second is one tap away under the main button.
+	async function trySample(key: SampleKey = 'abroad') {
 		if (sampling) return;
 		sampling = true;
 		failed = false;
 		try {
-			await loadSampleLife();
+			await loadSample(key);
 			markEntered();
 			await goto('/map');
 		} catch {
@@ -72,13 +73,21 @@
 			<button class="cta primary" type="button" onclick={openApp}>Open Kizuna <Icon name="arrow" size={18} /></button>
 			<button class="cta line" type="button" onclick={startOwn}>Talk to Kizuna</button>
 		{:else}
-			<button class="cta primary" type="button" onclick={trySample} disabled={sampling} data-where={where}>
+			<button class="cta primary" type="button" onclick={() => trySample()} disabled={sampling} data-where={where}>
 				{sampling ? 'Setting up the sample family…' : 'Try it with a sample family'}
 				{#if !sampling}<Icon name="arrow" size={18} />{/if}
 			</button>
 			<button class="cta line" type="button" onclick={startOwn}>Start with your own</button>
 		{/if}
 	</div>
+	{#if !returning}
+		<p class="samples">
+			<span>Pick a sample:</span>
+			{#each SAMPLES as s (s.key)}
+				<button type="button" onclick={() => trySample(s.key)} disabled={sampling} data-sample={s.key} title={s.blurb}>{s.label}</button>
+			{/each}
+		</p>
+	{/if}
 	{#if failed}
 		<p class="err" role="status">Couldn’t load the sample just now. Try again in a moment.</p>
 	{/if}
@@ -104,7 +113,7 @@
 				{#if returning}
 					<button class="cta small" type="button" onclick={openApp}>Open Kizuna</button>
 				{:else}
-					<button class="cta small" type="button" onclick={trySample} disabled={sampling}>Try the sample</button>
+					<button class="cta small" type="button" onclick={() => trySample()} disabled={sampling}>Try the sample</button>
 				{/if}
 			</div>
 		</div>
@@ -122,7 +131,7 @@
 						<span class="w soft" style="--i:1">Never where they are.</span>
 					</h1>
 					<p class="lede fade" style="--d:520ms">
-						Tell Kizuna what’s on your mind, in English, Hindi or both. It remembers the people inside your notes,
+						Tell Kizuna what’s on your mind, the way you’d say it to a friend. It remembers the people inside your notes,
 						and at a good moment hands you a ready WhatsApp line and a time that works.
 					</p>
 					<div class="fade" style="--d:680ms">{@render ctas('hero')}</div>
@@ -167,7 +176,7 @@
 						night falling where it’s late, and a soft glow when they’re open to a call.
 					</p>
 					<ul class="points">
-						<li use:reveal={160}><b>Nothing to install.</b> Family answer from a link in WhatsApp: four big buttons in English and Hindi, or a voice note.</li>
+						<li use:reveal={160}><b>Nothing to install.</b> Family answer from a link in WhatsApp: four big buttons, or a voice note.</li>
 						<li use:reveal={220}><b>Sealed on their phone.</b> Each answer is locked with a key that only lives in the family link, so the server can’t read it.</li>
 						<li use:reveal={280}><b>One plan, or nothing.</b> On Friday evening Kizuna may suggest one weekend call, with a reason and a time everyone is free. If nothing fits, it stays quiet.</li>
 					</ul>
@@ -191,8 +200,8 @@
 				</div>
 				<div use:reveal={100}><Compare /></div>
 				<p class="aside" use:reveal={150}>
-					<b>And WhatsApp?</b> It’s where the call happens. Kizuna is the part before it: noticing that Kabir started a new job,
-					that Diwali is on Sunday, and that he’s free Saturday evening.
+					<b>And WhatsApp?</b> It’s where the call happens. Kizuna is the part before it: noticing that Jordan started a new job,
+					that Dad’s birthday is next week, and that Jordan is free Saturday morning.
 				</p>
 			</div>
 		</section>
@@ -239,8 +248,8 @@
 				<div class="models">
 					<article use:reveal={0}>
 						<p class="mname">Muse Voice Transcribe</p>
-						<p>Live words while you speak, in English, Hindi or both, switching mid-sentence. Family can answer with a voice note too.</p>
-						<ul class="chips"><li>live, as you talk</li><li>Hindi + English</li><li>voice replies</li></ul>
+						<p>Live words while you speak, half sentences and all. Family can answer with a voice note too.</p>
+						<ul class="chips"><li>live, as you talk</li><li>typing works too</li><li>voice replies</li></ul>
 					</article>
 					<article use:reveal={100}>
 						<p class="mname">Muse Spark</p>
@@ -284,7 +293,7 @@
 					{#if returning}
 						<li><button type="button" onclick={openApp}>Open Kizuna</button></li>
 					{:else}
-						<li><button type="button" onclick={trySample}>Try the sample family</button></li>
+						{#each SAMPLES as s (s.key)}<li><button type="button" onclick={() => trySample(s.key)}>Sample: {s.label.toLowerCase()}</button></li>{/each}
 					{/if}
 					<li><button type="button" onclick={startOwn}>Start with your own</button></li>
 				</ul>
@@ -458,6 +467,49 @@
 		margin-top: 12px;
 		color: var(--text-2);
 		font-size: var(--t-small);
+	}
+	/* other samples: a tiny tracked label and small glass pills, quieter than the main button */
+	.samples {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin: 16px 0 0;
+	}
+	.samples span {
+		margin-right: 4px;
+		font-size: var(--t-label);
+		font-weight: 500;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--text-3);
+	}
+	.samples button {
+		appearance: none;
+		min-height: 36px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: 999px;
+		background: var(--surface);
+		box-shadow: inset 0 0 0 1px var(--line);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
+		color: var(--text-2);
+		font: inherit;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition:
+			color 200ms,
+			box-shadow 200ms;
+	}
+	.samples button:hover:not(:disabled) {
+		color: var(--text);
+		box-shadow: inset 0 0 0 1px var(--line-2);
+	}
+	.samples button:disabled {
+		opacity: 0.6;
+		cursor: progress;
 	}
 
 	/* type */

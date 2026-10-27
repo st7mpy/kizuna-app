@@ -5,26 +5,26 @@ import type { TaskIO, TaskName } from './api.ts';
 
 const inputs: { [T in TaskName]: TaskIO[T]['input'] } = {
 	extract: {
-		text: 'Ma ka knee appointment Thursday ko hai, should call Kabir',
+		text: 'Mom has a knee appointment on Thursday, should call Jordan',
 		today: '2026-10-26',
 		weekday: 'Monday',
-		knownPeople: [{ name: 'Mum', aliases: ['ma', 'mummy'], relation: 'parent' }]
+		knownPeople: [{ name: 'Mom', aliases: ['mum', 'mommy'], relation: 'parent' }]
 	},
 	weave: {
 		today: '2026-10-26',
 		notes: [
-			{ id: 'n1', day: '2026-10-20', text: 'Riya wants to plan Papa ka birthday' },
-			{ id: 'n2', day: '2026-10-22', text: 'Kabir ne naya job join kiya' }
+			{ id: 'n1', day: '2026-10-20', text: 'Maya wants to plan Dad\'s birthday' },
+			{ id: 'n2', day: '2026-10-22', text: 'Jordan started his new job' }
 		],
-		people: [{ id: 'p1', name: 'Papa', aliases: ['papa', 'dad'], relation: 'parent', circle: 'in' }]
+		people: [{ id: 'p1', name: 'Dad', aliases: ['dad', 'daddy'], relation: 'parent', circle: 'in' }]
 	},
 	draft: {
-		personName: 'Kabir',
+		personName: 'Jordan',
 		relation: 'friend',
 		reason: 'He started a new job on Monday.',
 		context: ['new job at a studio'],
-		myRecentLines: ['haha sahi hai', 'chal milte hain weekend pe'],
-		language: 'mixed',
+		myRecentLines: ['haha so true', 'see you this weekend then'],
+		language: 'en',
 		withTime: 'Sat 31 Oct, 10:00 to 11:00'
 	},
 	plan: {
@@ -38,26 +38,26 @@ const inputs: { [T in TaskName]: TaskIO[T]['input'] } = {
 	rank: {
 		room: 'some',
 		candidates: [
-			{ id: 'c1', title: 'Kabir', reason: 'New job' },
-			{ id: 'c2', title: 'Mum', reason: 'Appointment Thursday' }
+			{ id: 'c1', title: 'Jordan', reason: 'New job' },
+			{ id: 'c2', title: 'Mom', reason: 'Appointment Thursday' }
 		]
 	},
 	windows: {
-		reply: 'Sunday shaam ko free hoon',
+		reply: 'Sunday afternoon works for me',
 		now: '2026-10-30T18:10:00+05:30',
 		timeZone: 'Asia/Kolkata'
 	},
 	weekend: {
-		request: 'not Sunday, Papa has puja',
+		request: 'not Sunday, Dad has a game',
 		now: '2026-10-30T18:10:00+05:30',
 		timeZone: 'Asia/Kolkata',
-		me: { name: 'Aarav', windows: [], quietStart: '22:00', quietEnd: '08:00' },
+		me: { name: 'Sam', windows: [], quietStart: '22:00', quietEnd: '08:00' },
 		people: [
-			{ id: 'p1', name: 'Mum', relation: 'parent', timeZone: 'Asia/Kolkata', language: 'mixed', windows: [], quietStart: '22:00', quietEnd: '07:00' },
-			{ id: 'p2', name: 'Kabir', relation: 'friend', timeZone: 'America/Toronto', language: 'en', windows: [], quietStart: '23:00', quietEnd: '08:00' }
+			{ id: 'p1', name: 'Mom', relation: 'parent', timeZone: 'America/Chicago', language: 'en', windows: [], quietStart: '22:00', quietEnd: '07:00' },
+			{ id: 'p2', name: 'Jordan', relation: 'friend', timeZone: 'America/Toronto', language: 'en', windows: [], quietStart: '23:00', quietEnd: '08:00' }
 		],
-		occasions: [{ day: '2026-11-08', name: 'Diwali', kind: 'festival', personIds: [], region: 'IN' }],
-		reasons: [{ personId: 'p2', text: 'Kabir started a new job.' }],
+		occasions: [{ day: '2026-11-26', name: 'Thanksgiving', kind: 'festival', personIds: [], region: 'US' }],
+		reasons: [{ personId: 'p2', text: 'Jordan started a new job.' }],
 		minMinutes: 45
 	}
 };
@@ -99,9 +99,9 @@ describe('buildTask', () => {
 
 	it('windows gives the reply, the zone and an 8-day calendar from the local day', () => {
 		const b = buildTask('windows', inputs.windows);
-		expect(b.messages[0].content).toContain('shaam / evening = 17:00 to 20:00');
+		expect(b.messages[0].content).toContain('evening = 17:00 to 20:00');
 		const user = b.messages[1].content;
-		expect(user).toContain('Sunday shaam ko free hoon');
+		expect(user).toContain('Sunday afternoon works for me');
 		expect(user).toContain('Fri 2026-10-30 (today)');
 		expect(user).toContain('Sat 2026-11-07 (+8)');
 		expect(user).not.toContain('(+9)');
@@ -116,8 +116,8 @@ describe('buildTask', () => {
 		const user = buildTask('weekend', inputs.weekend).messages[1].content;
 		expect(user).toContain('Friday');
 		expect(user).toContain('The weekend: Sat 2026-10-31 and Sun 2026-11-01');
-		expect(user).toContain('"not Sunday, Papa has puja"');
-		expect(user).toContain('- id=p2 Kabir (friend), America/Toronto, writes en');
+		expect(user).toContain('"not Sunday, Dad has a game"');
+		expect(user).toContain('- id=p2 Jordan (friend), America/Toronto, writes en');
 		expect(user).toContain('Shortest call: 45 minutes');
 		// Notes and windows stay out of the prompt; the tools hand them over.
 		expect(user).not.toContain('new job');
@@ -131,19 +131,19 @@ describe('buildTask', () => {
 		const user = buildTask('extract', inputs.extract).messages[1].content;
 		expect(user).toContain('Today is Monday, 2026-10-26');
 		expect(user).toContain('Thu 2026-10-29 (+3)');
-		expect(user).toContain('Mum (parent), also called: ma, mummy');
-		expect(user).toContain('Ma ka knee appointment');
+		expect(user).toContain('Mom (parent), also called: mum, mommy');
+		expect(user).toContain('Mom has a knee appointment');
 	});
 
 	it('weave lists notes with ids and days, and people with ids', () => {
 		const user = buildTask('weave', inputs.weave).messages[1].content;
-		expect(user).toContain('[n2] 2026-10-22: Kabir ne naya job join kiya');
-		expect(user).toContain('id=p1 name=Papa');
+		expect(user).toContain('[n2] 2026-10-22: Jordan started his new job');
+		expect(user).toContain('id=p1 name=Dad');
 	});
 
 	it('draft includes tone lines and the offered time', () => {
 		const user = buildTask('draft', inputs.draft).messages[1].content;
-		expect(user).toContain('haha sahi hai');
+		expect(user).toContain('haha so true');
 		expect(user).toContain('Offer this time: Sat 31 Oct');
 	});
 

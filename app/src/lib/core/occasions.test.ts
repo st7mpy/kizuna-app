@@ -16,15 +16,16 @@ afterEach(() => vi.useRealTimers());
 
 describe('festival table', () => {
 	it('has the checked dates and weekdays', () => {
-		expect([find('Karva Chauth', '2026').day, weekday(find('Karva Chauth', '2026').day)]).toEqual(['2026-10-29', 'Thu']);
-		expect([find('Diwali', '2026').day, weekday('2026-11-08')]).toEqual(['2026-11-08', 'Sun']);
-		expect(find('Bhai Dooj', '2026').day).toBe('2026-11-11');
-		expect(find('Lohri', '2027').day).toBe('2027-01-13');
-		expect([find('Holi', '2027').day, weekday('2027-03-22')]).toEqual(['2027-03-22', 'Mon']);
-		expect(find('Raksha Bandhan', '2027').day).toBe('2027-08-17');
-		expect([find('Diwali', '2027').day, weekday('2027-10-29')]).toEqual(['2027-10-29', 'Fri']);
+		expect([find('Thanksgiving', '2026').day, weekday(find('Thanksgiving', '2026').day)]).toEqual(['2026-11-26', 'Thu']);
+		expect([find('Thanksgiving', '2027').day, weekday('2027-11-25')]).toEqual(['2027-11-25', 'Thu']);
+		expect([find("Mother's Day", '2027').day, weekday('2027-05-09')]).toEqual(['2027-05-09', 'Sun']);
+		expect([find("Father's Day", '2027').day, weekday('2027-06-20')]).toEqual(['2027-06-20', 'Sun']);
 		expect(find('Christmas', '2026').day).toBe('2026-12-25');
 		expect(find("New Year's Day", '2027').day).toBe('2027-01-01');
+	});
+	it('keeps to days shared widely, no regional festival list', () => {
+		expect(FESTIVALS.length).toBeLessThanOrEqual(12);
+		for (const o of FESTIVALS) expect(o.region ?? 'US').toBe('US');
 	});
 	it('is in date order, valid days, festivals for everyone', () => {
 		for (let i = 1; i < FESTIVALS.length; i++) expect(FESTIVALS[i - 1].day <= FESTIVALS[i].day).toBe(true);
@@ -44,14 +45,14 @@ describe('occasions', () => {
 		expect(nextOccurrence('2024-02-29', '2027-01-10')).toBe('2027-02-28');
 	});
 	it('merges the table with birthdays, soonest first', () => {
-		const bday = { day: '2026-11-04', name: "Papa's birthday", kind: 'birthday' as const, personIds: ['papa'] };
-		const list = occasionsBetween([bday], '2026-10-26', 14);
-		expect(list.map((o) => o.name)).toEqual(['Karva Chauth', "Papa's birthday", 'Dhanteras', 'Diwali']);
-		expect(occasionsBetween([bday], '2026-10-26', 5).map((o) => o.name)).toEqual(['Karva Chauth']);
+		const bday = { day: '2026-11-20', name: "Dad's birthday", kind: 'birthday' as const, personIds: ['dad'] };
+		const list = occasionsBetween([bday], '2026-11-15', 14);
+		expect(list.map((o) => o.name)).toEqual(["Dad's birthday", 'Thanksgiving']);
+		expect(occasionsBetween([bday], '2026-11-15', 5).map((o) => o.name)).toEqual(["Dad's birthday"]);
 	});
 	it('reads stored birthdays', async () => {
-		await db.occasions.put({ id: 'birthday:papa', day: '2026-11-04', name: "Papa's birthday", kind: 'birthday', personIds: ['papa'] });
+		await db.occasions.put({ id: 'birthday:dad', day: '2026-11-04', name: "Dad's birthday", kind: 'birthday', personIds: ['dad'] });
 		const list = await upcomingOccasions(10);
-		expect(list.find((o) => o.kind === 'birthday')).toEqual({ day: '2026-11-04', name: "Papa's birthday", kind: 'birthday', personIds: ['papa'] });
+		expect(list.find((o) => o.kind === 'birthday')).toEqual({ day: '2026-11-04', name: "Dad's birthday", kind: 'birthday', personIds: ['dad'] });
 	});
 });

@@ -109,6 +109,7 @@ export interface Settings {
 	room?: { day: string; level: Room }; // today's room tap
 	relayUrl?: string; // override for dev
 	timeZone?: string; // IANA, the phone's current zone (read from Intl each time, not stored)
+	homeTz?: string; // IANA; set only for a sample family, whose "your time" is its home city
 	lastWeaveAt?: string;
 	weaveFailedAt?: string; // last failed weave; no new try for 6 h after it
 	notesSinceWeave: number;

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 // Daytime, so suggested times on Today are the same day.
 test.beforeEach(async ({ page }) => {
-	await page.clock.setFixedTime(new Date('2026-10-26T11:00:00+05:30'));
+	await page.clock.setFixedTime(new Date('2026-10-26T11:00:00-05:00'));
 });
 
 /** A first visit lands on the landing page; its main button loads the sample family and opens the map. */
@@ -49,16 +49,28 @@ test('the three places open', async ({ page }) => {
 
 test('typing a note is understood or kept', async ({ page }) => {
 	await page.goto('/talk');
-	await page.getByRole('textbox').fill('Kabir started his new job, should call him.');
+	await page.getByRole('textbox').fill('Jordan started his new job, should call him.');
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByText('Got it.')).toBeVisible();
 });
 
 test('the map shows the circle and a weekend plan', async ({ page }) => {
-	// Friday evening before Diwali: the weekend card may appear.
-	await page.clock.setFixedTime(new Date('2026-11-06T18:30:00+05:30'));
+	// Friday evening: the weekend card may appear.
+	await page.clock.setFixedTime(new Date('2026-11-06T18:30:00-06:00'));
 	await sampleFamily(page);
 	await expect(page.getByRole('heading', { level: 1, name: 'Who’s open to a call' })).toBeVisible();
 	await expect.poll(() => page.locator('a.dotlink').count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(6);
 	await expect(page.locator('article.weekend')).toBeVisible({ timeout: 15_000 });
+});
+
+test('the other sample family loads from the picker', async ({ page }) => {
+	await page.goto('/');
+	await page.getByRole('button', { name: 'One big family across the USA' }).first().click();
+	await expect(page).toHaveURL(/\/map$/, { timeout: 15_000 });
+	await expect.poll(() => page.locator('a.dotlink').count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(8);
+	await expect(page.locator('article.weekend')).toBeVisible({ timeout: 15_000 });
+	await expect(page.getByText('Grandpa').first()).toBeVisible();
+	// The family lives in Chicago, so the plan reads the same wherever the visitor is.
+	await expect(page.locator('article.weekend .yours').first()).toHaveText('Chicago time');
+	await expect(page.locator('article.weekend .when .num').first()).toHaveText('Sunday 13:30');
 });

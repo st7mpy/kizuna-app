@@ -233,7 +233,7 @@
 		<div class="head">
 			<p class="label">Talk</p>
 			<h1>What’s on <em>your</em> mind?</h1>
-			<p class="lede">People, plans, little things. English, Hindi, or both.</p>
+			<p class="lede">People, plans, little things. Say it however it comes.</p>
 		</div>
 
 		{#if micOk}
@@ -396,6 +396,8 @@
 		padding: 18px 20px;
 		border-radius: var(--r-card);
 		background: var(--surface);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 		font-size: 1.375rem;
 		line-height: 1.45;

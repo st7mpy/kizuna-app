@@ -1,11 +1,12 @@
-// "Try with sample life": three weeks of fictional notes, already understood,
+// "Try it with a sample family": three weeks of fictional notes, already understood,
 // written through the same paths as live capture so every screen has something real.
+// Two families: a busy working family with one child studying abroad, and a big family across the USA.
 import type { CircleEntry, CircleStatus, ExtractOutput, Fragment, Source, WeaveOutput } from '@kizuna/shared';
 import { resolveRelDay, zonedIso, zonedToUtc } from '@kizuna/shared';
 import { db, defaultSettings, newId, readSettings, type MemberRow } from '../db.ts';
 import { SAMPLE_CIRCLE_ID } from './circle.ts';
 import { weekendRange } from './weekend.ts';
-import { addDays, dayToDate, localDay } from './days.ts';
+import { addDays, dayToDate, localDay, setHomeZone } from './days.ts';
 import { applyExtract } from './capture.ts';
 import { matchPerson } from './people.ts';
 import { applyWeave } from './weave.ts';
@@ -18,8 +19,22 @@ export interface SampleNote {
 	text: string;
 	extract: ExtractOutput; // dates written 'rel:N'
 }
+export type SampleKey = 'abroad' | 'usa';
+
+/** The samples a visitor can pick, default first. */
+export const SAMPLES: { key: SampleKey; label: string; blurb: string }[] = [
+	{ key: 'abroad', label: 'A busy family, one abroad', blurb: 'Mom, Dad and Maya work long weeks. Leo is studying in Melbourne, a day ahead.' },
+	{ key: 'usa', label: 'One big family across the USA', blurb: 'Grandparents in Phoenix, aunts, uncles and cousins from New York to Honolulu.' }
+];
+
 export interface SampleLife {
+	/** Which sample this is (the fixtures carry it). */
+	id?: SampleKey;
+	label?: string;
+	blurb?: string;
 	myName: string;
+	/** Where "you" live in this sample. Planning and "your time" use it, wherever the visitor is. */
+	homeTz?: string;
 	notes: SampleNote[];
 	weave: WeaveOutput; // ids null, note_ids are note indexes as strings
 	phones?: Record<string, string>;
@@ -75,12 +90,12 @@ export function sampleMembers(list: SampleMember[], now: Date): Omit<MemberRow, 
 	});
 }
 
-// Optional at build time: an empty glob just means the fixture isn't there yet.
-const fixtures = import.meta.glob<SampleLife>('../../../../eval/fixtures/sample-life.json', { import: 'default' });
+// Optional at build time: an empty glob just means the fixtures aren't there yet.
+const fixtures = import.meta.glob<SampleLife>('../../../../eval/fixtures/sample-*.json', { import: 'default' });
 
-export async function fetchSampleLife(): Promise<SampleLife> {
-	const load = Object.values(fixtures)[0];
-	if (!load) throw new Error('Sample life is not available in this build.');
+export async function fetchSampleLife(key: SampleKey = 'abroad'): Promise<SampleLife> {
+	const load = Object.entries(fixtures).find(([path]) => path.endsWith(`/sample-${key}.json`))?.[1];
+	if (!load) throw new Error('This sample is not available in this build.');
 	return load();
 }
 
@@ -98,12 +113,16 @@ async function clearAll(): Promise<void> {
 		await Promise.all(db.tables.map((t) => t.clear()));
 	});
 	clearBusyCache();
+	setHomeZone(null);
 }
 
-/** Loads a sample life (exported for tests; the UI calls loadSampleLife). */
+/** Loads a sample life (exported for tests; the UI calls loadSample). */
 export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 	const keep = await readSettings();
 	await clearAll();
+	// Save the home city first: everything below reads settings and must see the same zone.
+	if (data.homeTz) await db.settings.put({ ...defaultSettings(), homeTz: data.homeTz });
+	setHomeZone(data.homeTz);
 	const today = localDay();
 
 	const fragIds: string[] = [];
@@ -149,6 +168,7 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 			relayUrl: keep.relayUrl,
 			icalUrl: keep.icalUrl,
 			myName: data.myName,
+			...(data.homeTz ? { homeTz: data.homeTz } : {}),
 			lastWeaveAt: new Date().toISOString(),
 			notesSinceWeave: 0,
 			// A local circle so the map glows without a server; sample life also shows the weekend card any day.
@@ -159,9 +179,14 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 	});
 }
 
-/** Loads three weeks of sample notes (already understood) so judges see everything at once. */
+/** Loads one sample family's three weeks of notes (already understood), replacing what is on the phone. */
+export async function loadSample(key: SampleKey = 'abroad'): Promise<void> {
+	await loadSampleLifeFrom(await fetchSampleLife(key));
+}
+
+/** The default sample family. */
 export async function loadSampleLife(): Promise<void> {
-	await loadSampleLifeFrom(await fetchSampleLife());
+	await loadSample('abroad');
 }
 
 export { clearAll };

@@ -79,7 +79,7 @@ export function zonedWallTime(ms: number, timeZone: string): WallTime {
 	};
 }
 
-/** Offset of `timeZone` from UTC at instant `ms`, in minutes (Asia/Kolkata = 330). */
+/** Offset of `timeZone` from UTC at instant `ms`, in minutes (America/New_York = -240 in summer). */
 export function zonedOffsetMinutes(ms: number, timeZone: string): number {
 	const w = zonedWallTime(ms, timeZone);
 	const asUtc = Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute, w.second);

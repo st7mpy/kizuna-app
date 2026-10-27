@@ -1,14 +1,16 @@
 // Words for the map, the weekend card and the gift card. Plain, short, never counters.
+import { homeZone } from '../core/days.ts';
+import { cityOf } from './constellation.ts';
 
-/** "Sunday 11:00" in the phone's zone (or a given one). */
-export function whenLocal(iso: string, timeZone?: string): string {
+/** "Sunday 11:00" in the phone's zone (the sample family's home zone when set, or a given one). */
+export function whenLocal(iso: string, timeZone: string | undefined = homeZone() ?? undefined): string {
 	const d = new Date(iso);
 	const weekday = d.toLocaleDateString('en-GB', { weekday: 'long', timeZone });
 	const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
 	return `${weekday} ${time}`;
 }
 
-/** "Mum, Papa and Riya" */
+/** "Mom, Dad and Maya" */
 export function andList(names: string[]): string {
 	if (names.length <= 1) return names[0] ?? '';
 	return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
@@ -34,12 +36,12 @@ export function inDays(n: number): string {
 	return `in ${n} days`;
 }
 
-/** "Papa's birthday is in 9 days." */
+/** "Dad's birthday is in 9 days." */
 export function giftLead(occasionName: string, daysLeft: number): string {
 	return `${occasionName} is ${inDays(daysLeft)}.`;
 }
 
-/** "Diwali · Sun 8 Nov" */
+/** "Thanksgiving · Thu 26 Nov" */
 export function occasionChip(name: string, day: string): string {
 	const [y, m, d] = day.split('-').map(Number);
 	const date = new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -76,4 +78,10 @@ export function memberStatus(
 	if (p.glow === 'maybe') return { text: `Maybe later · ${clock}`, tone: 'maybe' };
 	if (p.daylight <= 0) return { text: `Night there · ${clock}`, tone: 'night' };
 	return { text: clock, tone: 'plain' };
+}
+
+/** "your time", or "Chicago time" when a sample family lives in its own city. */
+export function yourTime(): string {
+	const home = homeZone();
+	return home ? `${cityOf(home)} time` : 'your time';
 }

@@ -121,7 +121,7 @@ function label(w){var s=new Date(w.start),e=new Date(w.end);return dayFmt?dayFmt
 
 async function load(){
   if(!circleId||!(await keyOk(key))){show('s-incomplete');return;}
-  if(from){$('title').textContent=from+' is planning a family call.';$('title-hi').textContent=from+' परिवार के साथ कॉल रख रहे हैं।';}
+  if(from){$('title').textContent=from+' is planning a family call.';}
   if(store.name)$('name').value=store.name;
   var now=new Date();
   document.querySelectorAll('[data-chip]').forEach(function(b){
@@ -161,7 +161,7 @@ async function submit(windows,notThisWeekend){
     if(!r.ok)throw new Error('save');
     store.answered=true;save();
     await thanks(name,notThisWeekend);
-  }catch(_){err('That did not go through. Please try again in a moment. / भेजा नहीं जा सका, थोड़ी देर में फिर कोशिश करें।');}
+  }catch(_){err('That did not go through. Please try again in a moment.');}
   finally{setBusy(false);}
 }
 function setBusy(b){['send','nope','sendheard','read','mic'].forEach(function(id){var el=$(id);if(el)el.disabled=b||(id==='send'&&picked.length===0);});}
@@ -187,14 +187,14 @@ async function readReply(text,heard){
     if(!j||!j.ok)throw new Error('spark');
     var ws=parsedWindows(j.output,new Date());
     var nope=!!(j.output&&j.output.not_this_weekend)&&ws.length===0;
-    if(!ws.length&&!nope){err('We could not find a time in that. Please tap the times above, or type it. / समय समझ नहीं आया, ऊपर से चुनें या लिखें।');$('typed').hidden=false;return;}
+    if(!ws.length&&!nope){err('We could not find a time in that. Please tap the times above, or type it.');$('typed').hidden=false;return;}
     pending={windows:ws,nope:nope};
     $('heardtext').textContent=heard?'"'+text+'"':'';
     var ul=$('heardlist');ul.textContent='';
     if(nope){var li=document.createElement('li');li.textContent='Not this weekend';ul.appendChild(li);}
     ws.forEach(function(w){var li=document.createElement('li');li.textContent=label(w);ul.appendChild(li);});
     $('heard').hidden=false;$('heard').scrollIntoView({behavior:'smooth',block:'center'});
-  }catch(_){err('Sorry, that did not work. Please tap the times above, or type it. / माफ़ कीजिए, ऊपर से चुनें या लिखें।');$('typed').hidden=false;}
+  }catch(_){err('Sorry, that did not work. Please tap the times above, or type it.');$('typed').hidden=false;}
 }
 
 // Voice: record PCM through Web Audio, make a 16 kHz mono 16-bit WAV, transcribe, then read it.
@@ -220,7 +220,7 @@ async function startRec(){
     proc.onaudioprocess=function(e){chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
     src.connect(proc);proc.connect(ctx.destination);
     rec={stream:stream,ctx:ctx,proc:proc,src:src,chunks:chunks,timer:setTimeout(stopRec,30000)};
-    $('mic-label').textContent='Listening. Tap to stop';$('mic-hi').textContent='सुन रहे हैं, रोकने के लिए दबाएँ';
+    $('mic-label').textContent='Listening. Tap to stop';
     $('mic').setAttribute('aria-pressed','true');
   }catch(_){micFailed();}
 }
@@ -229,10 +229,10 @@ async function stopRec(){
   try{r.proc.disconnect();r.src.disconnect();}catch(_){}
   r.stream.getTracks().forEach(function(t){t.stop();});
   var rate=r.ctx.sampleRate;try{r.ctx.close();}catch(_){}
-  resetMic();$('micstatus').textContent='One moment… / एक पल…';
+  resetMic();$('micstatus').textContent='One moment…';
   try{
     if(!r.chunks.length)throw new Error('empty');
-    var res=await fetch('/api/transcribe?lang=hi,en&session='+randomId(12),{method:'POST',headers:{'content-type':'audio/wav'},body:wav(r.chunks,rate),referrerPolicy:'no-referrer'});
+    var res=await fetch('/api/transcribe?session='+randomId(12),{method:'POST',headers:{'content-type':'audio/wav'},body:wav(r.chunks,rate),referrerPolicy:'no-referrer'});
     var j=await res.json();
     var text=j&&j.ok&&typeof j.text==='string'?j.text.trim():'';
     $('micstatus').textContent='';
@@ -241,8 +241,8 @@ async function stopRec(){
     await readReply(text,true);
   }catch(_){$('micstatus').textContent='';micFailed();}
 }
-function resetMic(){$('mic-label').textContent='Speak instead';$('mic-hi').textContent='बोलकर बताइए';$('mic').setAttribute('aria-pressed','false');}
-function micFailed(){resetMic();$('typed').hidden=false;err('The microphone did not work. Please type it instead. / माइक नहीं चला, लिखकर बताइए।');}
+function resetMic(){$('mic-label').textContent='Speak instead';$('mic').setAttribute('aria-pressed','false');}
+function micFailed(){resetMic();$('typed').hidden=false;err('The microphone did not work. Please type it instead.');}
 
 $('send').addEventListener('click',function(){var now=new Date();submit(chipWindows(picked,now),false);});
 $('nope').addEventListener('click',function(){submit([],true);});
@@ -256,35 +256,29 @@ load();
 
 const FAMILY_CSS = `
 h1{font-size:36px}
-.hi{display:block;color:var(--muted);font-size:.86em;font-weight:400;letter-spacing:0;margin-top:2px}
-.sub .hi{font-size:17px}
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 22px}
-.chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:96px;padding:14px 16px;border-radius:20px;border:0;box-shadow:var(--card);background:var(--surface);color:var(--text);font:inherit;font-size:20px;font-weight:500;letter-spacing:-.015em;text-align:left;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
-.chip .hi{font-size:16px}
+.chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:96px;padding:14px 16px;border-radius:20px;border:0;box-shadow:var(--card);background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--text);font:inherit;font-size:20px;font-weight:500;letter-spacing:-.015em;text-align:left;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
 .chip .when{font-size:13px;font-weight:400;color:var(--faint);margin-top:4px}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);box-shadow:0 10px 22px -14px var(--accent)}
-.chip[aria-pressed="true"] .hi,.chip[aria-pressed="true"] .when{color:var(--on-accent);opacity:.85}
+.chip[aria-pressed="true"] .when{color:var(--on-accent);opacity:.85}
 .chip[disabled]{opacity:.45;cursor:default}
 .chip:focus-visible,.btn:focus-visible,.link:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .field{display:block;margin:0 0 18px;font-size:15px;color:var(--muted)}
 .field>span{display:block;margin-bottom:6px}
-.field .hi{display:inline;margin-left:6px}
-input,textarea{width:100%;font:inherit;font-size:19px;color:var(--text);background:var(--surface);border:0;box-shadow:inset 0 0 0 1px var(--line);border-radius:14px;padding:14px 16px;min-height:56px}
+input,textarea{width:100%;font:inherit;font-size:19px;color:var(--text);background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:0;box-shadow:inset 0 0 0 1px var(--line);border-radius:14px;padding:14px 16px;min-height:56px}
 textarea{resize:vertical}
 input:focus,textarea:focus{outline:none;box-shadow:inset 0 0 0 1px var(--accent),0 0 0 4px var(--accent-soft)}
 .stack{display:grid;gap:10px}
 button.btn{width:100%;border:0;font:inherit;font-weight:500;cursor:pointer;min-height:60px;font-size:18px;gap:8px;flex-wrap:wrap}
-button.btn .hi{display:inline;color:inherit;opacity:.8;font-size:15px;margin:0}
 button.btn.secondary{background:var(--surface)}
 button.btn[disabled]{opacity:.45;cursor:default}
 .or{display:flex;align-items:center;gap:12px;color:var(--faint);font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:28px 0 14px}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .link{background:none;border:0;font:inherit;color:var(--muted);text-decoration:underline;text-underline-offset:3px;min-height:48px;padding:0;cursor:pointer;font-size:16px}
-.link .hi{display:inline;margin-left:6px;font-size:15px}
 .mic[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent);color:var(--accent)}
 .status{min-height:1.5em;color:var(--muted);margin:8px 0 0;font-size:15px}
 .err{color:var(--danger);font-size:15px;margin:14px 0 0;min-height:1em}
-.heard{margin:22px 0 0;padding:18px;border-radius:20px;background:var(--surface);box-shadow:var(--card)}
+.heard{margin:22px 0 0;padding:18px;border-radius:20px;background:var(--surface);box-shadow:var(--card);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
 .heard .quote{color:var(--muted);margin:0 0 8px}
 .times{list-style:none;margin:0 0 16px;padding:0;font-size:20px;font-variant-numeric:tabular-nums}
 .times li{padding:8px 0;border-bottom:1px solid var(--line)}
@@ -293,60 +287,60 @@ button.btn[disabled]{opacity:.45;cursor:default}
 `;
 
 function body(): string {
-	const chip = (id: string, en: string, hi: string) =>
-		`<button type="button" class="chip" data-chip="${id}" aria-pressed="false"><span>${en}</span><span class="hi" lang="hi">${hi}</span><span class="when"></span></button>`;
-	return `<section id="s-wait"><p class="sub">One moment… <span class="hi" lang="hi">एक पल…</span></p></section>
+	const chip = (id: string, en: string) =>
+		`<button type="button" class="chip" data-chip="${id}" aria-pressed="false"><span>${en}</span><span class="when"></span></button>`;
+	return `<section id="s-wait"><p class="sub">One moment…</p></section>
 <section id="s-ask" hidden>
-<p class="eyebrow">Family call <span lang="hi">· परिवार कॉल</span></p>
-<h1><span id="title">A family call is being planned.</span><span class="hi" lang="hi" id="title-hi">परिवार के साथ कॉल की तैयारी है।</span></h1>
-<p class="sub">When are you free this weekend?<span class="hi" lang="hi">इस वीकेंड आप कब फ़्री हैं?</span></p>
+<p class="eyebrow">Family call</p>
+<h1><span id="title">A family call is being planned.</span></h1>
+<p class="sub">When are you free this weekend?</p>
 <p id="again-note" hidden>You answered before. Answering again replaces it.</p>
 <div class="chips" role="group" aria-label="Times this weekend">
-${chip('sat-am', 'Sat morning', 'शनिवार सुबह')}
-${chip('sat-pm', 'Sat evening', 'शनिवार शाम')}
-${chip('sun-am', 'Sun morning', 'रविवार सुबह')}
-${chip('sun-pm', 'Sun evening', 'रविवार शाम')}
+${chip('sat-am', 'Sat morning')}
+${chip('sat-pm', 'Sat evening')}
+${chip('sun-am', 'Sun morning')}
+${chip('sun-pm', 'Sun evening')}
 </div>
-<label class="field"><span>Your name (optional) <span class="hi" lang="hi">आपका नाम</span></span><input id="name" maxlength="40" autocomplete="given-name" enterkeyhint="done"></label>
+<label class="field"><span>Your name (optional)</span><input id="name" maxlength="40" autocomplete="given-name" enterkeyhint="done"></label>
 <div class="stack">
-<button class="btn primary" id="send" type="button" disabled>Send <span class="hi" lang="hi">भेजें</span></button>
-<button class="btn secondary" id="nope" type="button">Not this weekend <span class="hi" lang="hi">इस वीकेंड नहीं</span></button>
+<button class="btn primary" id="send" type="button" disabled>Send</button>
+<button class="btn secondary" id="nope" type="button">Not this weekend</button>
 </div>
 <div class="or">or</div>
 <div class="stack">
-<button class="btn secondary mic" id="mic" type="button" aria-pressed="false" hidden><span id="mic-label">Speak instead</span> <span class="hi" lang="hi" id="mic-hi">बोलकर बताइए</span></button>
+<button class="btn secondary mic" id="mic" type="button" aria-pressed="false" hidden><span id="mic-label">Speak instead</span></button>
 </div>
 <p class="status" id="micstatus" aria-live="polite"></p>
-<button class="link" id="typeopen" type="button">or type it <span class="hi" lang="hi">या लिखकर बताइए</span></button>
+<button class="link" id="typeopen" type="button">or type it</button>
 <div id="typed" hidden>
-<label class="field"><span>When are you free? <span class="hi" lang="hi">कब फ़्री हैं?</span></span><textarea id="reply" maxlength="500" rows="3" placeholder="Sunday shaam ko free hoon"></textarea></label>
-<button class="btn secondary" id="read" type="button">Use this <span class="hi" lang="hi">यही भेजें</span></button>
+<label class="field"><span>When are you free?</span><textarea id="reply" maxlength="500" rows="3" placeholder="Sunday afternoon works for me"></textarea></label>
+<button class="btn secondary" id="read" type="button">Use this</button>
 </div>
 <div class="heard" id="heard" hidden>
-<p class="eyebrow">We understood <span lang="hi">· हमने समझा</span></p>
+<p class="eyebrow">We understood</p>
 <p class="quote" id="heardtext"></p>
 <ul class="times" id="heardlist"></ul>
-<button class="btn primary" id="sendheard" type="button">Yes, send <span class="hi" lang="hi">हाँ, भेजें</span></button>
+<button class="btn primary" id="sendheard" type="button">Yes, send</button>
 </div>
 <p class="err" id="err" role="alert"></p>
 <p class="note">Only your family circle can read your answer. Times only, never your location.</p>
 </section>
 <section id="s-thanks" hidden>
-<p class="eyebrow">Sent <span lang="hi">· भेज दिया</span></p>
-<h1><span id="thanks-title">Thank you.</span><span class="hi" lang="hi">धन्यवाद।</span></h1>
+<p class="eyebrow">Sent</p>
+<h1><span id="thanks-title">Thank you.</span></h1>
 <p class="sub" id="thanks-sub"></p>
 <p class="sub" id="others"></p>
-<button class="link" id="again" type="button">Change my answer <span class="hi" lang="hi">जवाब बदलें</span></button>
+<button class="link" id="again" type="button">Change my answer</button>
 </section>
 <section id="s-incomplete" hidden>
 <p class="eyebrow">Family call</p>
-<h1>This link is incomplete.<span class="hi" lang="hi">यह लिंक अधूरा है।</span></h1>
-<p class="sub">Ask for a new one.<span class="hi" lang="hi">नया लिंक माँग लीजिए।</span></p>
+<h1>This link is incomplete.</h1>
+<p class="sub">Ask for a new one.</p>
 </section>
 <section id="s-ended" hidden>
 <p class="eyebrow">Family call</p>
-<h1>This link has ended.<span class="hi" lang="hi">यह लिंक अब नहीं चलता।</span></h1>
-<p class="sub">Ask for a new one.<span class="hi" lang="hi">नया लिंक माँग लीजिए।</span></p>
+<h1>This link has ended.</h1>
+<p class="sub">Ask for a new one.</p>
 </section>
 <noscript><p class="sub">Please open this link in a browser with JavaScript on. Your answer is locked on your phone before it is sent.</p></noscript>`;
 }

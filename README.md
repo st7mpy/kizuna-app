@@ -2,7 +2,7 @@
 
 **Kizuna keeps your thoughts and your people from slipping away.**
 
-You talk to it the way you think: in Hinglish, in half sentences, in a rush. Kizuna remembers the people and moments inside what you said. At a good moment it nudges you to reach out to someone close, with a ready line and a time that works.
+You talk to it the way you think: in half sentences, in a rush. Kizuna remembers the people and moments inside what you said. At a good moment it nudges you to reach out to someone close, with a ready line and a time that works.
 
 *Kizuna* (絆) is Japanese for the bonds between people.
 
@@ -18,14 +18,14 @@ Kizuna is built for that close half.
 
 | | Feature | How |
 | --- | --- | --- |
-| 1 | **Talk it out** | Hold the mic and talk in English, Hindi or both. Words appear as you speak. Typing always works too. |
-| 2 | **Remembers for you** | Each note is turned into people, dates, plans and promises ("should call Kabir"). Dates are checked in code against the words you used. |
-| 3 | **Your circle builds itself** | A long-context pass over everything you've said suggests up to 8 people who matter, and merges nicknames (Ma, Mum, Mummy). |
+| 1 | **Talk it out** | Hold the mic and talk. Words appear as you speak. Typing always works too. |
+| 2 | **Remembers for you** | Each note is turned into people, dates, plans and promises ("should call Jordan"). Dates are checked in code against the words you used. |
+| 3 | **Your circle builds itself** | A long-context pass over everything you've said suggests up to 8 people who matter, and merges nicknames (Mom, Mum, Ma). |
 | 4 | **Poke, no score** | One tap drafts a short line in your own language and tone, and opens WhatsApp with it ready. You edit and send. No counters, ever. |
 | 5 | **Find us a time** | Two free slots from your free hours (and, if you add it, your private calendar link). Ask in plain words: "next weekend, not Sunday". The other person gets a pick-a-time page that needs no app. |
 | 6 | **Today** | Tap how much room you have (low, some, lots) and see 1, 3 or 5 things, people first. Empty is a good day. |
 
-**Try it without talking for three weeks first:** tap **Try with sample life** on the first screen.
+**Try it without talking for three weeks first:** tap **Try it with a sample family** on the first screen. There are two: a busy working family whose youngest is studying in Melbourne, a day ahead, and one big family spread across the USA from New York to Honolulu. Pick the second under the main button, or switch in Settings.
 
 ## Principles
 
@@ -40,9 +40,9 @@ Kizuna is built for that close half.
 
 | Model | Where | What it does |
 | --- | --- | --- |
-| **Muse Voice Transcribe 1.0** | `relay/src/asr.ts`, `relay/src/transcribe.ts` | Live speech to text over a WebSocket, with English + Hindi language bias and code-switching. A record-then-transcribe path takes over if streaming fails. |
-| **Muse Spark 1.3**, structured output | `shared/src/tasks.ts`, `shared/src/schemas.ts` | `extract`: one note to people, events, promises, threads and gift hints ("Papa wants a brighter reading lamp", never prices) (strict JSON schema, minimal reasoning). |
-| **Muse Spark 1.3**, structured output | same, guard in `relay/src/validate.ts` | `windows`: a reply in English, Hindi or Hinglish ("Sunday shaam ko free hoon", "Sat after lunch, not before 2") to at most 3 free windows. Code drops anything in the past, past 7 days, or ending before it starts. |
+| **Muse Voice Transcribe 1.0** | `relay/src/asr.ts`, `relay/src/transcribe.ts` | Live speech to text over a WebSocket. A record-then-transcribe path takes over if streaming fails. |
+| **Muse Spark 1.3**, structured output | `shared/src/tasks.ts`, `shared/src/schemas.ts` | `extract`: one note to people, events, promises, threads and gift hints ("Dad wants new running shoes", never prices) (strict JSON schema, minimal reasoning). |
+| **Muse Spark 1.3**, structured output | same, guard in `relay/src/validate.ts` | `windows`: a reply in plain words ("Sunday afternoon works for me", "Sat after lunch, not before 2") to at most 3 free windows. Code drops anything in the past, past 7 days, or ending before it starts. |
 | **Muse Spark 1.3**, long context | same | `weave`: all notes at once to circle suggestions, merged names and threads (high reasoning). |
 | **Muse Spark 1.3**, tool calling | `relay/src/plan.ts` | `plan`: turns "sometime next weekend, not Sunday" into calls to a `free_slots` tool and a `finish` tool. |
 | **Muse Spark 1.3**, tool calling | `relay/src/weekend.ts`, `shared/src/weekend.ts` | `weekend`: plans one call over the Kizuna map with parallel calls to `get_windows`, `get_occasions`, `get_local_time` and `get_reasons`, then `finish`. The tools run from what the app sends, so nothing is stored. The answer is checked in code (everyone really free, outside their quiet hours in their own time zone); a plain fallback gives the same kind of answer if the model fails. |
@@ -73,13 +73,13 @@ by the model                    /api/ical    (busy times only)
 | `POST /api/circle` | Makes a new map circle. The key is made on the phone and only travels in the link's `#k=` part, which browsers never send. |
 | `PUT` / `DELETE /api/circle/:id/m/:memberId` | Writes or removes one member's sealed entry (AES-GCM, at most 12 members, gone after 8 days). |
 | `GET /api/circle/:id` | Lists the sealed entries; the phone opens them. |
-| `GET /c/:id` | The family page: four big buttons (Sat or Sun, morning or evening), "Not this weekend", speak or type a reply. The answer is sealed in the browser before it is sent. English and Hindi labels. |
+| `GET /c/:id` | The family page: four big buttons (Sat or Sun, morning or evening), "Not this weekend", speak or type a reply. The answer is sealed in the browser before it is sent. |
 
 - `app/`: SvelteKit (Svelte 5) single-page PWA. Dexie over IndexedDB. Nudge rules, free-slot maths and the date guard run on the phone.
 - `relay/`: one Cloudflare Worker that serves the app and the API from the same origin and holds the API key.
 - `shared/`: the contract between them: types, task inputs and outputs, prompts, schemas, date guard, slot maths.
 - `tools/fake-meta/`: a local stand-in for the Meta API, so everything runs and is tested without a key.
-- `eval/`: 30 Hinglish voice-note fragments with expected answers, plus the sample life.
+- `eval/`: the extraction eval and the two sample families (`fixtures/sample-abroad.json`, `fixtures/sample-usa.json`).
 
 ## Run it locally
 

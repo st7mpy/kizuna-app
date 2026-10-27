@@ -31,7 +31,7 @@ export interface ExtractOutput {
 	}[];
 	promises: { what: string; person: string | null; date_text: string | null }[];
 	threads: { title: string; kind: ThreadKind; people: string[] }[];
-	/** Things someone would like ("Papa wants a brighter reading lamp"). Never prices or money. */
+	/** Things someone would like ("Dad wants new running shoes"). Never prices or money. */
 	gift_hints: { person: string; what: string }[];
 }
 
@@ -75,7 +75,7 @@ export interface DraftOutput {
 export interface PlanInput {
 	request: string; // "sometime next weekend, not Sunday" or "" for default
 	now: string; // ISO with offset
-	timeZone: string; // IANA, e.g. 'Asia/Kolkata'
+	timeZone: string; // IANA, e.g. 'America/Chicago'
 	freeHours: Window[];
 	busy: { start: string; end: string }[]; // next 21 days, from the iCal link
 	durationMinutes: number; // default 60

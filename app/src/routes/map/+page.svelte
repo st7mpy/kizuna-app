@@ -24,6 +24,8 @@
 	const circleName = $derived(hasCircle ? 'Family circle' : 'Your circle');
 
 	let weekend = $state<Weekend | null>(null);
+	// Goes up after each refresh, so a faint light travels along the map's lines.
+	let beat = $state(0);
 	let gifts = $state<Gift[]>([]);
 
 	async function loadCards() {
@@ -38,7 +40,10 @@
 
 	// Re-fetch the circle when the map opens and every minute while it is open.
 	onMount(() => {
-		const sync = () => refreshCircle().catch(() => {});
+		const sync = () =>
+			refreshCircle()
+				.catch(() => {})
+				.finally(() => beat++);
 		void sync().then(loadCards);
 		void loadCards();
 		const t = setInterval(sync, 60_000);
@@ -102,7 +107,7 @@
 
 			{#if view.value}
 				<div class="stage">
-					<Constellation people={view.value.people} me={{ name: 'You', localTime: view.value.me.localTime }} />
+					<Constellation people={view.value.people} me={{ name: 'You', localTime: view.value.me.localTime }} {beat} />
 					{#if view.value.people.length}
 						<p class="legend tiny">
 							<span><i class="g" aria-hidden="true"></i> glow: open to a call</span>
@@ -176,6 +181,8 @@
 		border-radius: 999px;
 		background: var(--surface);
 		box-shadow: var(--card-shadow);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		color: var(--text);
 		font-size: var(--t-small);
 		font-weight: 500;
@@ -197,7 +204,7 @@
 		color: #141311;
 		font-size: 0.75rem;
 		font-weight: 600;
-		box-shadow: 0 0 0 2px var(--surface);
+		box-shadow: 0 0 0 2px var(--surface-solid);
 	}
 	.face + .face {
 		margin-left: -6px;
@@ -229,7 +236,7 @@
 	/* Beside the list, the constellation gets room to breathe. */
 	@media (min-width: 1100px) {
 		.stage {
-			--map-w: 600px;
+			--map-w: 560px;
 			padding: 40px 28px 22px;
 		}
 		.panes > .side {
@@ -248,24 +255,27 @@
 		border-radius: 50%;
 	}
 	.legend .g {
-		background: #e9b36f;
-		box-shadow: 0 0 0 4px var(--glow);
+		background: radial-gradient(circle at 42% 38%, #fffdf8, #ecc489 60%);
+		box-shadow: 0 0 0 4px var(--glow), 0 0 10px 4px var(--glow);
 	}
 	.legend .n {
 		background: linear-gradient(90deg, #a4c6e8 50%, color-mix(in srgb, #a4c6e8 38%, var(--bg)) 50%);
 		box-shadow: inset 0 0 0 0.75px var(--text-3);
 	}
-	/* The map floats in a soft sky that follows the theme. */
+	/* The map floats straight on the sky, like the landing's tree: no frame. */
 	.stage {
 		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
-		padding: 28px 12px 18px;
-		border-radius: 28px;
-		background: var(--sky);
-		box-shadow: inset 0 0 0 1px var(--line);
-		overflow: hidden;
+		padding: 20px 0 6px;
+	}
+	.legend {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-3);
 	}
 	.cards {
 		display: flex;
@@ -284,6 +294,8 @@
 		border-radius: var(--r-card);
 		background: var(--surface);
 		box-shadow: var(--card-shadow);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 	}
 	.invite .btn {
 		margin-top: 6px;

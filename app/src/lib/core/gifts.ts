@@ -1,4 +1,4 @@
-// Gift hints: "Papa's birthday is in 9 days. You noted a brighter reading lamp. Plan it with Riya?"
+// Gift hints: "Dad's birthday is in 9 days. You noted a new pair of running shoes. Plan it with Maya?"
 // Hints stay on the phone. Drafts never carry prices, money, shopping links or health.
 import type { GiftCard, GiftHint, Occasion, Person, Relation } from '@kizuna/shared';
 import { db } from '../db.ts';
@@ -82,10 +82,7 @@ export function safeIdea(what: string): string | null {
 }
 
 /** Pure: a fallback line to the sibling. */
-export function giftTemplate(occasionName: string, idea: string | null, language: 'en' | 'hi' | 'mixed' | 'other'): string {
-	if (language === 'hi' || language === 'mixed') {
-		return idea ? `${occasionName} aa raha hai. Idea: ${idea}. Saath mein plan karein?` : `${occasionName} aa raha hai. Saath mein kuch plan karein?`;
-	}
+export function giftTemplate(occasionName: string, idea: string | null, _language: 'en' | 'hi' | 'mixed' | 'other' = 'en'): string {
 	return idea ? `${occasionName} is coming up. I was thinking ${idea}. Plan it together?` : `${occasionName} is coming up. Want to plan something together?`;
 }
 
@@ -95,7 +92,7 @@ export async function draftGiftLine(card: GiftCard): Promise<{ line: string; lin
 	const idea = safeIdea(card.hint.what);
 	const occasionName = card.occasion.name;
 	const about = withP ? await db.fragments.where('personIds').equals(withP.id).toArray() : [];
-	const language = withP ? likelyLanguage(withP, about) : 'mixed';
+	const language = withP ? likelyLanguage(withP, about) : 'en';
 	let line: string | null = null;
 	if (isOnline() && withP) {
 		try {

@@ -5,7 +5,7 @@ type Msg = { role: string; content?: string | null; tool_calls?: any[]; tool_cal
 export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank' | 'windows' | 'weekend';
 
 export const CANNED_SENTENCE =
-	"Mum ka knee appointment Thursday hai, Kabir ne naya job join kiya, should call him, and Riya wants to do something for Papa's birthday.";
+	"Mom has a dentist appointment Thursday, Jordan started his new job, should call him, and Maya wants to do something for Dad's birthday.";
 
 const TASKS: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend'];
 
@@ -47,7 +47,9 @@ const SIBLING_HINTS = /\b(sister|brother|behen|bhai|didi)\b/i;
 
 function familyOf(word: string): { canon: string; relation: string } | null {
 	const w = word.toLowerCase();
-	for (const f of FAMILY) if (f.names.includes(w)) return { canon: f.canon || cap(w), relation: f.relation };
+	// English words keep an English name ("dad" stays Dad); the other words map to the group's name.
+	const english: Record<string, string> = { mom: 'Mom', mommy: 'Mom', mother: 'Mom', dad: 'Dad', daddy: 'Dad', father: 'Dad' };
+	for (const f of FAMILY) if (f.names.includes(w)) return { canon: english[w] ?? (f.canon || cap(w)), relation: f.relation };
 	return null;
 }
 
@@ -178,7 +180,8 @@ export function fakeExtract(user: string): any {
 				kind === 'appointment' ? (/knee/.test(lower) ? 'knee appointment' : 'appointment') :
 				kind === 'milestone' ? (/job/.test(lower) ? 'started a new job' : /baby/.test(lower) ? 'new baby' : /moving|shift/.test(lower) ? 'moving out' : 'big news') :
 				kind === 'trip' ? 'trip' : s.slice(0, 40);
-			const who = kind === 'birthday' && /papa/i.test(s) ? ['Papa'] : here.length ? here.slice(-1) : lastName ? [lastName] : [];
+			const parent = kind === 'birthday' ? /\b(papa|dad)\b/i.exec(s)?.[1] : undefined;
+			const who = parent ? [familyOf(parent)!.canon] : here.length ? here.slice(-1) : lastName ? [lastName] : [];
 			events.push({ what, kind, people: who.filter((n) => people.some((p) => p.name === n)), date, time: timeFor(s), date_text });
 		}
 		const call = /\b(?:should|need to|must|have to|gotta|remind me to)\s+(call|message|text|ping|meet|visit|see)\s+([A-Za-z]+)?/i.exec(s);
@@ -206,7 +209,7 @@ export function fakeExtract(user: string): any {
 	};
 }
 
-/** "Papa wants a brighter reading lamp", "Riya ko naya yoga mat chahiye". Never money. */
+/** "Dad wants new running shoes", "Maya needs a desk lamp". Never money. */
 export function giftHints(note: string, people: string[], known: { name: string; aliases: string[]; relation: string }[] = []): { person: string; what: string }[] {
 	const out: { person: string; what: string }[] = [];
 	const nameOf = (w: string) => namesIn(w, known)[0]?.name;
@@ -278,13 +281,8 @@ export function fakeWeave(user: string): any {
 
 export function fakeDraft(user: string): any {
 	const name = /^To: (.+?) \(/m.exec(user)?.[1] ?? 'there';
-	const lang = (/^Preferred language: (\w+)/m.exec(user)?.[1] ?? 'en') as string;
 	const offer = /^Offer this time: (.+)$/m.exec(user)?.[1];
 	const when = offer ? offer.replace(/ to \d{1,2}:\d{2}$/, '') : null;
-	if (lang === 'hi' || lang === 'mixed') {
-		const line = when ? `${name}, kaise ho? ${when} pe ek call karein?` : `${name}, kaise ho? Is week ek call karte hain.`;
-		return { line, language: lang };
-	}
 	const line = when ? `Hey ${name}, been thinking of you. Free for a call ${when}?` : `Hey ${name}, been thinking of you. Up for a call this week?`;
 	return { line, language: 'en' };
 }

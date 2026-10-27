@@ -1,5 +1,5 @@
 <script lang="ts">
-	// "Papa's birthday is in 9 days. You noted Papa wanted a brighter reading lamp. Plan with Riya?"
+	// "Dad's birthday is in 9 days. You noted Dad wanted new running shoes. Plan with Maya?"
 	// Never prices, money or shopping links.
 	import type { GiftCard, Person } from '@kizuna/shared';
 	import { draftGiftLine, markGift } from '#lib/core/index.js';
@@ -67,6 +67,8 @@
 		gap: 6px;
 		padding: 18px 20px 8px;
 		background: var(--surface);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		border-radius: var(--r-card);
 		box-shadow: var(--card-shadow);
 	}

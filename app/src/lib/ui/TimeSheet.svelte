@@ -201,7 +201,7 @@
 		padding: 14px 18px;
 		border: 0;
 		border-radius: 18px;
-		background: var(--bg);
+		background: var(--surface);
 		box-shadow: inset 0 0 0 1px var(--line);
 		color: var(--text-2);
 		font: inherit;
@@ -248,7 +248,7 @@
 	.slot.on .radio {
 		box-shadow:
 			inset 0 0 0 1.5px var(--accent),
-			inset 0 0 0 6px var(--bg),
+			inset 0 0 0 6px var(--surface-solid),
 			inset 0 0 0 12px var(--accent);
 	}
 	.slot:focus-visible {

@@ -33,7 +33,7 @@ function pageHeaders(n: string): Record<string, string> {
 	};
 }
 
-// Same ivory paper, ink and blue as the app, in Geist served from the app's own /fonts.
+// Same sky, glass, ink and blue as the app, in Geist served from the app's own /fonts.
 const GRAIN = `url("data:image/svg+xml;base64,${btoa(
 	`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.1 -0.3'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`
 )}")`;
@@ -42,17 +42,23 @@ export const CSS = `
 @font-face{font-family:Geist;font-weight:400;font-display:swap;src:url(/fonts/geist-400.woff2) format("woff2")}
 @font-face{font-family:Geist;font-weight:500;font-display:swap;src:url(/fonts/geist-500.woff2) format("woff2")}
 @font-face{font-family:Geist;font-weight:600;font-display:swap;src:url(/fonts/geist-600.woff2) format("woff2")}
-:root{--bg:#F7F3EA;--bg-2:#EFE9DD;--surface:#FFFCF6;--text:#141311;--muted:#4C4841;--faint:#6B665B;--line:rgba(20,19,17,.11);--line-2:rgba(20,19,17,.18);--rule:#141311;--on-rule:#F7F3EA;--accent:#2740FF;--accent-soft:rgba(39,64,255,.08);--on-accent:#FFFFFF;--danger:#B8432B;color-scheme:light dark;
---card:0 0 0 1px rgba(40,30,10,.07),0 1px 2px rgba(60,45,20,.05),0 10px 30px -14px rgba(60,45,20,.18);
---sky:radial-gradient(60% 55% at 85% 0%,rgba(242,195,181,.55),transparent 70%),radial-gradient(70% 60% at 10% 0%,rgba(158,196,230,.55),transparent 70%),linear-gradient(180deg,#E4ECF2 0%,#ECE6EE 40%,#F4E6DF 75%,#F7F3EA 100%);
+:root{--bg:#F7F3EA;--surface:rgba(255,253,248,.62);--surface-solid:#FFFCF6;--text:#141311;--muted:#46423C;--faint:#615C52;--line:rgba(20,19,17,.1);--line-2:rgba(20,19,17,.17);--rule:#141311;--on-rule:#F7F3EA;--accent:#2740FF;--accent-soft:rgba(39,64,255,.08);--on-accent:#FFFFFF;--danger:#B8432B;color-scheme:light dark;
+--blur:blur(22px) saturate(1.5);--star:rgba(255,255,255,.5);
+--card:0 0 0 1px rgba(40,30,60,.06),inset 0 1px 0 rgba(255,255,255,.75),0 12px 32px -16px rgba(70,55,90,.22);
+--sky:radial-gradient(55% 45% at 6% 0%,rgba(158,196,230,.6),transparent 72%),radial-gradient(50% 42% at 96% 4%,rgba(196,186,226,.5),transparent 72%),radial-gradient(70% 45% at 40% 104%,rgba(242,195,181,.5),transparent 72%),linear-gradient(180deg,#E7EEF4 0%,#EEE9F1 42%,#F5ECE6 78%,#F7EFE7 100%);
 --sans:Geist,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Noto Sans Devanagari","Helvetica Neue",Arial,sans-serif}
-@media (prefers-color-scheme:dark){:root{--bg:#161514;--bg-2:#1B1A19;--surface:#222120;--text:#ECEBE7;--muted:#BCB8AF;--faint:#9B968C;--line:rgba(236,235,231,.1);--line-2:rgba(236,235,231,.18);--rule:#ECEBE7;--on-rule:#161514;--accent:#5A9FEC;--accent-soft:rgba(90,159,236,.13);--on-accent:#0D1520;--danger:#EF7A5F;
---card:0 0 0 1px rgba(255,250,240,.07),0 10px 30px -14px rgba(0,0,0,.6);
---sky:radial-gradient(60% 55% at 85% 0%,rgba(150,82,96,.32),transparent 70%),radial-gradient(70% 60% at 10% 0%,rgba(52,74,120,.55),transparent 70%),linear-gradient(180deg,#1A2030 0%,#221D2B 40%,#261C1E 75%,#161514 100%)}}
+@media (prefers-color-scheme:dark){:root{--bg:#18161A;--surface:rgba(46,40,58,.42);--surface-solid:#232027;--text:#EEECE8;--muted:#C4BFB6;--faint:#AAA59C;--line:rgba(236,232,245,.1);--line-2:rgba(236,232,245,.18);--rule:#EEECE8;--on-rule:#18161A;--accent:#5A9FEC;--accent-soft:rgba(90,159,236,.14);--on-accent:#0D1520;--danger:#EF7A5F;--blur:blur(22px) saturate(1.4);--star:rgba(255,255,255,.6);
+--card:0 0 0 1px rgba(236,228,250,.08),inset 0 1px 0 rgba(255,255,255,.06),0 16px 40px -18px rgba(0,0,0,.6);
+--sky:radial-gradient(60% 50% at 4% 0%,rgba(46,64,104,.9),transparent 72%),radial-gradient(48% 42% at 96% 6%,rgba(88,62,94,.6),transparent 72%),radial-gradient(60% 40% at 34% 104%,rgba(104,66,58,.5),transparent 72%),linear-gradient(180deg,#1C2234 0%,#211C2B 42%,#211A1E 74%,#18161A 100%)}}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text)}
+html{background:var(--bg)}
+body{margin:0;color:var(--text)}
 body{position:relative;isolation:isolate;font:17px/1.5 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;justify-content:center;padding:20px 20px 32px}
-body::before{content:"";position:absolute;inset:0 0 auto;height:440px;z-index:-1;background:var(--sky);pointer-events:none}
+/* the same sky as the app and the landing: dawn in light, dusk with a few faint stars in dark */
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--sky);pointer-events:none}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;background-image:radial-gradient(1.2px 1.2px at 12% 8%,var(--star),transparent),radial-gradient(1px 1px at 28% 22%,var(--star),transparent),radial-gradient(1.4px 1.4px at 47% 6%,var(--star),transparent),radial-gradient(1px 1px at 66% 16%,var(--star),transparent),radial-gradient(1.3px 1.3px at 83% 10%,var(--star),transparent),radial-gradient(1px 1px at 92% 30%,var(--star),transparent),radial-gradient(1.2px 1.2px at 8% 38%,var(--star),transparent),radial-gradient(1px 1px at 74% 44%,var(--star),transparent),radial-gradient(1.1px 1.1px at 36% 52%,var(--star),transparent),radial-gradient(1px 1px at 58% 33%,var(--star),transparent)}
+@media (prefers-color-scheme:dark){body::after{opacity:1}}
+.card,.glass{background:var(--surface);box-shadow:var(--card);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
 main{width:100%;max-width:440px;display:flex;flex-direction:column}
 .brand{display:flex;align-items:center;gap:9px;font-weight:600;font-size:16px;letter-spacing:-.015em;margin:0 0 56px}
 .brand svg{display:block}
@@ -62,7 +68,7 @@ h1{font-size:42px;line-height:1.04;font-weight:500;letter-spacing:-.04em;margin:
 em{font-style:normal}
 form{margin:0}
 .slots{margin:0;padding:0;list-style:none;display:grid;gap:10px}
-.slots li{border-radius:22px;background:var(--surface);box-shadow:var(--card)}
+.slots li{border-radius:22px;background:var(--surface);box-shadow:var(--card);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
 .slot{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:18px 18px 18px 22px;min-height:96px;cursor:pointer;border-radius:22px}
 .slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .slot[disabled]{opacity:.45;cursor:default}
@@ -84,7 +90,7 @@ background:radial-gradient(120% 90% at 90% 0%,#F2C3B5 0%,transparent 60%),radial
 .actions{display:grid;gap:10px;margin:24px 0 0}
 .btn{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:999px;font-weight:500;text-decoration:none;padding:0 20px;transition:transform .2s,box-shadow .2s}
 .btn.primary{background:var(--accent);color:var(--on-accent);box-shadow:0 8px 18px -12px var(--accent)}
-.btn.secondary{color:var(--text);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
+.btn.secondary{color:var(--text);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
 .btn:focus-visible,.change:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .change{align-self:flex-start;display:inline-flex;align-items:center;min-height:44px;margin-top:10px;color:var(--muted);font-size:15px}
 footer{margin-top:auto;padding-top:56px;color:var(--faint);font-size:13px}
@@ -116,7 +122,7 @@ const JS = `
 `;
 
 // The Kizuna mark: two rings, one ink and one in dawn colours. Inline SVG needs no namespace in HTML.
-export const MARK = `<svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="k-dawn" x1="40" y1="30" x2="86" y2="72" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4f86d4"/><stop offset=".5" stop-color="#7d6fc8"/><stop offset="1" stop-color="#d9706c"/></linearGradient></defs><g transform="rotate(-28 50 50)" fill="none" stroke-width="8"><circle cx="37" cy="50" r="20" stroke="currentColor"/><circle cx="63" cy="50" r="20" stroke="url(#k-dawn)"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="var(--bg)" stroke-width="13"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="currentColor" stroke-linecap="round"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--bg)" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="url(#k-dawn)" stroke-linecap="round"/></g></svg>`;
+export const MARK = `<svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="k-dawn" x1="40" y1="30" x2="86" y2="72" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4f86d4"/><stop offset=".5" stop-color="#7d6fc8"/><stop offset="1" stop-color="#d9706c"/></linearGradient><mask id="k-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect x="-20" y="-20" width="140" height="140" fill="#fff"/><g transform="rotate(-28 50 50)" fill="none" stroke="#000" stroke-width="13"><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22"/></g></mask></defs><g fill="none" stroke-width="8"><g mask="url(#k-cut)"><g transform="rotate(-28 50 50)"><circle cx="37" cy="50" r="20" stroke="currentColor"/><circle cx="63" cy="50" r="20" stroke="url(#k-dawn)"/></g></g><g transform="rotate(-28 50 50)"><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="currentColor" stroke-linecap="round"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="url(#k-dawn)" stroke-linecap="round"/></g></g></svg>`;
 
 const ARROW = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 

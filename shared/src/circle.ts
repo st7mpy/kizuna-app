@@ -83,10 +83,10 @@ export function circleLink(origin: string, id: string, key: string, fromName?: s
 export type OccasionKind = 'festival' | 'birthday' | 'anniversary' | 'other';
 export interface Occasion {
 	day: string; // 'YYYY-MM-DD'
-	name: string; // "Diwali", "Papa's birthday"
+	name: string; // "Thanksgiving", "Dad's birthday"
 	kind: OccasionKind;
 	personIds: string[]; // empty for a festival that applies to everyone
-	region?: string; // e.g. 'IN' for Indian festivals
+	region?: string; // e.g. 'US' for days kept mainly in the US
 }
 
 // ---------- gift hints (stored on the phone only, never shared) ----------
@@ -131,7 +131,7 @@ export interface WeekendPerson {
 	quietEnd: string;
 }
 export interface WeekendInput {
-	request: string; // "" for the default weekend plan, or "not Sunday, Papa has puja"
+	request: string; // "" for the default weekend plan, or "not Sunday, Dad has a game"
 	now: string; // ISO with offset
 	timeZone: string; // user's zone
 	me: { name: string; windows: CircleWindow[]; quietStart: string; quietEnd: string };
@@ -144,7 +144,7 @@ export interface WeekendOutput {
 	slot: Slot | null; // null = nothing good this weekend (a valid answer)
 	personIds: string[]; // who is free in that slot (>= 2 people including the user)
 	skipped: { personId: string; why: string; alt: Slot | null }[]; // e.g. Kabir asleep, alt Saturday 20:00
-	reason: string; // one kind line: "It's Diwali morning."
+	reason: string; // one kind line: "It's Thanksgiving morning."
 	occasion: string | null; // occasion name if the plan is built around one
 	tools_used: string[]; // tool names in call order, for the trace in the UI
 }

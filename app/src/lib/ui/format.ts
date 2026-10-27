@@ -1,11 +1,10 @@
 // Small text helpers for the screens. Plain words, never counters.
 import type { Thread, ThreadKind } from '@kizuna/shared';
+import { localDay } from '../core/days.ts';
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
-/** 'YYYY-MM-DD' in local time. */
+/** 'YYYY-MM-DD' in local time (the sample family's home zone when one is loaded). */
 export function dayKey(d: Date = new Date()): string {
-	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+	return localDay(d);
 }
 
 function parseDay(day: string): Date {

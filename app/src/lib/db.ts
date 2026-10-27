@@ -2,6 +2,7 @@
 import { Dexie, liveQuery, type EntityTable } from 'dexie';
 import type { CircleEntry, Fragment, GiftHint, KEvent, Occasion, Person, Prompt, Settings, Thread, Window } from '@kizuna/shared';
 import { buildMapView, type MapView } from './core/map.ts';
+import { setHomeZone } from './core/days.ts';
 export type { MapView, MapPerson } from './core/map.ts';
 
 /** A circle member as last fetched (opened on the phone). Mine is never stored here. */
@@ -84,8 +85,9 @@ export function defaultSettings(): Settings {
 export async function readSettings(): Promise<Settings> {
 	const s = await db.settings.get('me');
 	const d = defaultSettings();
-	// The zone is always the phone's current one, never a saved copy.
-	return s ? { ...d, ...s, timeZone: d.timeZone } : d;
+	// The zone is the phone's current one, never a saved copy, unless a sample family has a home city.
+	setHomeZone(s?.homeTz);
+	return s ? { ...d, ...s, timeZone: s.homeTz || d.timeZone } : d;
 }
 
 // ---------- live queries for the UI (Svelte can use these as stores with $) ----------

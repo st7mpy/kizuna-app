@@ -7,7 +7,8 @@ export default defineConfig({
 	use: {
 		baseURL: 'http://localhost:4173',
 		...devices['Pixel 7'],
-		timezoneId: 'Asia/Kolkata'
+		// PW_TZ=Asia/Kolkata npx playwright test: the samples must look the same from anywhere.
+		timezoneId: process.env.PW_TZ || 'America/Chicago'
 	},
 	webServer: {
 		command: 'npm run build && npx vite preview --port 4173 --strictPort',

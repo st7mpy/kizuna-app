@@ -11,7 +11,7 @@
 		WHATSAPP_SCHEDULE_TIP
 	} from '#lib/core/index.js';
 	import { hueFor } from './hue.js';
-	import { skippedLine, traceLine, whenLocal } from './mapformat.js';
+	import { skippedLine, traceLine, whenLocal, yourTime } from './mapformat.js';
 	import DraftBox from './DraftBox.svelte';
 	import Icon from './Icon.svelte';
 
@@ -98,7 +98,7 @@
 <article class="weekend" aria-labelledby="wk-{uid}">
 	<p class="label">This weekend</p>
 	<h2 id="wk-{uid}" class="when">
-		<span class="num">{when}</span> <span class="yours">your time</span>
+		<span class="num">{when}</span> <span class="yours">{yourTime()}</span>
 	</h2>
 	{#if free.length}
 		<p class="who">
@@ -171,7 +171,7 @@
 			<form class="change" onsubmit={replan}>
 				<label class="field grow">
 					<span class="sr-only">Change the plan</span>
-					<input type="text" bind:value={request} placeholder="e.g. not Sunday, Papa has puja" maxlength="200" />
+					<input type="text" bind:value={request} placeholder="e.g. not Sunday, Dad has a game" maxlength="200" />
 				</label>
 				<button class="btn accent" type="submit" disabled={replanning || !request.trim()}>
 					{replanning ? 'Planning…' : 'Plan again'}
@@ -196,6 +196,8 @@
 			radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--dawn-peach) 26%, transparent), transparent 70%),
 			radial-gradient(100% 70% at 0% 0%, color-mix(in srgb, var(--dawn-sky) 22%, transparent), transparent 70%),
 			var(--surface);
+			-webkit-backdrop-filter: var(--blur);
+			backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 	}
 	.when {

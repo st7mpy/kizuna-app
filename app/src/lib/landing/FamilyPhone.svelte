@@ -2,33 +2,28 @@
 	// A picture of the family page as a relative sees it after tapping the link in WhatsApp.
 	// Drawn in HTML so it stays sharp and follows the theme; it's not interactive.
 	const picked = 1;
-	const chips = [
-		['Sat morning', 'शनिवार सुबह'],
-		['Sat evening', 'शनिवार शाम'],
-		['Sun morning', 'रविवार सुबह'],
-		['Sun evening', 'रविवार शाम']
-	];
+	const chips = ['Sat morning', 'Sat evening', 'Sun morning', 'Sun evening'];
 </script>
 
 <div class="wrap" aria-hidden="true">
 	<div class="phone">
 		<div class="bar"><span class="url">kizuna… /c/·····</span></div>
 		<div class="screen">
-			<p class="eyebrow">Family call · परिवार कॉल</p>
+			<p class="eyebrow">Family call</p>
 			<p class="title">A family call is being planned.</p>
-			<p class="sub">When are you free this weekend?<span lang="hi">इस वीकेंड आप कब फ़्री हैं?</span></p>
+			<p class="sub">When are you free this weekend?</p>
 			<div class="chips">
-				{#each chips as [en, hi], i (en)}
-					<span class="chip" class:on={i === picked || i === 2}>{en}<small lang="hi">{hi}</small></span>
+				{#each chips as en, i (en)}
+					<span class="chip" class:on={i === picked || i === 2}>{en}</span>
 				{/each}
 			</div>
-			<span class="send">Send · भेजें</span>
-			<span class="mic">Speak instead · बोलकर बताइए</span>
+			<span class="send">Send</span>
+			<span class="mic">Speak instead</span>
 			<p class="fine">Only your family circle can read your answer. Times only, never your location.</p>
 		</div>
 	</div>
 	<div class="tag t1"><i class="lock"></i>Sealed on her phone</div>
-	<div class="tag t2"><i style="--hue:#bcb2e6"></i><em>Riya</em> answered · Sat evening</div>
+	<div class="tag t2"><i style="--hue:#bcb2e6"></i><em>Grandma</em> answered · Sun morning</div>
 </div>
 
 <style>
@@ -81,10 +76,6 @@
 		font-size: 0.875rem;
 		color: var(--text-2);
 	}
-	.sub span {
-		display: block;
-		color: var(--text-3);
-	}
 	.chips {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
@@ -98,11 +89,6 @@
 		box-shadow: inset 0 0 0 1px var(--line);
 		font-size: 0.875rem;
 		font-weight: 500;
-	}
-	.chip small {
-		font-size: 0.75rem;
-		font-weight: 400;
-		color: var(--text-3);
 	}
 	.chip.on {
 		background: var(--accent-soft);

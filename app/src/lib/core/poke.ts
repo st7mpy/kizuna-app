@@ -1,7 +1,7 @@
 // Poke: one short line the user edits and sends themselves. No guilt, no health/money/conflict details.
 import type { DraftInput, Fragment, KEvent, Language, Person, Slot } from '@kizuna/shared';
 import { db } from '../db.ts';
-import { addDays, dayPhrase, localDay } from './days.ts';
+import { addDays, dayPhrase, localDay, partOfDay } from './days.ts';
 import { isOnline, spark } from './relay.ts';
 
 // Words that mark something as private (health, money, conflict). Kept generic in drafts.
@@ -56,18 +56,13 @@ export function likelyLanguage(person: Person, fragments: Fragment[]): Language 
 	let best: Language | null = null;
 	for (const [lang, n] of counts) if (!best || n > counts.get(best)!) best = lang;
 	if (best) return best;
-	return ['parent', 'family'].includes(person.relation) ? 'mixed' : 'en';
+	return 'en';
 }
 
 /** A gentle line for when Spark can't be reached. */
-export function templateLine(person: Person, language: Language, slot?: Slot): string {
+export function templateLine(person: Person, _language: Language, slot?: Slot): string {
 	const name = person.name;
 	const when = slot ? slotWords(slot) : null;
-	if (language === 'hi' || language === 'mixed') {
-		return when
-			? `Hi ${name}, kaise ho? Bas yaad aa gayi. ${when} baat karein?`
-			: `Hi ${name}, kaise ho? Bas yaad aa gayi.`;
-	}
 	return when ? `Hi ${name}, thinking of you. Free for a chat ${when}?` : `Hi ${name}, thinking of you. How are things?`;
 }
 
@@ -76,8 +71,7 @@ function slotWords(slot: Slot): string {
 	const today = localDay();
 	const day = localDay(d);
 	const phrase = dayPhrase(day, today).replace(/^on /, '');
-	const hh = d.getHours();
-	const part = hh < 12 ? 'morning' : hh < 17 ? 'afternoon' : 'evening';
+	const part = partOfDay(d);
 	return phrase === 'today' ? `this ${part}` : `${phrase} ${part}`;
 }
 

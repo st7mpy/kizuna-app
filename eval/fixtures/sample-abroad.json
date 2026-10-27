@@ -1,0 +1,1319 @@
+{
+ "id": "abroad",
+ "label": "A busy family, one abroad",
+ "blurb": "Mom, Dad and Maya work long weeks. Leo is studying in Melbourne, a day ahead.",
+ "myName": "Alex",
+ "homeTz": "America/Chicago",
+ "notes": [
+  {
+   "daysAgo": 20,
+   "time": "08:10",
+   "source": "voice",
+   "text": "Leo landed in Melbourne safe. Says the campus is huge and the coffee has already ruined him for anything back home.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [
+     {
+      "what": "arrived in Melbourne for the semester",
+      "kind": "milestone",
+      "people": [
+       "Leo"
+      ],
+      "date": "rel:-20",
+      "time": null,
+      "date_text": null
+     }
+    ],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 20,
+   "time": "21:30",
+   "source": "typed",
+   "text": "Maya says Dad's 60th is coming up. He keeps saying no fuss, so something small with all of us.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Maya",
+      "relation": "sibling"
+     },
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [
+     {
+      "what": "Dad's 60th birthday",
+      "kind": "birthday",
+      "people": [
+       "Dad"
+      ],
+      "date": null,
+      "time": null,
+      "date_text": "coming up"
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Dad's 60th",
+      "kind": "plan",
+      "people": [
+       "Maya",
+       "Dad"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 19,
+   "time": "07:45",
+   "source": "voice",
+   "text": "Mom has parent-teacher conferences all week, she's at school till late every night. Sundays are better for her.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mom",
+      "relation": "parent"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 19,
+   "time": "19:20",
+   "source": "typed",
+   "text": "idea: a shared family playlist, everyone adds one song a week",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Family playlist",
+      "kind": "idea",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 18,
+   "time": "12:30",
+   "source": "typed",
+   "text": "Dad's team is moving into the new warehouse this month. He sounded wiped out on the phone.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 18,
+   "time": "22:10",
+   "source": "voice",
+   "text": "Promised Leo I'd call before his exams start. He gets nervous and pretends he doesn't.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "call Leo before his exams",
+      "person": "Leo",
+      "date_text": "before his exams"
+     }
+    ],
+    "threads": [
+     {
+      "title": "Call Leo before exams",
+      "kind": "promise",
+      "people": [
+       "Leo"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 17,
+   "time": "08:20",
+   "source": "typed",
+   "text": "Renew my driver's license before it runs out next month.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Renew driver's license",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 17,
+   "time": "20:40",
+   "source": "voice",
+   "text": "Grandma called. She wants a new photo of all of us for her fridge, says the old one is from before Leo's braces.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     },
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "send Grandma a family photo",
+      "person": "Grandma",
+      "date_text": null
+     }
+    ],
+    "threads": [
+     {
+      "title": "Family photo for Grandma",
+      "kind": "errand",
+      "people": [
+       "Grandma"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 16,
+   "time": "09:15",
+   "source": "voice",
+   "text": "Jordan got the job in LA. Starts in a couple of weeks. Should call him and hear about it properly.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Jordan",
+      "relation": "friend"
+     }
+    ],
+    "events": [
+     {
+      "what": "starts new job in LA",
+      "kind": "milestone",
+      "people": [
+       "Jordan"
+      ],
+      "date": "rel:-2",
+      "time": null,
+      "date_text": "in a couple of weeks"
+     }
+    ],
+    "promises": [
+     {
+      "what": "call Jordan",
+      "person": "Jordan",
+      "date_text": null
+     }
+    ],
+    "threads": [
+     {
+      "title": "Call Jordan",
+      "kind": "promise",
+      "people": [
+       "Jordan"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 16,
+   "time": "18:30",
+   "source": "typed",
+   "text": "Maya and I agreed: dinner for Dad's 60th at that Italian place he likes. Small, just family.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Maya",
+      "relation": "sibling"
+     },
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [
+     {
+      "what": "family dinner for Dad's 60th",
+      "kind": "plan",
+      "people": [
+       "Dad",
+       "Maya"
+      ],
+      "date": null,
+      "time": null,
+      "date_text": null
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Dad's 60th",
+      "kind": "plan",
+      "people": [
+       "Maya",
+       "Dad"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 15,
+   "time": "07:50",
+   "source": "voice",
+   "text": "Leo's exam timetable is out. Four exams in two weeks, the first one about four weeks from now.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [
+     {
+      "what": "first exam",
+      "kind": "other",
+      "people": [
+       "Leo"
+      ],
+      "date": "rel:13",
+      "time": null,
+      "date_text": "about four weeks from now"
+     }
+    ],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 14,
+   "time": "20:15",
+   "source": "voice",
+   "text": "Leo won't make it home for Thanksgiving. Flights are long and it's right in the middle of his exams. First one without him.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Thanksgiving call with Leo",
+      "kind": "plan",
+      "people": [
+       "Leo"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 13,
+   "time": "08:40",
+   "source": "typed",
+   "text": "Need to book the restaurant for Dad's dinner. Maya says I'm on reservations.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Maya",
+      "relation": "sibling"
+     },
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "book the restaurant for Dad's dinner",
+      "person": "Dad",
+      "date_text": null
+     }
+    ],
+    "threads": [
+     {
+      "title": "Book Dad's birthday dinner",
+      "kind": "errand",
+      "people": [
+       "Dad"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 13,
+   "time": "19:00",
+   "source": "voice",
+   "text": "Jordan and I finally caught up. He loves LA so far, already complaining about the traffic.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Jordan",
+      "relation": "friend"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Call Jordan",
+      "kind": "promise",
+      "people": [
+       "Jordan"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 12,
+   "time": "12:10",
+   "source": "typed",
+   "text": "Started the family playlist. Grandma added a Sinatra song, Leo added something I've never heard of.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     },
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Family playlist",
+      "kind": "idea",
+      "people": [
+       "Grandma",
+       "Leo"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 12,
+   "time": "21:00",
+   "source": "voice",
+   "text": "Ben told me he's moving to Boston at the end of the month. Going to miss having a flatmate who cooks.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Ben",
+      "relation": "friend"
+     }
+    ],
+    "events": [
+     {
+      "what": "Ben moves to Boston",
+      "kind": "milestone",
+      "people": [
+       "Ben"
+      ],
+      "date": "rel:4",
+      "time": null,
+      "date_text": "end of the month"
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Find a new flatmate",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 11,
+   "time": "21:45",
+   "source": "voice",
+   "text": "Maya's been working late every night, big launch at her studio. Want to do something nice for her after.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Maya",
+      "relation": "sibling"
+     }
+    ],
+    "events": [
+     {
+      "what": "launch at Maya's studio",
+      "kind": "milestone",
+      "people": [
+       "Maya"
+      ],
+      "date": "rel:-5",
+      "time": null,
+      "date_text": null
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Something nice for Maya",
+      "kind": "plan",
+      "people": [
+       "Maya"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 10,
+   "time": "09:00",
+   "source": "typed",
+   "text": "Driver's license: need a new photo and proof of address.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Renew driver's license",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 10,
+   "time": "20:30",
+   "source": "voice",
+   "text": "Grandma says Sunday afternoons are best for her, after church and before her shows.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Sunday call with Grandma",
+      "kind": "promise",
+      "people": [
+       "Grandma"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 9,
+   "time": "07:30",
+   "source": "typed",
+   "text": "Booked the Italian place for Dad's birthday, on the day itself at 7.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [
+     {
+      "what": "Dad's 60th birthday",
+      "kind": "birthday",
+      "people": [
+       "Dad"
+      ],
+      "date": "rel:9",
+      "time": null,
+      "date_text": "on the day itself"
+     },
+     {
+      "what": "birthday dinner for Dad",
+      "kind": "plan",
+      "people": [
+       "Dad"
+      ],
+      "date": "rel:9",
+      "time": "19:00",
+      "date_text": "on the day itself at 7"
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Book Dad's birthday dinner",
+      "kind": "errand",
+      "people": [
+       "Dad"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 8,
+   "time": "18:50",
+   "source": "voice",
+   "text": "Leo sent a photo from the library at midnight his time. Told him to sleep. Melbourne is a whole day ahead of Mom and Dad, it's wild.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     },
+     {
+      "name": "Mom",
+      "relation": "parent"
+     },
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 7,
+   "time": "13:00",
+   "source": "typed",
+   "text": "Maya's launch went well. Sent her flowers from all of us.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Maya",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Something nice for Maya",
+      "kind": "plan",
+      "people": [
+       "Maya"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 6,
+   "time": "22:00",
+   "source": "voice",
+   "text": "Mom says Dad keeps complaining his running shoes are falling apart. Birthday idea.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mom",
+      "relation": "parent"
+     },
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": [
+     {
+      "person": "Dad",
+      "what": "new running shoes"
+     }
+    ]
+   }
+  },
+  {
+   "daysAgo": 5,
+   "time": "08:15",
+   "source": "typed",
+   "text": "Photo for Grandma: the one from the lake last summer, printed big.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Family photo for Grandma",
+      "kind": "errand",
+      "people": [
+       "Grandma"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 4,
+   "time": "19:40",
+   "source": "voice",
+   "text": "Jordan's settling in and keeps asking when I'll visit LA.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Jordan",
+      "relation": "friend"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Visit Jordan in LA",
+      "kind": "plan",
+      "people": [
+       "Jordan"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 3,
+   "time": "21:15",
+   "source": "voice",
+   "text": "Called Leo for a bit. He's okay, a little stressed. Still owe him a proper call before exams.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "call Leo before his exams",
+      "person": "Leo",
+      "date_text": "before exams"
+     }
+    ],
+    "threads": [
+     {
+      "title": "Call Leo before exams",
+      "kind": "promise",
+      "people": [
+       "Leo"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 2,
+   "time": "08:30",
+   "source": "typed",
+   "text": "Mom has a dentist appointment in two days, Dad's driving her.",
+   "extract": {
+    "language": "en",
+    "sensitive": true,
+    "people": [
+     {
+      "name": "Mom",
+      "relation": "parent"
+     },
+     {
+      "name": "Dad",
+      "relation": "parent"
+     }
+    ],
+    "events": [
+     {
+      "what": "dentist appointment",
+      "kind": "appointment",
+      "people": [
+       "Mom",
+       "Dad"
+      ],
+      "date": "rel:2",
+      "time": "09:00",
+      "date_text": "in two days"
+     }
+    ],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 1,
+   "time": "20:00",
+   "source": "voice",
+   "text": "Maya wants a family video call this weekend so Leo can join. Sunday afternoon for us is early Monday morning for him though.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Maya",
+      "relation": "sibling"
+     },
+     {
+      "name": "Leo",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Family call with Leo",
+      "kind": "plan",
+      "people": [
+       "Maya",
+       "Leo"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 0,
+   "time": "08:20",
+   "source": "typed",
+   "text": "License renewal appointment booked online. One less thing.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Renew driver's license",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 0,
+   "time": "09:05",
+   "source": "voice",
+   "text": "Dad's 60th is in nine days. Maya's doing the cake, I'm on the gift.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Dad",
+      "relation": "parent"
+     },
+     {
+      "name": "Maya",
+      "relation": "sibling"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Dad's 60th",
+      "kind": "plan",
+      "people": [
+       "Maya",
+       "Dad"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  }
+ ],
+ "weave": {
+  "people": [
+   {
+    "id": null,
+    "name": "Mom",
+    "aliases": [
+     "mom",
+     "mum",
+     "mommy",
+     "ma"
+    ],
+    "merge_ids": [],
+    "relation": "parent",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "You talk about her most weeks, and she has an appointment coming up.",
+    "summary": "Busy at school all month, Sundays are easier"
+   },
+   {
+    "id": null,
+    "name": "Dad",
+    "aliases": [
+     "dad",
+     "daddy"
+    ],
+    "merge_ids": [],
+    "relation": "parent",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "His 60th birthday is days away and you and Maya are planning it.",
+    "summary": "Turns 60 soon, family dinner booked"
+   },
+   {
+    "id": null,
+    "name": "Maya",
+    "aliases": [
+     "maya"
+    ],
+    "merge_ids": [],
+    "relation": "sibling",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "Your sister and partner in Dad's birthday plans.",
+    "summary": "Just finished a big launch at her studio"
+   },
+   {
+    "id": null,
+    "name": "Leo",
+    "aliases": [
+     "leo"
+    ],
+    "merge_ids": [],
+    "relation": "sibling",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "Your brother is studying in Melbourne and you promised him a call before exams.",
+    "summary": "Studying in Melbourne, exams soon"
+   },
+   {
+    "id": null,
+    "name": "Grandma",
+    "aliases": [
+     "grandma",
+     "gran"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "She loves Sunday calls and wants a new family photo.",
+    "summary": "Waiting on a new family photo for her fridge"
+   },
+   {
+    "id": null,
+    "name": "Jordan",
+    "aliases": [
+     "jordan"
+    ],
+    "merge_ids": [],
+    "relation": "friend",
+    "closeness": "close",
+    "suggest_circle": true,
+    "why": "A close friend who just moved for a new job.",
+    "summary": "Started a new job in LA"
+   },
+   {
+    "id": null,
+    "name": "Ben",
+    "aliases": [
+     "ben"
+    ],
+    "merge_ids": [],
+    "relation": "friend",
+    "closeness": "close",
+    "suggest_circle": false,
+    "why": "Your flatmate; you still see him every day for now.",
+    "summary": "Moving to Boston soon"
+   }
+  ],
+  "threads": [
+   {
+    "title": "Dad's 60th",
+    "kind": "plan",
+    "people": [
+     "Dad",
+     "Maya",
+     "Mom"
+    ],
+    "note_ids": [
+     "1",
+     "9",
+     "29"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Call Leo before exams",
+    "kind": "promise",
+    "people": [
+     "Leo"
+    ],
+    "note_ids": [
+     "5",
+     "25"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Family call with Leo",
+    "kind": "plan",
+    "people": [
+     "Maya",
+     "Leo"
+    ],
+    "note_ids": [
+     "27"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Thanksgiving call with Leo",
+    "kind": "plan",
+    "people": [
+     "Leo"
+    ],
+    "note_ids": [
+     "11"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Book Dad's birthday dinner",
+    "kind": "errand",
+    "people": [
+     "Dad"
+    ],
+    "note_ids": [
+     "12",
+     "19"
+    ],
+    "status": "done"
+   },
+   {
+    "title": "Family photo for Grandma",
+    "kind": "errand",
+    "people": [
+     "Grandma"
+    ],
+    "note_ids": [
+     "7",
+     "23"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Sunday call with Grandma",
+    "kind": "promise",
+    "people": [
+     "Grandma"
+    ],
+    "note_ids": [
+     "18"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Call Jordan",
+    "kind": "promise",
+    "people": [
+     "Jordan"
+    ],
+    "note_ids": [
+     "8",
+     "13"
+    ],
+    "status": "done"
+   },
+   {
+    "title": "Visit Jordan in LA",
+    "kind": "plan",
+    "people": [
+     "Jordan"
+    ],
+    "note_ids": [
+     "24"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Something nice for Maya",
+    "kind": "plan",
+    "people": [
+     "Maya"
+    ],
+    "note_ids": [
+     "16",
+     "21"
+    ],
+    "status": "done"
+   },
+   {
+    "title": "Family playlist",
+    "kind": "idea",
+    "people": [
+     "Grandma",
+     "Leo"
+    ],
+    "note_ids": [
+     "3",
+     "14"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Renew driver's license",
+    "kind": "errand",
+    "people": [],
+    "note_ids": [
+     "6",
+     "17",
+     "28"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Find a new flatmate",
+    "kind": "errand",
+    "people": [],
+    "note_ids": [
+     "15"
+    ],
+    "status": "open"
+   }
+  ]
+ },
+ "circle": [
+  "Mom",
+  "Dad",
+  "Maya",
+  "Leo",
+  "Grandma",
+  "Jordan"
+ ],
+ "suggest": {
+  "Ben": "Your flatmate, moving to Boston soon."
+ },
+ "members": [
+  {
+   "name": "Mom",
+   "tz": "America/Chicago",
+   "status": "free",
+   "windows": [
+    {
+     "day": "sat",
+     "start": "09:00",
+     "end": "11:00"
+    },
+    {
+     "day": "sun",
+     "start": "13:00",
+     "end": "17:00"
+    }
+   ]
+  },
+  {
+   "name": "Dad",
+   "tz": "America/Chicago",
+   "status": null,
+   "windows": [
+    {
+     "day": "sun",
+     "start": "13:00",
+     "end": "18:00"
+    }
+   ]
+  },
+  {
+   "name": "Maya",
+   "tz": "America/New_York",
+   "status": "maybe",
+   "windows": [
+    {
+     "day": "sat",
+     "start": "19:00",
+     "end": "21:00"
+    },
+    {
+     "day": "sun",
+     "start": "15:00",
+     "end": "19:00"
+    }
+   ]
+  },
+  {
+   "name": "Grandma",
+   "tz": "America/Chicago",
+   "status": null,
+   "via": "page",
+   "reply": "Sunday afternoon works for me",
+   "windows": [
+    {
+     "day": "sun",
+     "start": "13:00",
+     "end": "17:00"
+    }
+   ]
+  },
+  {
+   "name": "Leo",
+   "tz": "Australia/Melbourne",
+   "status": null,
+   "windows": [
+    {
+     "day": "sun",
+     "start": "07:00",
+     "end": "11:00"
+    }
+   ]
+  },
+  {
+   "name": "Jordan",
+   "tz": "America/Los_Angeles",
+   "status": null,
+   "windows": [
+    {
+     "day": "sat",
+     "start": "10:00",
+     "end": "12:00"
+    }
+   ]
+  }
+ ],
+ "phones": {
+  "Mom": "13125550101",
+  "Dad": "13125550102",
+  "Maya": "12125550103",
+  "Leo": "61491570156",
+  "Grandma": "13125550105",
+  "Jordan": "13105550106",
+  "Ben": "13125550107"
+ }
+}

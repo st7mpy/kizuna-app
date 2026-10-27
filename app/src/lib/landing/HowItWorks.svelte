@@ -5,7 +5,7 @@
 	import { reveal } from './reveal.js';
 
 	const NOTE =
-		'Mum ka appointment Thursday hai. Kabir ne naya job join kiya, should call him. Riya wants to do something for Papa’s birthday.';
+		'Mom has an appointment Thursday. Jordan started his new job in LA, should call him. Maya wants to do something for Dad’s birthday.';
 
 	let typed = $state('');
 	let stage = $state(0); // 0 waiting, 1 typing, 2 understood, 3 nudge
@@ -55,7 +55,7 @@
 		<div class="top">
 			<span class="n">Talk</span>
 			<h3>Talk it out</h3>
-			<p>Hold the mic and say what’s on your mind, in English, Hindi or both. Words appear as you speak.</p>
+			<p>Hold the mic and say what’s on your mind, the way you’d say it to a friend. Words appear as you speak.</p>
 		</div>
 		<div class="pic note" aria-hidden="true">
 			<div class="listen">
@@ -76,12 +76,12 @@
 		<div class="pic got" class:on={stage >= 2} aria-hidden="true">
 			<span class="lbl">Understood</span>
 			<ul>
-				<li style="--k:0"><i style="--hue:#a4c6e8"></i><em>Mum</em><span>appointment, Thursday</span></li>
-				<li style="--k:1"><i style="--hue:#eba596"></i><em>Kabir</em><span>new job · call him</span></li>
-				<li style="--k:2"><i style="--hue:#bcb2e6"></i><em>Riya</em><span>plan for Papa</span></li>
-				<li style="--k:3"><i style="--hue:#cbd49e"></i><em>Papa</em><span>birthday coming up</span></li>
+				<li style="--k:0"><i style="--hue:#a4c6e8"></i><em>Mom</em><span>appointment, Thursday</span></li>
+				<li style="--k:1"><i style="--hue:#eba596"></i><em>Jordan</em><span>new job · call him</span></li>
+				<li style="--k:2"><i style="--hue:#bcb2e6"></i><em>Maya</em><span>plan for Dad</span></li>
+				<li style="--k:3"><i style="--hue:#cbd49e"></i><em>Dad</em><span>birthday coming up</span></li>
 			</ul>
-			<p class="merge" style="--k:4">Ma, Mum and Mummy are the same person.</p>
+			<p class="merge" style="--k:4">Mom, Mum and Ma are the same person.</p>
 		</div>
 	</li>
 
@@ -93,10 +93,10 @@
 		</div>
 		<div class="pic nudge" class:on={stage >= 3} aria-hidden="true">
 			<span class="lbl">For today</span>
-			<p class="who"><i style="--hue:#eba596"></i><em>Kabir</em></p>
+			<p class="who"><i style="--hue:#eba596"></i><em>Jordan</em></p>
 			<p class="why">Started his new job. You said you’d call.</p>
-			<p class="when"><b>Sat 19:00</b> your time · 08:30 in Toronto</p>
-			<p class="line">Kabir! Naya job kaisa chal raha hai? Saturday ko call karein?</p>
+			<p class="when"><b>Sat 12:00</b> your time · 10:00 in LA</p>
+			<p class="line">Jordan, how’s the new job treating you? Call on Saturday?</p>
 			<span class="wa">Open WhatsApp</span>
 		</div>
 	</li>

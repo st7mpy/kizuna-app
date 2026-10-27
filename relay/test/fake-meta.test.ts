@@ -63,7 +63,7 @@ describe('fake model through the relay', () => {
 		expect(weave.output.people.length).toBeLessThanOrEqual(8);
 
 		const draft = await spark('draft', { personName: 'Kabir', relation: 'friend', reason: 'new job', context: [], myRecentLines: [], language: 'mixed', withTime: 'Sat 7 Nov, 10:00 to 11:00' });
-		expect(draft.output.line).toBe('Kabir, kaise ho? Sat 7 Nov, 10:00 pe ek call karein?');
+		expect(draft.output.line).toBe('Hey Kabir, been thinking of you. Free for a call Sat 7 Nov, 10:00?');
 		expect(draft.output.line).not.toContain('!');
 
 		const rank = await spark('rank', { room: 'low', candidates: [{ id: 'a', title: 'Ishaan', reason: 'moving out' }, { id: 'b', title: 'Papa', reason: 'birthday tomorrow' }] });

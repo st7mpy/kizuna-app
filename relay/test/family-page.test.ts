@@ -123,12 +123,12 @@ describe('GET /c/:id', () => {
 		expect(html).not.toMatch(/\sstyle="/);
 	});
 
-	it('has the four chips, not this weekend, the mic and Hindi labels', async () => {
+	it('has the four chips, not this weekend and the mic, in plain English', async () => {
 		const html = await (await route(get(`/c/${id}`), makeEnv())).text();
 		for (const c of ['sat-am', 'sat-pm', 'sun-am', 'sun-pm']) expect(html).toContain(`data-chip="${c}"`);
 		for (const label of ['Sat morning', 'Sun evening', 'Not this weekend', 'Speak instead', 'or type it', 'This link is incomplete', 'Ask for a new one']) expect(html).toContain(label);
-		expect(html).toContain('रविवार शाम');
-		expect(html).toContain('इस वीकेंड नहीं');
+		expect(html).not.toMatch(/[\u0900-\u097F]/);
+		expect(html).not.toContain('lang="hi"');
 		expect(html).not.toContain('—');
 	});
 

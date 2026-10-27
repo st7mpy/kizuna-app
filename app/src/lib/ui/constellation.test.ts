@@ -50,7 +50,7 @@ describe('labels', () => {
 	});
 	it('names the city from the zone', () => {
 		expect(cityOf('America/Toronto')).toBe('Toronto');
-		expect(cityOf('Asia/Kolkata')).toBe('India');
+		expect(cityOf('Asia/Kolkata')).toBe('Kolkata');
 		expect(cityOf('America/Argentina/Buenos_Aires')).toBe('Buenos Aires');
 		expect(cityOf(null)).toBe('');
 	});

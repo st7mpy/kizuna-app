@@ -10,7 +10,9 @@
 		getSettings,
 		inviteFamilyLine,
 		leaveCircle,
-		loadSampleLife,
+		loadSample,
+		SAMPLES,
+		type SampleKey,
 		myWindows,
 		newCircleLink,
 		setSharing,
@@ -77,24 +79,6 @@
 		if (!s) return;
 		s.freeHours = s.freeHours.filter((_, j) => j !== i);
 		save({ freeHours: $state.snapshot(s.freeHours) });
-	}
-
-	const LANGS = [
-		{ code: 'en', label: 'English' },
-		{ code: 'hi', label: 'Hindi' },
-		{ code: 'bn', label: 'Bengali' },
-		{ code: 'mr', label: 'Marathi' },
-		{ code: 'ta', label: 'Tamil' },
-		{ code: 'te', label: 'Telugu' },
-		{ code: 'gu', label: 'Gujarati' },
-		{ code: 'pa', label: 'Punjabi' },
-		{ code: 'ur', label: 'Urdu' }
-	];
-	function toggleLang(code: string) {
-		if (!s) return;
-		const has = s.languageBias.includes(code);
-		s.languageBias = has ? s.languageBias.filter((c) => c !== code) : [...s.languageBias, code];
-		save({ languageBias: $state.snapshot(s.languageBias) });
 	}
 
 	function pickTheme(t: ThemeChoice) {
@@ -182,7 +166,9 @@
 	// A sample life replaces what is on the phone, so ask first when there is anything to lose.
 	const hasData = watch(() => hasAnyData(), false);
 	let confirmSample = $state(false);
-	function askSample() {
+	let sampleKey = $state<SampleKey>('abroad');
+	function askSample(key: SampleKey) {
+		sampleKey = key;
 		if (hasData.value) confirmSample = true;
 		else sample();
 	}
@@ -192,7 +178,7 @@
 		sampling = true;
 		dataNote = '';
 		try {
-			await loadSampleLife();
+			await loadSample(sampleKey);
 			goto('/');
 		} catch {
 			dataNote = 'Couldn’t load the sample just now.';
@@ -238,7 +224,6 @@
 		['quiet', 'Quiet hours'],
 		['calendar', 'Your calendar'],
 		['map', 'Kizuna map'],
-		['langs', 'Languages'],
 		['look', 'Look'],
 		['notes', 'Your notes'],
 		['about', 'About Kizuna']
@@ -441,20 +426,6 @@
 			{#if mapNote}<p class="note" role="status">{mapNote}</p>{/if}
 		</section>
 
-		<section class="block" id="langs">
-			<h2>Languages you speak in</h2>
-			<div class="row wrap langs" role="group" aria-label="Languages">
-				{#each LANGS as l (l.code)}
-					<button
-						type="button"
-						class="lang"
-						aria-pressed={s.languageBias.includes(l.code)}
-						onclick={() => toggleLang(l.code)}>{l.label}</button
-					>
-				{/each}
-			</div>
-		</section>
-
 		{#if note}<p class="note" role="alert">{note}</p>{/if}
 	{/if}
 
@@ -475,11 +446,13 @@
 	<section class="block" id="notes">
 		<h2>Your notes</h2>
 		<ul class="rows actions-list">
-			<li>
-				<button class="btn" type="button" onclick={askSample} disabled={sampling}>
-					{sampling ? 'Setting up…' : 'Try with sample life'}
-				</button>
-			</li>
+			{#each SAMPLES as x (x.key)}
+				<li>
+					<button class="btn" type="button" onclick={() => askSample(x.key)} disabled={sampling} data-sample={x.key}>
+						{sampling && sampleKey === x.key ? 'Setting up…' : `Sample: ${x.label.toLowerCase()}`}
+					</button>
+				</li>
+			{/each}
 			<li>
 				<button class="btn" type="button" onclick={exportAll}>
 					<Icon name="download" size={20} /> Export my notes
@@ -514,8 +487,8 @@
 	</div>
 </div>
 
-<Sheet bind:open={confirmSample} title="Try a sample life?">
-	<p class="muted">This replaces your notes with a sample. Your own notes will be deleted.</p>
+<Sheet bind:open={confirmSample} title="Load a sample family?">
+	<p class="muted">{SAMPLES.find((x) => x.key === sampleKey)?.blurb} This replaces what is on this phone, so your own notes will be deleted.</p>
 	<button class="btn primary big block" type="button" onclick={sample} disabled={sampling}>
 		{sampling ? 'Setting up…' : 'Replace with sample'}
 	</button>
@@ -613,6 +586,8 @@
 		padding: 22px 22px 18px;
 		border-radius: var(--r-card);
 		background: var(--surface);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 	}
 	@media (max-width: 719px) {
@@ -682,31 +657,6 @@
 	.quiet-row {
 		gap: 20px;
 	}
-	.langs {
-		gap: 8px;
-	}
-	.lang {
-		appearance: none;
-		min-height: 44px;
-		padding: 0 16px;
-		border-radius: 999px;
-		border: 0;
-		box-shadow: inset 0 0 0 1px var(--line-2);
-		background: transparent;
-		color: var(--text-2);
-		font: inherit;
-		font-size: var(--t-small);
-		font-weight: 500;
-		cursor: pointer;
-		transition:
-			background var(--dur) var(--ease),
-			color var(--dur) var(--ease);
-	}
-	.lang[aria-pressed='true'] {
-		background: var(--rule);
-		color: var(--on-rule);
-		box-shadow: none;
-	}
 	.actions-list .btn {
 		justify-content: flex-start;
 		width: 100%;
@@ -758,7 +708,7 @@
 		width: 22px;
 		height: 22px;
 		border-radius: 50%;
-		background: var(--surface);
+		background: var(--surface-solid);
 		box-shadow: 0 0 0 1px var(--line);
 		transition: transform var(--dur) var(--ease);
 	}

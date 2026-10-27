@@ -189,6 +189,8 @@
 			padding: 14px 14px 18px;
 			border-radius: var(--r-card);
 			background: var(--surface);
+			-webkit-backdrop-filter: var(--blur);
+			backdrop-filter: var(--blur);
 			box-shadow: var(--card-shadow);
 			transition:
 				transform 500ms var(--ease-out),

@@ -49,6 +49,8 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--surface);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		border-radius: 26px 26px 0 0;
 		box-shadow: 0 -1px 0 var(--line), 0 -18px 40px -30px rgb(60 45 20 / 0.35);
 		/* a sheet that runs edge to edge on a phone */

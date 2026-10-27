@@ -3,9 +3,9 @@ import { readSettings } from '../db.ts';
 import { SAMPLE_CIRCLE_ID, circleLink, createCircle } from './circle.ts';
 import { whatsappLink } from './poke.ts';
 
-/** Pure: the invite text. Hinglish, short, says what the link is for. */
+/** Pure: the invite text. Short, says what the link is for. */
 export function inviteText(link: string): string {
-	return `Is weekend family call karte hain? Jab free ho, yahan tap karke bata do (no app needed): ${link}`;
+	return `Family call this weekend? Tap here to say when you're free (no app needed): ${link}`;
 }
 
 /** Creates the circle first if there is none (or only the sample one), then drafts the line. */

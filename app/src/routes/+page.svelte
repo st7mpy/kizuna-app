@@ -46,9 +46,11 @@
 	let failed = $state(false);
 
 	const now = new Date();
-	const hello = greeting(now.getHours());
+	// A sample family lives in its own city: greet and date in that zone, not the visitor's.
+	const homeTz = $derived(settings.value?.homeTz || undefined);
+	const hello = $derived(greeting(Number(now.toLocaleTimeString('en-GB', { hour: '2-digit', hour12: false, timeZone: homeTz }).slice(0, 2)) % 24));
 	const myName = $derived(settings.value?.myName?.trim() ?? '');
-	const dateLine = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+	const dateLine = $derived(now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: homeTz }));
 	const room = $derived<Room | null>(
 		settings.value?.room?.day === dayKey() ? settings.value.room.level : null
 	);
@@ -304,10 +306,12 @@
 		padding: 20px 20px 10px;
 		border-radius: var(--r-card);
 		background: var(--surface);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 	}
 	.moment.thread {
-		background: transparent;
+		background: var(--bg-2);
 		box-shadow: inset 0 0 0 1px var(--line);
 	}
 	.who {
@@ -364,6 +368,8 @@
 		padding: 18px 16px 18px 22px;
 		border-radius: var(--r-card);
 		background: var(--bg-2);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		box-shadow: inset 0 0 0 1px var(--line);
 		color: var(--text);
 		text-decoration: none;
@@ -396,6 +402,8 @@
 		padding: 18px 20px 16px;
 		border-radius: var(--r-card);
 		background: var(--surface);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 		--map-w: 360px;
 	}

@@ -1,0 +1,1329 @@
+{
+ "id": "usa",
+ "label": "One big family across the USA",
+ "blurb": "Grandparents in Phoenix, aunts, uncles and cousins from New York to Honolulu.",
+ "myName": "Sam",
+ "homeTz": "America/Chicago",
+ "notes": [
+  {
+   "daysAgo": 20,
+   "time": "08:30",
+   "source": "voice",
+   "text": "Mom says Thanksgiving is at her place in Chicago again this year. She wants everyone, even the West Coast crowd.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mom",
+      "relation": "parent"
+     }
+    ],
+    "events": [
+     {
+      "what": "Thanksgiving at Mom's",
+      "kind": "plan",
+      "people": [
+       "Mom"
+      ],
+      "date": null,
+      "time": null,
+      "date_text": "Thanksgiving"
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Thanksgiving at Mom's",
+      "kind": "plan",
+      "people": [
+       "Mom"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 20,
+   "time": "20:10",
+   "source": "typed",
+   "text": "Grandpa turns 80 soon. Mom and Aunt Carmen want a surprise video call with the whole family.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandpa",
+      "relation": "family"
+     },
+     {
+      "name": "Mom",
+      "relation": "parent"
+     },
+     {
+      "name": "Aunt Carmen",
+      "relation": "family"
+     }
+    ],
+    "events": [
+     {
+      "what": "Grandpa's 80th birthday",
+      "kind": "birthday",
+      "people": [
+       "Grandpa"
+      ],
+      "date": null,
+      "time": null,
+      "date_text": "soon"
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Grandpa's 80th",
+      "kind": "plan",
+      "people": [
+       "Mom",
+       "Aunt Carmen",
+       "Grandpa"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 19,
+   "time": "12:15",
+   "source": "typed",
+   "text": "Mia started at the architecture firm in New York. First real job, she's thrilled and terrified.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mia",
+      "relation": "family"
+     }
+    ],
+    "events": [
+     {
+      "what": "started at an architecture firm",
+      "kind": "milestone",
+      "people": [
+       "Mia"
+      ],
+      "date": "rel:-19",
+      "time": null,
+      "date_text": null
+     }
+    ],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 19,
+   "time": "21:40",
+   "source": "voice",
+   "text": "Should call Mia and hear how the first week went.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mia",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "call Mia",
+      "person": "Mia",
+      "date_text": null
+     }
+    ],
+    "threads": [
+     {
+      "title": "Call Mia",
+      "kind": "promise",
+      "people": [
+       "Mia"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 18,
+   "time": "09:00",
+   "source": "typed",
+   "text": "Book flights to Chicago for Thanksgiving before they fill up.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Book Thanksgiving flights",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 18,
+   "time": "19:30",
+   "source": "voice",
+   "text": "Uncle Dave says the LA crew can only fly in the night before Thanksgiving. Tyler might drive over from Detroit.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Uncle Dave",
+      "relation": "family"
+     },
+     {
+      "name": "Tyler",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Thanksgiving at Mom's",
+      "kind": "plan",
+      "people": [
+       "Uncle Dave",
+       "Tyler"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 17,
+   "time": "08:45",
+   "source": "voice",
+   "text": "Grandma called from Phoenix. Still warm enough to sit outside there and she's very smug about it.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 17,
+   "time": "20:00",
+   "source": "typed",
+   "text": "Cousins' Secret Santa: Mia is running it this year. Names come out after Thanksgiving.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mia",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Cousins' Secret Santa",
+      "kind": "plan",
+      "people": [
+       "Mia"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 16,
+   "time": "13:20",
+   "source": "typed",
+   "text": "idea: a shared photo album for Grandma and Grandpa's 55th anniversary in December.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     },
+     {
+      "name": "Grandpa",
+      "relation": "family"
+     }
+    ],
+    "events": [
+     {
+      "what": "Grandma and Grandpa's 55th anniversary",
+      "kind": "other",
+      "people": [
+       "Grandma",
+       "Grandpa"
+      ],
+      "date": null,
+      "time": null,
+      "date_text": "in December"
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Anniversary photo album",
+      "kind": "idea",
+      "people": [
+       "Grandma",
+       "Grandpa"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 16,
+   "time": "22:00",
+   "source": "voice",
+   "text": "Kai has finals in December. He's living on poke bowls and no sleep in Honolulu.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Kai",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 15,
+   "time": "07:40",
+   "source": "typed",
+   "text": "Grandpa has a hearing check next week, Grandma's taking him.",
+   "extract": {
+    "language": "en",
+    "sensitive": true,
+    "people": [
+     {
+      "name": "Grandpa",
+      "relation": "family"
+     },
+     {
+      "name": "Grandma",
+      "relation": "family"
+     }
+    ],
+    "events": [
+     {
+      "what": "hearing check",
+      "kind": "appointment",
+      "people": [
+       "Grandpa",
+       "Grandma"
+      ],
+      "date": "rel:-9",
+      "time": null,
+      "date_text": "next week"
+     }
+    ],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 15,
+   "time": "18:15",
+   "source": "voice",
+   "text": "Aunt Carmen is collecting old photos for the anniversary album. I have the beach ones from 2009.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Aunt Carmen",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "send Aunt Carmen the beach photos",
+      "person": "Aunt Carmen",
+      "date_text": null
+     }
+    ],
+    "threads": [
+     {
+      "title": "Anniversary photo album",
+      "kind": "idea",
+      "people": [
+       "Aunt Carmen"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 14,
+   "time": "09:30",
+   "source": "typed",
+   "text": "Flights booked: Chicago, the night before Thanksgiving.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Book Thanksgiving flights",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 14,
+   "time": "20:45",
+   "source": "voice",
+   "text": "Talked to Mia finally. She loves the job, hates the commute. Wants us all to visit New York in the spring.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mia",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Call Mia",
+      "kind": "promise",
+      "people": [
+       "Mia"
+      ]
+     },
+     {
+      "title": "Visit Mia in New York",
+      "kind": "plan",
+      "people": [
+       "Mia"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 13,
+   "time": "12:00",
+   "source": "typed",
+   "text": "Tyler ran his first half marathon in Detroit. Text him congrats.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Tyler",
+      "relation": "family"
+     }
+    ],
+    "events": [
+     {
+      "what": "ran his first half marathon",
+      "kind": "milestone",
+      "people": [
+       "Tyler"
+      ],
+      "date": "rel:-14",
+      "time": null,
+      "date_text": null
+     }
+    ],
+    "promises": [
+     {
+      "what": "text Tyler congrats",
+      "person": "Tyler",
+      "date_text": null
+     }
+    ],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 12,
+   "time": "19:10",
+   "source": "voice",
+   "text": "Grandma wants the surprise call on a Sunday afternoon, so Grandpa is awake and the Hawaii side is too.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     },
+     {
+      "name": "Grandpa",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Grandpa's 80th",
+      "kind": "plan",
+      "people": [
+       "Grandma",
+       "Grandpa"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 11,
+   "time": "08:20",
+   "source": "typed",
+   "text": "Renew passport for the spring trip.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Renew passport",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 11,
+   "time": "21:30",
+   "source": "voice",
+   "text": "Uncle Dave and I worked out the time zones: Sunday at 2 Chicago time is noon for him and 10 in the morning for Kai.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Uncle Dave",
+      "relation": "family"
+     },
+     {
+      "name": "Kai",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Grandpa's 80th",
+      "kind": "plan",
+      "people": [
+       "Uncle Dave",
+       "Kai"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 10,
+   "time": "13:45",
+   "source": "typed",
+   "text": "Kai says he can do mornings his time, after surfing and before study group.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Kai",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 9,
+   "time": "20:00",
+   "source": "voice",
+   "text": "Mom's making the stuffing from Great-Grandma's recipe card this year. She wants me to scan the card before it falls apart.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mom",
+      "relation": "parent"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "scan the recipe card",
+      "person": "Mom",
+      "date_text": null
+     }
+    ],
+    "threads": [
+     {
+      "title": "Scan the recipe card",
+      "kind": "errand",
+      "people": [
+       "Mom"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 8,
+   "time": "08:00",
+   "source": "typed",
+   "text": "Grandpa's 80th is in about two weeks. Mom's sending the video call link to everyone.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandpa",
+      "relation": "family"
+     },
+     {
+      "name": "Mom",
+      "relation": "parent"
+     }
+    ],
+    "events": [
+     {
+      "what": "Grandpa's 80th birthday",
+      "kind": "birthday",
+      "people": [
+       "Grandpa"
+      ],
+      "date": "rel:8",
+      "time": null,
+      "date_text": "in about two weeks"
+     }
+    ],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Grandpa's 80th",
+      "kind": "plan",
+      "people": [
+       "Mom",
+       "Grandpa"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 7,
+   "time": "18:30",
+   "source": "voice",
+   "text": "Mia's Secret Santa sheet is up. Everyone has to add three ideas.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mia",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Cousins' Secret Santa",
+      "kind": "plan",
+      "people": [
+       "Mia"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 6,
+   "time": "21:00",
+   "source": "voice",
+   "text": "Tyler's working Sunday brunch shifts at the restaurant all month, so Saturday evenings are his only free time.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Tyler",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 5,
+   "time": "09:10",
+   "source": "typed",
+   "text": "Jess next door will feed the cat while I'm in Chicago. Bring her something back.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Jess",
+      "relation": "friend"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "bring Jess something from Chicago",
+      "person": "Jess",
+      "date_text": null
+     }
+    ],
+    "threads": [],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 5,
+   "time": "12:40",
+   "source": "typed",
+   "text": "Passport photos done. Form next.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Renew passport",
+      "kind": "errand",
+      "people": []
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 4,
+   "time": "19:50",
+   "source": "voice",
+   "text": "Grandma let it slip: Grandpa keeps borrowing the neighbor's binoculars to watch the birds. Perfect 80th present.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandma",
+      "relation": "family"
+     },
+     {
+      "name": "Grandpa",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [],
+    "gift_hints": [
+     {
+      "person": "Grandpa",
+      "what": "binoculars for birdwatching"
+     }
+    ]
+   }
+  },
+  {
+   "daysAgo": 3,
+   "time": "20:30",
+   "source": "typed",
+   "text": "Scanned Great-Grandma's recipe card and sent it to Mom. She cried a little, in a good way.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mom",
+      "relation": "parent"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Scan the recipe card",
+      "kind": "errand",
+      "people": [
+       "Mom"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 2,
+   "time": "08:40",
+   "source": "voice",
+   "text": "Promised Grandpa a proper call this weekend, he hears much better on video.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Grandpa",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [
+     {
+      "what": "call Grandpa this weekend",
+      "person": "Grandpa",
+      "date_text": "this weekend"
+     }
+    ],
+    "threads": [
+     {
+      "title": "Call Grandpa",
+      "kind": "promise",
+      "people": [
+       "Grandpa"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 1,
+   "time": "19:15",
+   "source": "voice",
+   "text": "Aunt Carmen says the album is nearly done, just waiting on Uncle Dave's photos. Classic Dave.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Aunt Carmen",
+      "relation": "family"
+     },
+     {
+      "name": "Uncle Dave",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "Anniversary photo album",
+      "kind": "idea",
+      "people": [
+       "Aunt Carmen",
+       "Uncle Dave"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  },
+  {
+   "daysAgo": 0,
+   "time": "08:30",
+   "source": "typed",
+   "text": "New Year's idea: one call where we count down in every time zone, starting with Mia in New York and ending with Kai.",
+   "extract": {
+    "language": "en",
+    "sensitive": false,
+    "people": [
+     {
+      "name": "Mia",
+      "relation": "family"
+     },
+     {
+      "name": "Kai",
+      "relation": "family"
+     }
+    ],
+    "events": [],
+    "promises": [],
+    "threads": [
+     {
+      "title": "New Year's countdown call",
+      "kind": "idea",
+      "people": [
+       "Mia",
+       "Kai"
+      ]
+     }
+    ],
+    "gift_hints": []
+   }
+  }
+ ],
+ "weave": {
+  "people": [
+   {
+    "id": null,
+    "name": "Grandma",
+    "aliases": [
+     "grandma",
+     "gran",
+     "grandma ruth"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "She calls often and is helping plan Grandpa's surprise.",
+    "summary": "In Phoenix, planning Grandpa's surprise call"
+   },
+   {
+    "id": null,
+    "name": "Grandpa",
+    "aliases": [
+     "grandpa",
+     "grandpa joe"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "His 80th birthday is days away and you promised him a call.",
+    "summary": "Turns 80 soon"
+   },
+   {
+    "id": null,
+    "name": "Mom",
+    "aliases": [
+     "mom",
+     "mum",
+     "mommy",
+     "ma"
+    ],
+    "merge_ids": [],
+    "relation": "parent",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "She is hosting Thanksgiving and organizing Grandpa's call.",
+    "summary": "Hosting Thanksgiving in Chicago"
+   },
+   {
+    "id": null,
+    "name": "Aunt Carmen",
+    "aliases": [
+     "carmen",
+     "aunt carmen"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "She is making the anniversary album and waiting on your photos.",
+    "summary": "Making the anniversary album"
+   },
+   {
+    "id": null,
+    "name": "Uncle Dave",
+    "aliases": [
+     "dave",
+     "uncle dave"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "inner",
+    "suggest_circle": true,
+    "why": "He worked out the time zones for Grandpa's call with you.",
+    "summary": "Flying in from LA for Thanksgiving"
+   },
+   {
+    "id": null,
+    "name": "Mia",
+    "aliases": [
+     "mia"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "close",
+    "suggest_circle": true,
+    "why": "Your cousin just started her first real job.",
+    "summary": "New job at an architecture firm in New York"
+   },
+   {
+    "id": null,
+    "name": "Tyler",
+    "aliases": [
+     "tyler",
+     "ty"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "close",
+    "suggest_circle": true,
+    "why": "Your cousin just ran his first half marathon.",
+    "summary": "Ran his first half marathon"
+   },
+   {
+    "id": null,
+    "name": "Kai",
+    "aliases": [
+     "kai"
+    ],
+    "merge_ids": [],
+    "relation": "family",
+    "closeness": "close",
+    "suggest_circle": true,
+    "why": "Your youngest cousin, at college in Honolulu with finals coming.",
+    "summary": "At college in Honolulu, finals in December"
+   },
+   {
+    "id": null,
+    "name": "Jess",
+    "aliases": [
+     "jess"
+    ],
+    "merge_ids": [],
+    "relation": "friend",
+    "closeness": "around",
+    "suggest_circle": false,
+    "why": "Your neighbor, feeding the cat while you travel.",
+    "summary": "Looking after the cat at Thanksgiving"
+   }
+  ],
+  "threads": [
+   {
+    "title": "Grandpa's 80th",
+    "kind": "plan",
+    "people": [
+     "Grandpa",
+     "Mom",
+     "Aunt Carmen",
+     "Grandma",
+     "Uncle Dave",
+     "Kai"
+    ],
+    "note_ids": [
+     "1",
+     "15",
+     "17",
+     "20"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Call Grandpa",
+    "kind": "promise",
+    "people": [
+     "Grandpa"
+    ],
+    "note_ids": [
+     "27"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Thanksgiving at Mom's",
+    "kind": "plan",
+    "people": [
+     "Mom",
+     "Uncle Dave",
+     "Tyler"
+    ],
+    "note_ids": [
+     "0",
+     "5"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Anniversary photo album",
+    "kind": "idea",
+    "people": [
+     "Grandma",
+     "Grandpa",
+     "Aunt Carmen",
+     "Uncle Dave"
+    ],
+    "note_ids": [
+     "8",
+     "11",
+     "28"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Cousins' Secret Santa",
+    "kind": "plan",
+    "people": [
+     "Mia"
+    ],
+    "note_ids": [
+     "7",
+     "21"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Call Mia",
+    "kind": "promise",
+    "people": [
+     "Mia"
+    ],
+    "note_ids": [
+     "3",
+     "13"
+    ],
+    "status": "done"
+   },
+   {
+    "title": "Visit Mia in New York",
+    "kind": "plan",
+    "people": [
+     "Mia"
+    ],
+    "note_ids": [
+     "13"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Scan the recipe card",
+    "kind": "errand",
+    "people": [
+     "Mom"
+    ],
+    "note_ids": [
+     "19",
+     "26"
+    ],
+    "status": "done"
+   },
+   {
+    "title": "New Year's countdown call",
+    "kind": "idea",
+    "people": [
+     "Mia",
+     "Kai"
+    ],
+    "note_ids": [
+     "29"
+    ],
+    "status": "open"
+   },
+   {
+    "title": "Book Thanksgiving flights",
+    "kind": "errand",
+    "people": [],
+    "note_ids": [
+     "4",
+     "12"
+    ],
+    "status": "done"
+   },
+   {
+    "title": "Renew passport",
+    "kind": "errand",
+    "people": [],
+    "note_ids": [
+     "16",
+     "24"
+    ],
+    "status": "open"
+   }
+  ]
+ },
+ "circle": [
+  "Grandma",
+  "Grandpa",
+  "Mom",
+  "Aunt Carmen",
+  "Uncle Dave",
+  "Mia",
+  "Tyler",
+  "Kai"
+ ],
+ "suggest": {
+  "Jess": "Your neighbor, looking after the cat while you're away."
+ },
+ "members": [
+  {
+   "name": "Grandma",
+   "tz": "America/Phoenix",
+   "status": null,
+   "via": "page",
+   "reply": "Sunday afternoon works for me",
+   "windows": [
+    {
+     "day": "sun",
+     "start": "12:00",
+     "end": "17:00"
+    }
+   ]
+  },
+  {
+   "name": "Grandpa",
+   "tz": "America/Phoenix",
+   "status": null,
+   "windows": [
+    {
+     "day": "sun",
+     "start": "12:00",
+     "end": "17:00"
+    }
+   ]
+  },
+  {
+   "name": "Mom",
+   "tz": "America/Chicago",
+   "status": "free",
+   "windows": [
+    {
+     "day": "sat",
+     "start": "10:00",
+     "end": "12:00"
+    },
+    {
+     "day": "sun",
+     "start": "12:00",
+     "end": "17:00"
+    }
+   ]
+  },
+  {
+   "name": "Aunt Carmen",
+   "tz": "America/Denver",
+   "status": "maybe",
+   "windows": [
+    {
+     "day": "sun",
+     "start": "12:30",
+     "end": "15:00"
+    }
+   ]
+  },
+  {
+   "name": "Uncle Dave",
+   "tz": "America/Los_Angeles",
+   "status": "free",
+   "windows": [
+    {
+     "day": "sun",
+     "start": "10:00",
+     "end": "13:00"
+    }
+   ]
+  },
+  {
+   "name": "Mia",
+   "tz": "America/New_York",
+   "status": null,
+   "windows": [
+    {
+     "day": "sun",
+     "start": "14:00",
+     "end": "18:00"
+    }
+   ]
+  },
+  {
+   "name": "Tyler",
+   "tz": "America/Detroit",
+   "status": null,
+   "windows": [
+    {
+     "day": "sat",
+     "start": "18:00",
+     "end": "21:00"
+    }
+   ]
+  },
+  {
+   "name": "Kai",
+   "tz": "Pacific/Honolulu",
+   "status": null,
+   "windows": [
+    {
+     "day": "sun",
+     "start": "09:00",
+     "end": "12:00"
+    }
+   ]
+  }
+ ],
+ "phones": {
+  "Grandma": "16025550111",
+  "Grandpa": "16025550112",
+  "Mom": "13125550113",
+  "Aunt Carmen": "17205550114",
+  "Uncle Dave": "13105550115",
+  "Mia": "12125550116",
+  "Tyler": "13135550117",
+  "Kai": "18085550118",
+  "Jess": "13125550119"
+ }
+}

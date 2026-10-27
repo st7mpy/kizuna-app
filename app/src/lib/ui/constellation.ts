@@ -1,6 +1,7 @@
 // Layout for the Kizuna map: you in the centre, family on an inner ring, friends on an outer one.
 // Pure, so it can be tested: positions dots evenly, then places each label outward from the centre,
 // falling back to below/above the dot, so no label overlaps another label, a dot or the edge.
+import { curvePath, ribbon, rng, sampleCurve, type Pt } from './strands.js';
 
 export interface Box {
 	x: number;
@@ -50,14 +51,14 @@ export const DOT_R = 12;
 export const DOT_BOX = 21;
 const GAP = 4;
 const NAME_PX = 15; // Geist 500
-const SUB_PX = 11; // Geist, tabular
+const SUB_PX = 9; // Geist, tabular, tracked capitals
 export const LABEL_H = 38;
 const EDGE = 4;
 
 /** Rough width of a label, a little generous so real text never runs over. */
 export function labelWidth(name: string, sub: string): number {
 	const n = [...name].reduce((w, ch) => w + (/[A-Z]/.test(ch) ? 0.68 : /[mw]/.test(ch) ? 0.82 : 0.54), 0) * NAME_PX;
-	const s = [...sub].length * 0.6 * SUB_PX;
+	const s = [...sub].length * 0.7 * SUB_PX;
 	return Math.ceil(Math.max(n, s) + 6);
 }
 
@@ -249,10 +250,10 @@ export function layoutConstellation(people: LayoutIn[], width = WIDTH): Layout {
 	return best!;
 }
 
-/** "Toronto" from "America/Toronto"; a few zones read better as a country. */
+/** "Toronto" from "America/Toronto"; a few zones get a shorter or better-known name. */
 const ZONE_NAMES: Record<string, string> = {
-	'Asia/Kolkata': 'India',
-	'Asia/Calcutta': 'India',
+	'Asia/Kolkata': 'Kolkata',
+	'Asia/Calcutta': 'Kolkata',
 	'Europe/London': 'London',
 	'America/New_York': 'New York',
 	'America/Los_Angeles': 'LA',
@@ -283,4 +284,43 @@ export function dotLabel(p: {
 	if (p.occasion) parts.push(p.occasion.name);
 	if (p.hasGift) parts.push('gift idea saved');
 	return parts.join(', ');
+}
+
+/** One beam of light from you to a person: a few fine strands, gently swirled, thinning outward. */
+export interface Beam {
+	/** Centre line, for the growth mask and the light that travels along it. */
+	spine: string;
+	strands: { d: string; hue: number; opacity: number }[];
+	/** Angle from the top, clockwise, 0..1: the order the dots light up in. */
+	turn: number;
+}
+
+/** Stable small number from an id, so a person's strands look the same on every visit. */
+export function seedOf(id: string): number {
+	let h = 2166136261;
+	for (const ch of id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+	return h >>> 0;
+}
+
+export function beam(from: Pt, to: Pt, id: string, count = 4): Beam {
+	const rand = rng(seedOf(id));
+	const dx = to.x - from.x;
+	const dy = to.y - from.y;
+	const len = Math.hypot(dx, dy) || 1;
+	// A slight clockwise swirl, the same for everyone, so the map turns like one quiet galaxy.
+	const nx = -dy / len;
+	const ny = dx / len;
+	const at = (t: number, bend: number): Pt => ({ x: from.x + dx * t + nx * bend * len, y: from.y + dy * t + ny * bend * len });
+	const route = [from, at(0.38, 0.07), at(0.72, 0.045), to];
+	const strands = Array.from({ length: count }, (_, s) => {
+		const pts = route.map((q, k) => {
+			if (k === 0) return { x: q.x + (rand() - 0.5) * 1.5, y: q.y + (rand() - 0.5) * 1.5 };
+			if (k === route.length - 1) return { x: q.x + (rand() - 0.5) * 2, y: q.y + (rand() - 0.5) * 2 };
+			const amp = 2.5 + k * 1.6;
+			return { x: q.x + (rand() - 0.5) * 2 * amp, y: q.y + (rand() - 0.5) * 2 * amp };
+		});
+		return { d: ribbon(sampleCurve(pts, 14), 2.2 - s * 0.35, 0.55), hue: Math.floor(rand() * 3), opacity: 0.55 + rand() * 0.45 };
+	});
+	const turn = ((Math.atan2(dx, -dy) / (2 * Math.PI)) + 1) % 1;
+	return { spine: curvePath(route), strands, turn };
 }

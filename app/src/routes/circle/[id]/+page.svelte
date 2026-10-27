@@ -22,7 +22,7 @@
 		type MemberRow
 	} from '#lib/db.js';
 	import { cityOf } from '#lib/ui/constellation.js';
-	import { occasionChip, whenLocal } from '#lib/ui/mapformat.js';
+	import { occasionChip, whenLocal, yourTime } from '#lib/ui/mapformat.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { dayKey, dayLabel, noteDay, snippet } from '#lib/ui/format.js';
 	import PokeSheet from '#lib/ui/PokeSheet.svelte';
@@ -241,7 +241,7 @@
 					{/if}
 					{#if onMap.windows.length}
 						<li class="map-row">
-							<span class="label">Free this week, your time</span>
+							<span class="label">Free this week, {yourTime()}</span>
 							{#each onMap.windows as w (w.start)}<span class="num">{windowLine(w)}</span>{/each}
 						</li>
 					{/if}

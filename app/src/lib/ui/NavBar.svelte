@@ -68,9 +68,9 @@
 		max-width: 560px;
 		margin: 0 auto;
 		padding: 8px 12px calc(10px + var(--safe-b)) 8px;
-		background: color-mix(in srgb, var(--bg) 86%, transparent);
-		backdrop-filter: blur(16px) saturate(1.2);
-		-webkit-backdrop-filter: blur(16px) saturate(1.2);
+		background: color-mix(in srgb, var(--sheet) 78%, transparent);
+		backdrop-filter: var(--blur);
+		-webkit-backdrop-filter: var(--blur);
 		border-top: 1px solid var(--line);
 	}
 	ul {
@@ -174,8 +174,6 @@
 			border-top: 0;
 			border-right: 1px solid var(--line);
 			background: var(--bg-2);
-			backdrop-filter: none;
-			-webkit-backdrop-filter: none;
 			overflow-y: auto;
 		}
 		.rail-only {

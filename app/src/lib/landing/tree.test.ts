@@ -20,11 +20,11 @@ describe('family tree', () => {
 			expect(b.at.y).toBeLessThan(H);
 			expect(b.spine.startsWith('M')).toBe(true);
 		}
-		expect(bs.find((b) => b.person.name === 'Kabir')!.strands.length).toBeGreaterThan(bs.find((b) => b.person.name === 'Mum')!.strands.length);
+		expect(bs.find((b) => b.person.name === 'Leo')!.strands.length).toBeGreaterThan(bs.find((b) => b.person.name === 'Mom')!.strands.length);
 	});
 
 	it('leaves off people past the slots instead of overlapping them', () => {
-		const many = Array.from({ length: 12 }, (_, i) => ({ name: `P${i}`, place: 'Delhi', tz: 'Asia/Kolkata' }));
+		const many = Array.from({ length: 12 }, (_, i) => ({ name: `P${i}`, place: 'Chicago', tz: 'America/Chicago' }));
 		expect(grow(many).length).toBe(7);
 	});
 
@@ -37,14 +37,14 @@ describe('family tree', () => {
 	});
 
 	it('glows only when open and daytime there, and says so for screen readers', () => {
-		const at = new Date('2026-10-30T12:30:00Z'); // 18:00 Delhi, 08:30 Toronto, 12:30 London
-		const night = new Date('2026-10-30T05:00:00Z'); // 01:00 Toronto
-		const kabir = SAMPLE_FAMILY.find((p) => p.name === 'Kabir')!;
-		expect(nodeState(kabir, at)).toEqual({ time: '08:30', night: false, glow: true });
-		expect(nodeState(kabir, night)).toEqual({ time: '01:00', night: true, glow: false });
+		const at = new Date('2026-10-30T00:30:00Z'); // 11:30 Melbourne, 19:30 Chicago
+		const night = new Date('2026-10-30T14:00:00Z'); // 01:00 Melbourne, 09:00 Chicago
+		const leo = SAMPLE_FAMILY.find((p) => p.name === 'Leo')!;
+		expect(nodeState(leo, at)).toEqual({ time: '11:30', night: false, glow: true });
+		expect(nodeState(leo, night)).toEqual({ time: '01:00', night: true, glow: false });
 		const label = treeLabel(SAMPLE_FAMILY, night);
-		expect(label).toContain('Open to a call now: Nani and Mum.');
-		expect(label).toContain('Kabir (01:00 in Toronto)');
+		expect(label).toContain('Open to a call now: Grandma and Mom.');
+		expect(label).toContain('Leo (01:00 in Melbourne)');
 		expect(label).not.toMatch(/—/);
 	});
 });

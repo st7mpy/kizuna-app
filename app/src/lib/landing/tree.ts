@@ -1,8 +1,9 @@
 // Geometry for the landing's family tree: fine lines that grow from "you" and branch out to each person.
 // Pure maths, no DOM, seeded so the drawing is the same on every load.
 import { daylightIn, timeIn } from './clock.js';
+import { curvePath, ribbon, rng, sampleCurve, type Pt } from '../ui/strands.js';
 
-export type Pt = { x: number; y: number };
+export { curvePath, ribbon, rng, sampleCurve, type Pt };
 
 export type TreePerson = {
 	name: string;
@@ -15,12 +16,12 @@ export type TreePerson = {
 };
 
 export const SAMPLE_FAMILY: TreePerson[] = [
-	{ name: 'Nani', place: 'Delhi', tz: 'Asia/Kolkata', open: true, ring: 'near' },
-	{ name: 'Mum', place: 'Delhi', tz: 'Asia/Kolkata', open: true, ring: 'near' },
-	{ name: 'Papa', place: 'Delhi', tz: 'Asia/Kolkata', ring: 'near' },
-	{ name: 'Riya', place: 'Bengaluru', tz: 'Asia/Kolkata', ring: 'near' },
-	{ name: 'Kabir', place: 'Toronto', tz: 'America/Toronto', open: true, ring: 'far' },
-	{ name: 'Meera', place: 'London', tz: 'Europe/London', ring: 'far' }
+	{ name: 'Grandma', place: 'Chicago', tz: 'America/Chicago', open: true, ring: 'near' },
+	{ name: 'Mom', place: 'Chicago', tz: 'America/Chicago', open: true, ring: 'near' },
+	{ name: 'Dad', place: 'Chicago', tz: 'America/Chicago', ring: 'near' },
+	{ name: 'Maya', place: 'New York', tz: 'America/New_York', ring: 'near' },
+	{ name: 'Leo', place: 'Melbourne', tz: 'Australia/Melbourne', open: true, ring: 'far' },
+	{ name: 'Jordan', place: 'LA', tz: 'America/Los_Angeles', ring: 'far' }
 ];
 
 export const W = 560;
@@ -44,75 +45,6 @@ const FAR: Slot[] = [
 	{ via: [TRUNK, RIGHT, { x: 420, y: 246 }, { x: 466, y: 146 }], at: { x: 486, y: 70 }, label: 'above' },
 	{ via: [TRUNK, { x: 282, y: 300 }, { x: 272, y: 196 }, { x: 288, y: 120 }], at: { x: 280, y: 62 }, label: 'above' }
 ];
-
-/** Small fast PRNG (mulberry32). */
-export function rng(seed: number): () => number {
-	let a = seed >>> 0;
-	return () => {
-		a = (a + 0x6d2b79f5) >>> 0;
-		let t = a;
-		t = Math.imul(t ^ (t >>> 15), t | 1);
-		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
-}
-
-/** Smooth curve through points (Catmull-Rom as cubic beziers), sampled finely. */
-export function sampleCurve(pts: Pt[], perSeg = 14): Pt[] {
-	const out: Pt[] = [];
-	for (let i = 0; i < pts.length - 1; i++) {
-		const p0 = pts[i - 1] ?? pts[i];
-		const p1 = pts[i];
-		const p2 = pts[i + 1];
-		const p3 = pts[i + 2] ?? p2;
-		const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
-		const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
-		for (let s = 0; s < perSeg; s++) {
-			const t = s / perSeg;
-			const u = 1 - t;
-			out.push({
-				x: u * u * u * p1.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p2.x,
-				y: u * u * u * p1.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p2.y
-			});
-		}
-	}
-	out.push(pts[pts.length - 1]);
-	return out;
-}
-
-/** The same curve as an SVG path of cubic beziers (for the growth mask and the travelling light). */
-export function curvePath(pts: Pt[]): string {
-	let d = `M${f(pts[0].x)} ${f(pts[0].y)}`;
-	for (let i = 0; i < pts.length - 1; i++) {
-		const p0 = pts[i - 1] ?? pts[i];
-		const p1 = pts[i];
-		const p2 = pts[i + 1];
-		const p3 = pts[i + 2] ?? p2;
-		d += `C${f(p1.x + (p2.x - p0.x) / 6)} ${f(p1.y + (p2.y - p0.y) / 6)} ${f(p2.x - (p3.x - p1.x) / 6)} ${f(p2.y - (p3.y - p1.y) / 6)} ${f(p2.x)} ${f(p2.y)}`;
-	}
-	return d;
-}
-
-/** A filled line that tapers from w0 to w1 along its length, so it reads as one stroke growing thinner. */
-export function ribbon(line: Pt[], w0: number, w1: number): string {
-	const n = line.length;
-	if (n < 2) return '';
-	const left: Pt[] = [];
-	const right: Pt[] = [];
-	for (let i = 0; i < n; i++) {
-		const a = line[Math.max(0, i - 1)];
-		const b = line[Math.min(n - 1, i + 1)];
-		const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-		const nx = -(b.y - a.y) / len;
-		const ny = (b.x - a.x) / len;
-		const t = i / (n - 1);
-		const hw = (w0 + (w1 - w0) * Math.pow(t, 0.8)) / 2;
-		left.push({ x: line[i].x + nx * hw, y: line[i].y + ny * hw });
-		right.push({ x: line[i].x - nx * hw, y: line[i].y - ny * hw });
-	}
-	const pts = [...left, ...right.reverse()];
-	return 'M' + pts.map((p) => `${f(p.x)} ${f(p.y)}`).join('L') + 'Z';
-}
 
 export type Strand = { d: string; hue: number; opacity: number };
 export type Branch = {
@@ -177,8 +109,4 @@ export function treeLabel(people: TreePerson[], at: Date = new Date()): string {
 function list(xs: string[]): string {
 	if (xs.length <= 1) return xs.join('');
 	return `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
-}
-
-function f(n: number): string {
-	return (Math.round(n * 10) / 10).toString();
 }

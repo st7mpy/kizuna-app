@@ -37,6 +37,8 @@
 		padding: 4px;
 		border-radius: 999px;
 		background: var(--bg-2);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
 		box-shadow: inset 0 0 0 1px var(--line);
 	}
 	button {
