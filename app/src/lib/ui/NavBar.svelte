@@ -68,7 +68,9 @@
 		max-width: 560px;
 		margin: 0 auto;
 		padding: 8px 12px calc(10px + var(--safe-b)) 8px;
-		background: color-mix(in srgb, var(--sheet) 78%, transparent);
+		/* near-solid glass: whatever scrolls underneath never competes with the tabs */
+		background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
+		box-shadow: 0 -12px 30px -18px rgb(0 0 0 / 0.25);
 		backdrop-filter: var(--blur);
 		-webkit-backdrop-filter: var(--blur);
 		border-top: 1px solid var(--line);
@@ -174,6 +176,7 @@
 			border-top: 0;
 			border-right: 1px solid var(--line);
 			background: var(--bg-2);
+			box-shadow: none;
 			overflow-y: auto;
 		}
 		.rail-only {

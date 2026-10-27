@@ -15,6 +15,9 @@ export type TreePerson = {
 	ring?: 'near' | 'far';
 };
 
+/** Where "you" live in the sample families (their fixtures set homeTz to the same zone). */
+export const SAMPLE_HOME = { place: 'Chicago', tz: 'America/Chicago' };
+
 export const SAMPLE_FAMILY: TreePerson[] = [
 	{ name: 'Grandma', place: 'Chicago', tz: 'America/Chicago', open: true, ring: 'near' },
 	{ name: 'Mom', place: 'Chicago', tz: 'America/Chicago', open: true, ring: 'near' },

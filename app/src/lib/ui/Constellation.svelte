@@ -316,6 +316,12 @@
 		display: block;
 		overflow: visible;
 	}
+	/* On a wide screen a full, tall map still fits beside the list without scrolling. */
+	@media (min-width: 1100px) {
+		svg {
+			max-height: var(--map-max-h, none);
+		}
+	}
 	.c1 {
 		stop-color: var(--iri-1);
 	}

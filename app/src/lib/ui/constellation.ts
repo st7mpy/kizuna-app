@@ -41,6 +41,10 @@ export interface Layout {
 	bottom: number;
 	/** Number of labels that could not be placed cleanly (0 in every tested case). */
 	clashes: number;
+	/** Labels placed cleanly but not clearly nearer their own dot than another (avoided when possible). */
+	strays: number;
+	/** Labels that had to face in toward you rather than out (avoided when possible). */
+	inward: number;
 	/** Smallest angle (radians, seen from the centre) between any outer dot and any inner dot. */
 	minGap: number;
 }
@@ -73,6 +77,14 @@ export function shortName(name: string, max = 12): string {
 
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const inside = (a: Box, W: number, H: number) => a.x >= EDGE && a.y >= EDGE && a.x + a.w <= W - EDGE && a.y + a.h <= H - EDGE;
+const inflate = (a: Box, by: number): Box => ({ x: a.x - by, y: a.y - by, w: a.w + 2 * by, h: a.h + 2 * by });
+/** Distance from a point to the nearest edge of a box (0 inside). */
+export const boxDist = (b: Box, x: number, y: number) =>
+	Math.hypot(Math.max(b.x - x, 0, x - (b.x + b.w)), Math.max(b.y - y, 0, y - (b.y + b.h)));
+/** Labels keep at least this much air between them, so two never read as one. */
+const LABEL_AIR = 4;
+/** A label must sit clearly nearer its own dot than any other dot, by at least this much. */
+export const OWN_MARGIN = 12;
 const dotBox = (x: number, y: number): Box => ({ x: x - DOT_BOX, y: y - DOT_BOX, w: DOT_BOX * 2, h: DOT_BOX * 2 });
 
 interface Candidate {
@@ -161,20 +173,39 @@ function attempt(people: LayoutIn[], W: number, { H, innerOff, outerOff, stagger
 	const fixed: Box[] = [centre, ...pts.map((p) => dotBox(p.x, p.y))];
 	const placed: Box[] = [];
 	let clashes = 0;
+	let strays = 0;
+	let inward = 0;
 	const dots: LayoutDot[] = pts.map((p) => {
 		const w = labelWidth(p.who.name, p.who.sub);
 		const cands = candidates(p.x, p.y, cx, cy, w);
+		const own = (c: Candidate) => {
+			const mine = boxDist(c.label, p.x, p.y);
+			return pts.every((q) => q === p || boxDist(c.label, q.x, q.y) >= mine + OWN_MARGIN);
+		};
 		const ok = cands.find(
 			(c) =>
 				inside(c.label, W, H) &&
 				!fixed.some((b) => overlap(b, c.label)) &&
-				!placed.some((b) => overlap(b, c.label))
+				!placed.some((b) => overlap(inflate(b, LABEL_AIR), c.label)) &&
+				own(c)
 		);
 		let pick = ok;
+		if (!pick) {
+			pick = cands.find(
+				(c) =>
+					inside(c.label, W, H) &&
+					!fixed.some((b) => overlap(b, c.label)) &&
+					!placed.some((b) => overlap(inflate(b, LABEL_AIR), c.label))
+			);
+			if (pick) strays++;
+		}
 		if (!pick) {
 			clashes++;
 			pick = cands.find((c) => inside(c.label, W, H)) ?? cands[0];
 		}
+		const lx = pick.label.x + pick.label.w / 2 - cx;
+		const ly = pick.label.y + pick.label.h / 2 - cy;
+		if (Math.hypot(lx, ly) < Math.hypot(p.x - cx, p.y - cy)) inward++;
 		placed.push(pick.label);
 		return { id: p.who.id, x: p.x, y: p.y, label: pick.label, anchor: pick.anchor, tx: pick.tx };
 	});
@@ -187,7 +218,7 @@ function attempt(people: LayoutIn[], W: number, { H, innerOff, outerOff, stagger
 	];
 	const top = Math.max(0, Math.floor(Math.min(...ys)) - 6);
 	const bottom = Math.min(H, Math.ceil(Math.max(...ys)) + 6);
-	return { width: W, height: H, cx, cy, rings, dots, clashes, minGap, top, bottom };
+	return { width: W, height: H, cx, cy, rings, dots, clashes, strays, inward, minGap, top, bottom };
 }
 
 /** The centre box ("you" mark and your time). */
@@ -216,7 +247,20 @@ export function idealGap(nIn: number, nOut: number): number {
 	return best;
 }
 
+const cache = new Map<string, Layout>();
+
+/** The layout search takes a moment for a full map, so the same people reuse the last answer. */
 export function layoutConstellation(people: LayoutIn[], width = WIDTH): Layout {
+	const key = JSON.stringify([width, people.slice(0, 8).map((p) => [p.id, p.ring, p.name, p.sub])]);
+	const hit = cache.get(key);
+	if (hit) return hit;
+	const l = search(people, width);
+	if (cache.size > 24) cache.clear();
+	cache.set(key, l);
+	return l;
+}
+
+function search(people: LayoutIn[], width: number): Layout {
 	const list = people.slice(0, 8);
 	const nInner = list.filter((p) => p.ring === 'inner').length;
 	const nOuter = list.length - nInner;
@@ -225,9 +269,19 @@ export function layoutConstellation(people: LayoutIn[], width = WIDTH): Layout {
 	const stepIn = (2 * Math.PI) / nIn;
 	const stepOut = (2 * Math.PI) / nOut;
 	const aim = Math.min(MIN_RING_GAP, idealGap(nInner, nOuter) * 0.8);
-	// Better: fewer clashes first, then friends further from family lines.
-	const better = (a: Layout, b: Layout | null) =>
-		!b || a.clashes < b.clashes || (a.clashes === b.clashes && a.minGap > b.minGap + 1e-6);
+	// Better: fewer clashes, then every label clearly by its own dot, then friends far enough from family
+	// lines, then labels facing outward, then friends further still from family lines.
+	const rank = (l: Layout) => [l.clashes, l.strays, l.minGap >= aim - 1e-9 ? 0 : 1, l.inward, -l.minGap];
+	const better = (a: Layout, b: Layout | null) => {
+		if (!b) return true;
+		const x = rank(a);
+		const y = rank(b);
+		for (let k = 0; k < x.length; k++) if (Math.abs(x[k] - y[k]) > 1e-6) return x[k] < y[k];
+		return false;
+	};
+	// With one ring there is no second ring to turn.
+	const jSteps = nOuter ? 16 : 1;
+	const nudges = nOuter && nInner ? [0, -0.07, 0.07] : [0];
 	let best: Layout | null = null;
 	// Smallest, calmest shape first; within a size, the turn that sits friends most between family.
 	for (const H of [400, 440, 480, 520, 560]) {
@@ -236,15 +290,18 @@ export function layoutConstellation(people: LayoutIn[], width = WIDTH): Layout {
 		for (const [stagger, grow] of [[0, 1], [0.14, 1], [0, 1.2], [0.24, 1], [0.14, 1.2], [0, 1.35], [0.18, 1.35]]) {
 			for (let i = 0; i < 8; i++) {
 				const innerOff = (i * stepIn) / 8;
-				for (let j = 0; j < 16; j++) {
-					const outerOff = innerOff + stepIn / 2 + (j * stepOut) / 16;
-					const l = attempt(list, width, { H, stagger, grow, innerOff, outerOff }, centre);
-					if (better(l, here)) here = l;
+				for (let j = 0; j < jSteps; j++) {
+					// a few small nudges too, so friends can sit just off the exact midpoint
+					for (const nudge of nudges) {
+						const outerOff = innerOff + stepIn / 2 + (j * stepOut) / 16 + nudge;
+						const l = attempt(list, width, { H, stagger, grow, innerOff, outerOff }, centre);
+						if (better(l, here)) here = l;
+					}
 				}
 			}
-			if (here && here.clashes === 0 && here.minGap >= Math.max(aim, idealGap(nInner, nOuter) * 0.95)) return here;
+			if (here && here.clashes === 0 && here.strays === 0 && here.inward === 0 && here.minGap >= Math.max(aim, idealGap(nInner, nOuter) * 0.95)) return here;
 		}
-		if (here && here.clashes === 0 && here.minGap >= aim) return here;
+		if (here && here.clashes === 0 && here.strays === 0 && here.inward === 0 && here.minGap >= aim) return here;
 		if (better(here!, best)) best = here;
 	}
 	return best!;

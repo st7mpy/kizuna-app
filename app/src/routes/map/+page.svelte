@@ -237,6 +237,7 @@
 	@media (min-width: 1100px) {
 		.stage {
 			--map-w: 560px;
+			--map-max-h: calc(100dvh - 330px);
 			padding: 40px 28px 22px;
 		}
 		.panes > .side {

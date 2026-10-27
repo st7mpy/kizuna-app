@@ -3,9 +3,13 @@
 	// each with their real local time. Open people glow (while it's day there); night dims them.
 	import { onMount } from 'svelte';
 	import { timeIn } from './clock.js';
-	import { H, ROOT, SAMPLE_FAMILY, W, grow, nodeState, rng, treeLabel, type TreePerson } from './tree.js';
+	import { H, ROOT, SAMPLE_FAMILY, SAMPLE_HOME, W, grow, nodeState, rng, treeLabel, type TreePerson } from './tree.js';
 
-	let { people = SAMPLE_FAMILY, seed = 7 }: { people?: TreePerson[]; seed?: number } = $props();
+	let {
+		people = SAMPLE_FAMILY,
+		home = SAMPLE_HOME,
+		seed = 7
+	}: { people?: TreePerson[]; home?: { place: string; tz: string }; seed?: number } = $props();
 
 	const uid = $props.id();
 	const id = (s: string) => `ft${uid}-${s}`;
@@ -45,7 +49,7 @@
 		};
 	});
 
-	const myTz = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'America/Chicago';
+	// You live where the sample family's "you" lives, so the tree and the sample map agree.
 	const label = $derived(treeLabel(people, now));
 	// Growth timing: near branches arrive first, far ones a little later.
 	const dur = (far: boolean) => (far ? 1.3 : 0.95);
@@ -151,7 +155,7 @@
 
 	<div class="labels" aria-hidden="true">
 		<span class="lab below you" style="left:{pct(ROOT.x, W)}; top:{pct(ROOT.y, H)}">
-			<b>You</b><small>{timeIn(myTz, now)}</small>
+			<b>You</b><small>{timeIn(home.tz, now)} {home.place}</small>
 		</span>
 		{#each branches as b, i (b.person.name)}
 			{@const st = nodeState(b.person, now)}
