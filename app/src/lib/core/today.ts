@@ -48,6 +48,12 @@ export async function todayExtras(now = new Date()): Promise<TodayExtras> {
 	return { weekend, gifts: gifts.slice(0, Math.max(0, n - (weekend ? 1 : 0))) };
 }
 
+const EXTRAS_WAIT_MS = 1500;
+const RANK_WAIT_MS = 2500;
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** Stand-in while the weekend plan is still on its way: hold one place for it. */
+const PENDING_EXTRAS = { weekend: {} as WeekendCard, gifts: [] } as TodayExtras;
+
 function actionsFor(c: Candidate): Card['actions'] {
 	if (c.kind === 'person') return ['poke', 'time', 'not_now'];
 	if (c.kind === 'suggest_circle') return ['keep', 'not_now'];
@@ -59,10 +65,12 @@ function actionsFor(c: Candidate): Card['actions'] {
  * for them, so both run at once and the calendar is read only once.
  */
 export async function todayCards(extrasP?: Promise<TodayExtras>, now = new Date()): Promise<Card[]> {
-	const [state, extras] = await Promise.all([
-		loadNudgeState(now),
-		extrasP ?? todayExtras(now).catch((): TodayExtras => ({ weekend: null, gifts: [] }))
+	// Person cards don't wait long for the weekend plan: if it is still thinking, keep one place for it.
+	const extrasSoon = Promise.race([
+		extrasP ?? todayExtras(now).catch((): TodayExtras => ({ weekend: null, gifts: [] })),
+		wait(EXTRAS_WAIT_MS).then(() => PENDING_EXTRAS)
 	]);
+	const [state, extras] = await Promise.all([loadNudgeState(now), extrasSoon]);
 	const cands = buildCandidates(state);
 	// Room is for the whole day: cards already answered today count, so a reload doesn't bring a new batch.
 	const room = Math.max(0, ROOM_CARDS[state.room] - (extras.weekend ? 1 : 0) - extras.gifts.length - answeredTodayCount(state));
@@ -74,11 +82,14 @@ export async function todayCards(extrasP?: Promise<TodayExtras>, now = new Date(
 	if (isOnline() && eligibleCount(state, shown) > room) {
 		try {
 			const eligible = planToday(state, shown, undefined, Infinity).map((p) => p.candidate);
-			const r = await spark('rank', {
-				room: state.room,
-				candidates: eligible.map((c) => ({ id: c.key, title: c.title, reason: c.reasonText }))
-			});
-			order = r.order;
+			const r = await Promise.race([
+				spark('rank', {
+					room: state.room,
+					candidates: eligible.map((c) => ({ id: c.key, title: c.title, reason: c.reasonText }))
+				}),
+				wait(RANK_WAIT_MS).then(() => null)
+			]);
+			if (r) order = r.order;
 		} catch {
 			/* deterministic order is fine */
 		}
