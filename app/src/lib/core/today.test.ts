@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db, defaultSettings } from '../db.ts';
 import { localDay } from './days.ts';
 import { getSettings, setRoom, updateSettings } from './settings.ts';
-import { answerCard, answeredToday, todayCards } from './today.ts';
+import { answerCard, answeredToday, resetRankCache, todayCards } from './today.ts';
 import { mkEvent, mkPerson, mkThread, mockRelay, resetDb, setOffline } from './testing.ts';
 
 const at = (d: number, h = 10, m = 0) => new Date(2026, 9, 26 + d, h, m); // Mon 26 Oct 2026
@@ -146,8 +146,14 @@ describe('todayCards', () => {
 			expect(input.room).toBe('low');
 			return { order: ['p:nani', 'p:kabir'] };
 		});
-		const cards = await todayCards();
-		expect(cards.map((c) => c.title)).toEqual(['Nani']);
+		resetRankCache();
+		// First look: own order at once, ranking asked in the background.
+		expect((await todayCards()).map((c) => c.title)).toEqual(['Kabir']);
+		expect(relay.tasks()).toEqual(['rank']);
+		await new Promise((r) => setTimeout(r, 0));
+		// Next look (before anything was shown) uses the ranking, without asking again.
+		await db.prompts.clear();
+		expect((await todayCards()).map((c) => c.title)).toEqual(['Nani']);
 		expect(relay.tasks()).toEqual(['rank']);
 	});
 
@@ -155,6 +161,7 @@ describe('todayCards', () => {
 		await seed();
 		await setRoom('low');
 		setOffline(false);
+		resetRankCache();
 		mockRelay(() => {
 			throw new Error('down');
 		});

@@ -48,8 +48,14 @@ export async function todayExtras(now = new Date()): Promise<TodayExtras> {
 	return { weekend, gifts: gifts.slice(0, Math.max(0, n - (weekend ? 1 : 0))) };
 }
 
-const EXTRAS_WAIT_MS = 1500;
-const RANK_WAIT_MS = 2500;
+const EXTRAS_WAIT_MS = 600;
+const rankCache = new Map<string, string[]>();
+const rankAsked = new Set<string>();
+/** For tests: forget earlier rankings. */
+export function resetRankCache(): void {
+	rankCache.clear();
+	rankAsked.clear();
+}
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Stand-in while the weekend plan is still on its way: hold one place for it. */
 const PENDING_EXTRAS = { weekend: {} as WeekendCard, gifts: [] } as TodayExtras;
@@ -78,20 +84,23 @@ export async function todayCards(extrasP?: Promise<TodayExtras>, now = new Date(
 	const giftPeople = new Set(extras.gifts.map((g) => g.personId));
 	const shown = cands.filter((c) => !(c.kind === 'person' && c.personId && giftPeople.has(c.personId)));
 
+	// Ranking never holds the cards: use the last ranking for this set of people if there is one,
+	// and ask for a fresh one in the background for next time.
 	let order: string[] | undefined;
-	if (isOnline() && eligibleCount(state, shown) > room) {
-		try {
-			const eligible = planToday(state, shown, undefined, Infinity).map((p) => p.candidate);
-			const r = await Promise.race([
-				spark('rank', {
-					room: state.room,
-					candidates: eligible.map((c) => ({ id: c.key, title: c.title, reason: c.reasonText }))
-				}),
-				wait(RANK_WAIT_MS).then(() => null)
-			]);
-			if (r) order = r.order;
-		} catch {
-			/* deterministic order is fine */
+	if (eligibleCount(state, shown) > room) {
+		const eligible = planToday(state, shown, undefined, Infinity).map((p) => p.candidate);
+		const key = eligible.map((c) => c.key).sort().join('|') + '#' + state.room;
+		order = rankCache.get(key);
+		if (!order && isOnline() && !rankAsked.has(key)) {
+			rankAsked.add(key);
+			spark('rank', {
+				room: state.room,
+				candidates: eligible.map((c) => ({ id: c.key, title: c.title, reason: c.reasonText }))
+			})
+				.then((r) => rankCache.set(key, r.order))
+				.catch(() => {
+					/* deterministic order is fine */
+				});
 		}
 	}
 
