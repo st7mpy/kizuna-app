@@ -69,7 +69,7 @@
 		margin: 0 auto;
 		padding: 8px 12px calc(10px + var(--safe-b)) 8px;
 		/* near-solid glass: whatever scrolls underneath never competes with the tabs */
-		background: color-mix(in srgb, var(--surface-solid) 94%, transparent);
+		background: var(--surface-solid);
 		box-shadow: 0 -12px 30px -18px rgb(0 0 0 / 0.25);
 		backdrop-filter: var(--blur);
 		-webkit-backdrop-filter: var(--blur);
