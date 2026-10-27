@@ -28,7 +28,7 @@
 		</div>
 	</div>
 	<div class="tag t1"><i class="lock"></i>Sealed on her phone</div>
-	<div class="tag t2"><i style="--hue:#b6a4f4"></i><em>Riya</em> answered · Sat evening</div>
+	<div class="tag t2"><i style="--hue:#bcb2e6"></i><em>Riya</em> answered · Sat evening</div>
 </div>
 
 <style>
@@ -42,9 +42,7 @@
 		border-radius: 40px;
 		padding: 10px;
 		background: var(--surface);
-		box-shadow:
-			inset 0 0 0 1px var(--line),
-			0 40px 90px -40px rgb(0 0 0 / 0.45);
+		box-shadow: 0 0 0 1px var(--line), var(--shadow);
 	}
 	.bar {
 		display: flex;
@@ -69,7 +67,7 @@
 	.eyebrow {
 		font-size: 0.6875rem;
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: var(--text-3);
 	}
@@ -147,7 +145,7 @@
 		animation: float 8s ease-in-out infinite;
 	}
 	.tag em {
-		font-size: 1.05rem;
+		font-weight: 600;
 	}
 	.tag i {
 		width: 9px;

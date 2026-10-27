@@ -1,14 +1,15 @@
 // A soft colour per person, so a list reads at a glance without photos.
 // Picked from the id, so it stays the same across renames and devices.
+// Dawn-toned and a little pearly, so they sit softly on warm ivory and on charcoal.
 export const HUES = [
-	'#f4c46c', // amber
-	'#f39b80', // coral
-	'#b6a4f4', // lavender
-	'#d6e38a', // lime
-	'#9cc6ee', // sky
-	'#f1a9c4', // rose
-	'#9fd9bf', // mint
-	'#e3cba2' // sand
+	'#ecc489', // honey
+	'#eba596', // coral
+	'#bcb2e6', // lilac
+	'#cbd49e', // sage
+	'#a4c6e8', // sky
+	'#e8b2c8', // rose
+	'#a9d6c6', // mint
+	'#e3cbab' // sand
 ] as const;
 
 export function hueFor(id: string | undefined | null): string {

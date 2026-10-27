@@ -190,9 +190,13 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
-		padding: 14px 0 6px;
-		border-top: 2px solid var(--rule);
-		border-bottom: 1px solid var(--line);
+		padding: 20px 20px 10px;
+		border-radius: var(--r-card);
+		background:
+			radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--dawn-peach) 26%, transparent), transparent 70%),
+			radial-gradient(100% 70% at 0% 0%, color-mix(in srgb, var(--dawn-sky) 22%, transparent), transparent 70%),
+			var(--surface);
+		box-shadow: var(--card-shadow);
 	}
 	.when {
 		font-size: 2rem;
@@ -221,9 +225,6 @@
 		margin: 0 5px 2px 1px;
 		vertical-align: middle;
 	}
-	.who em {
-		font-size: 1.12em;
-	}
 	.reason {
 		color: var(--text-2);
 	}
@@ -242,8 +243,7 @@
 		font-size: 0.75rem;
 		letter-spacing: 0.02em;
 		color: var(--text-3);
-		padding: 2px 0 0 10px;
-		border-left: 1px solid var(--line);
+		padding: 2px 0 0;
 	}
 	.main {
 		margin-top: 10px;
@@ -255,7 +255,7 @@
 		margin-top: 2px;
 	}
 	.inline {
-		font-size: 1.12em;
+		font-weight: 600;
 	}
 	.cal {
 		display: flex;

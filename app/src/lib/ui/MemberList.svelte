@@ -49,8 +49,8 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--surface);
-		border-radius: 28px 28px 0 0;
-		box-shadow: inset 0 1px 0 var(--line);
+		border-radius: 26px 26px 0 0;
+		box-shadow: 0 -1px 0 var(--line), 0 -18px 40px -30px rgb(60 45 20 / 0.35);
 		/* a sheet that runs edge to edge on a phone */
 		margin: 0 calc(-1 * var(--gutter));
 		padding: 8px var(--gutter) 6px;
@@ -95,17 +95,24 @@
 		height: 44px;
 		border-radius: 50%;
 		background: var(--hue);
-		color: #121214;
+		color: #141311;
 		font-size: 0.875rem;
 		font-weight: 600;
 		letter-spacing: 0.02em;
 	}
-	.avatar.open::after {
+	/* Open to a call: a slow breathing glow, not a badge. */
+	.avatar.open::before {
 		content: '';
 		position: absolute;
-		inset: -4px;
+		inset: -10px;
+		z-index: -1;
 		border-radius: 50%;
-		box-shadow: 0 0 0 2px #f4c46c;
+		background: radial-gradient(closest-side, var(--glow), transparent);
+		animation: breathe 4.8s ease-in-out infinite;
+	}
+	.avatar.open {
+		isolation: isolate;
+		z-index: 0;
 	}
 	.col {
 		flex: 1;
@@ -121,10 +128,10 @@
 	}
 	.name {
 		min-width: 0;
-		font-family: var(--serif);
-		font-style: italic;
-		font-size: 1.5rem;
-		line-height: 1.1;
+		font-size: 1.0625rem;
+		font-weight: 500;
+		letter-spacing: -0.015em;
+		line-height: 1.3;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -153,8 +160,9 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: #f4c46c;
-		box-shadow: 0 0 0 3px rgb(244 196 108 / 0.35);
+		background: #e9b36f;
+		box-shadow: 0 0 0 3px var(--glow);
+		animation: breathe 4.8s ease-in-out infinite;
 	}
 	.maybe .glow {
 		opacity: 0.6;
@@ -173,11 +181,12 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: 0.8125rem;
+		font-size: 0.75rem;
+		font-weight: 500;
 		color: var(--text-2);
-		padding: 1px 9px;
+		padding: 2px 9px;
 		border-radius: 999px;
-		box-shadow: inset 0 0 0 1px var(--line);
+		background: var(--bg-2);
 	}
 	.member:focus-visible {
 		outline-offset: -2px;
@@ -187,16 +196,16 @@
 	@media (min-width: 720px) {
 		.members {
 			margin: 0;
-			border-radius: 24px;
-			box-shadow: inset 0 0 0 1px var(--line);
-			padding: 16px 20px 8px;
+			border-radius: var(--r-card);
+			box-shadow: var(--card-shadow);
+			padding: 18px 20px 8px;
 		}
 		.grab {
 			display: none;
 		}
 	}
 	.compact .name {
-		font-size: 1.25rem;
+		font-size: 1rem;
 	}
 	.compact .member {
 		min-height: 56px;

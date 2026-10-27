@@ -283,36 +283,40 @@
 	.room {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 10px;
 		margin-top: -4px;
 	}
 	.extras {
 		display: flex;
 		flex-direction: column;
+		gap: 14px;
 		margin-top: -4px;
 	}
 	.moments {
 		display: flex;
 		flex-direction: column;
-		margin-top: -14px;
+		gap: 14px;
 	}
 	.moment {
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
-		padding: 22px 0 10px;
-		border-bottom: 1px solid var(--line);
+		padding: 20px 20px 10px;
+		border-radius: var(--r-card);
+		background: var(--surface);
+		box-shadow: var(--card-shadow);
+	}
+	.moment.thread {
+		background: transparent;
+		box-shadow: inset 0 0 0 1px var(--line);
 	}
 	.who {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		font-size: var(--t-title);
-		line-height: 1.1;
-		letter-spacing: -0.02em;
-	}
-	.who em {
-		font-size: 1.12em;
+		font-size: 1.5rem;
+		line-height: 1.15;
+		letter-spacing: -0.03em;
 	}
 	.who .dot {
 		width: 12px;
@@ -324,9 +328,9 @@
 		text-decoration: none;
 	}
 	.what {
-		font-size: 1.375rem;
-		line-height: 1.2;
-		letter-spacing: -0.02em;
+		font-size: 1.3125rem;
+		line-height: 1.25;
+		letter-spacing: -0.025em;
 	}
 	.reason {
 		color: var(--text-2);
@@ -357,8 +361,10 @@
 		grid-template-areas: 't i' 's i';
 		align-items: center;
 		column-gap: 14px;
-		padding: 18px 0;
-		border-top: 2px solid var(--rule);
+		padding: 18px 16px 18px 22px;
+		border-radius: var(--r-card);
+		background: var(--bg-2);
+		box-shadow: inset 0 0 0 1px var(--line);
 		color: var(--text);
 		text-decoration: none;
 		margin-top: 8px;
@@ -372,7 +378,7 @@
 	.threads .sub {
 		grid-area: s;
 		color: var(--text-2);
-		font-size: var(--t-lead);
+		font-size: var(--t-small);
 	}
 	.threads .icon-btn {
 		grid-area: i;
@@ -388,9 +394,9 @@
 		flex-direction: column;
 		gap: 8px;
 		padding: 18px 20px 16px;
-		border-radius: 24px;
+		border-radius: var(--r-card);
 		background: var(--surface);
-		box-shadow: inset 0 0 0 1px var(--line);
+		box-shadow: var(--card-shadow);
 		--map-w: 360px;
 	}
 	.small-link {
@@ -406,7 +412,7 @@
 			max-width: 52ch;
 		}
 		.moment {
-			padding: 26px 0 12px;
+			padding: 24px 26px 12px;
 		}
 	}
 </style>

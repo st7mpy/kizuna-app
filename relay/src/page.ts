@@ -25,6 +25,7 @@ function pageHeaders(n: string): Record<string, string> {
 			`style-src 'nonce-${n}'`,
 			`script-src 'nonce-${n}'`,
 			"img-src data:",
+			"font-src 'self'",
 			"form-action 'self'",
 			"base-uri 'none'",
 			"frame-ancestors 'none'"
@@ -32,50 +33,58 @@ function pageHeaders(n: string): Record<string, string> {
 	};
 }
 
-// Same paper, ink and indigo as the app. System fonts only: the CSP allows no font loads.
+// Same ivory paper, ink and blue as the app, in Geist served from the app's own /fonts.
 const GRAIN = `url("data:image/svg+xml;base64,${btoa(
 	`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.1 -0.3'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`
 )}")`;
 
 export const CSS = `
-:root{--bg:#F3F3F0;--text:#121214;--muted:#55545C;--faint:#6B6A72;--line:#D6D5CF;--rule:#121214;--on-rule:#F3F3F0;--accent:#2B3A92;--on-accent:#FFFFFF;--seal:#D4432A;color-scheme:light dark;
---sans:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif}
-@media (prefers-color-scheme:dark){:root{--bg:#0D0D0F;--text:#ECECE8;--muted:#A9A8B0;--faint:#8E8D95;--line:#2B2B30;--rule:#ECECE8;--on-rule:#0D0D0F;--accent:#A3ADFF;--on-accent:#0D0D0F;--seal:#F0603F}}
+@font-face{font-family:Geist;font-weight:400;font-display:swap;src:url(/fonts/geist-400.woff2) format("woff2")}
+@font-face{font-family:Geist;font-weight:500;font-display:swap;src:url(/fonts/geist-500.woff2) format("woff2")}
+@font-face{font-family:Geist;font-weight:600;font-display:swap;src:url(/fonts/geist-600.woff2) format("woff2")}
+:root{--bg:#F7F3EA;--bg-2:#EFE9DD;--surface:#FFFCF6;--text:#141311;--muted:#4C4841;--faint:#6B665B;--line:rgba(20,19,17,.11);--line-2:rgba(20,19,17,.18);--rule:#141311;--on-rule:#F7F3EA;--accent:#2740FF;--accent-soft:rgba(39,64,255,.08);--on-accent:#FFFFFF;--danger:#B8432B;color-scheme:light dark;
+--card:0 0 0 1px rgba(40,30,10,.07),0 1px 2px rgba(60,45,20,.05),0 10px 30px -14px rgba(60,45,20,.18);
+--sky:radial-gradient(60% 55% at 85% 0%,rgba(242,195,181,.55),transparent 70%),radial-gradient(70% 60% at 10% 0%,rgba(158,196,230,.55),transparent 70%),linear-gradient(180deg,#E4ECF2 0%,#ECE6EE 40%,#F4E6DF 75%,#F7F3EA 100%);
+--sans:Geist,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Noto Sans Devanagari","Helvetica Neue",Arial,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#161514;--bg-2:#1B1A19;--surface:#222120;--text:#ECEBE7;--muted:#BCB8AF;--faint:#9B968C;--line:rgba(236,235,231,.1);--line-2:rgba(236,235,231,.18);--rule:#ECEBE7;--on-rule:#161514;--accent:#5A9FEC;--accent-soft:rgba(90,159,236,.13);--on-accent:#0D1520;--danger:#EF7A5F;
+--card:0 0 0 1px rgba(255,250,240,.07),0 10px 30px -14px rgba(0,0,0,.6);
+--sky:radial-gradient(60% 55% at 85% 0%,rgba(150,82,96,.32),transparent 70%),radial-gradient(70% 60% at 10% 0%,rgba(52,74,120,.55),transparent 70%),linear-gradient(180deg,#1A2030 0%,#221D2B 40%,#261C1E 75%,#161514 100%)}}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text)}
-body{font:17px/1.5 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;justify-content:center;padding:20px 20px 32px}
+body{position:relative;isolation:isolate;font:17px/1.5 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;justify-content:center;padding:20px 20px 32px}
+body::before{content:"";position:absolute;inset:0 0 auto;height:440px;z-index:-1;background:var(--sky);pointer-events:none}
 main{width:100%;max-width:440px;display:flex;flex-direction:column}
 .brand{display:flex;align-items:center;gap:9px;font-weight:600;font-size:16px;letter-spacing:-.015em;margin:0 0 56px}
 .brand svg{display:block}
-.eyebrow{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:0 0 12px}
-h1{font-size:42px;line-height:1.04;font-weight:500;letter-spacing:-.035em;margin:0 0 14px;text-wrap:balance}
+.eyebrow{font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+h1{font-size:42px;line-height:1.04;font-weight:500;letter-spacing:-.04em;margin:0 0 14px;text-wrap:balance}
 .sub{color:var(--muted);font-size:19px;line-height:1.4;margin:0 0 36px}
-em{font-family:var(--serif);font-style:italic;font-weight:400}
+em{font-style:normal}
 form{margin:0}
-.slots{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
-.slots li{border-bottom:1px solid var(--line)}
-.slot{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:18px 0;min-height:96px;cursor:pointer}
-.slot:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
+.slots{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.slots li{border-radius:22px;background:var(--surface);box-shadow:var(--card)}
+.slot{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:18px 18px 18px 22px;min-height:96px;cursor:pointer;border-radius:22px}
+.slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .slot[disabled]{opacity:.45;cursor:default}
-.slot .day{display:block;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
-.slot .time{display:block;font-size:28px;line-height:1.1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.slot .day{display:block;font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.slot .time{display:block;font-size:28px;font-weight:500;line-height:1.1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .go{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--rule);color:var(--on-rule);transition:transform .15s}
 .slot:hover .go{transform:translateX(3px)}
 .slot:active .go{transform:scale(.94)}
 .slot[disabled] .go{background:none;color:var(--faint);box-shadow:inset 0 0 0 1px var(--line);font-size:12px;width:auto;padding:0 14px;border-radius:999px;height:32px}
 .tz{color:var(--faint);font-size:14px;margin:18px 0 0}
-.picked{position:relative;overflow:hidden;border-radius:28px;padding:22px 22px 26px;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end;color:#121214;
-background:radial-gradient(130% 100% at 15% 0%,#6E7FC8 0%,transparent 62%),linear-gradient(172deg,#9CC6EE 0%,#D7E8F8 100%)}
-.picked::after{content:"";position:absolute;inset:0;background-image:${GRAIN};background-size:180px;mix-blend-mode:multiply;opacity:.38;pointer-events:none}
+.picked{position:relative;overflow:hidden;border-radius:22px;padding:22px 22px 26px;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end;color:#141311;box-shadow:var(--card);
+background:radial-gradient(120% 90% at 90% 0%,#F2C3B5 0%,transparent 60%),radial-gradient(130% 100% at 10% 0%,#9EC4E6 0%,transparent 65%),linear-gradient(172deg,#B7B3D6 0%,#F4ECE6 100%)}
+.picked::after{content:"";position:absolute;inset:0;background-image:${GRAIN};background-size:180px;mix-blend-mode:multiply;opacity:.2;pointer-events:none}
 .picked>*{position:relative;z-index:1}
-.picked .label{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:rgba(18,18,20,.72);margin:0 0 auto;padding-bottom:28px}
+.picked .label{font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:rgba(20,19,17,.66);margin:0 0 auto;padding-bottom:28px}
 .picked .day{display:block;font-size:15px;font-weight:500}
-.picked .time{display:block;font-size:34px;line-height:1.1;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.picked .time{display:block;font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .seal{position:absolute;top:18px;right:18px;z-index:1;transform:rotate(-8deg)}
 .actions{display:grid;gap:10px;margin:24px 0 0}
-.btn{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:999px;font-weight:500;text-decoration:none;padding:0 20px}
-.btn.primary{background:var(--accent);color:var(--on-accent)}
-.btn.secondary{color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.btn{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:999px;font-weight:500;text-decoration:none;padding:0 20px;transition:transform .2s,box-shadow .2s}
+.btn.primary{background:var(--accent);color:var(--on-accent);box-shadow:0 8px 18px -12px var(--accent)}
+.btn.secondary{color:var(--text);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
 .btn:focus-visible,.change:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .change{align-self:flex-start;display:inline-flex;align-items:center;min-height:44px;margin-top:10px;color:var(--muted);font-size:15px}
 footer{margin-top:auto;padding-top:56px;color:var(--faint);font-size:13px}
@@ -106,12 +115,12 @@ const JS = `
 })();
 `;
 
-// The Kizuna mark: two rings, one in the seal colour. Inline SVG needs no namespace in HTML.
-export const MARK = `<svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(-28 50 50)" fill="none" stroke-width="8"><circle cx="37" cy="50" r="20" stroke="currentColor"/><circle cx="63" cy="50" r="20" stroke="var(--seal)"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="var(--bg)" stroke-width="13"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="currentColor" stroke-linecap="round"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--bg)" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--seal)" stroke-linecap="round"/></g></svg>`;
+// The Kizuna mark: two rings, one ink and one in dawn colours. Inline SVG needs no namespace in HTML.
+export const MARK = `<svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="k-dawn" x1="40" y1="30" x2="86" y2="72" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4f86d4"/><stop offset=".5" stop-color="#7d6fc8"/><stop offset="1" stop-color="#d9706c"/></linearGradient></defs><g transform="rotate(-28 50 50)" fill="none" stroke-width="8"><circle cx="37" cy="50" r="20" stroke="currentColor"/><circle cx="63" cy="50" r="20" stroke="url(#k-dawn)"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="var(--bg)" stroke-width="13"/><path d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="currentColor" stroke-linecap="round"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="var(--bg)" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="url(#k-dawn)" stroke-linecap="round"/></g></svg>`;
 
 const ARROW = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 
-const SEAL = `<svg class="seal" width="64" height="64" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="#D4432A"/><circle cx="50" cy="50" r="39" fill="none" stroke="#F7F1E8" stroke-width="2.5"/><g transform="rotate(-28 50 50)" fill="none" stroke="#F7F1E8" stroke-width="5.5"><circle cx="41" cy="50" r="13"/><circle cx="59" cy="50" r="13"/></g></svg>`;
+const SEAL = `<svg class="seal" width="64" height="64" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="s-dawn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb6e2"/><stop offset=".5" stop-color="#a99fd6"/><stop offset="1" stop-color="#e79c95"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#s-dawn)"/><circle cx="50" cy="50" r="39" fill="none" stroke="#FFFCF6" stroke-width="2.5"/><g transform="rotate(-28 50 50)" fill="none" stroke="#FFFCF6" stroke-width="5.5"><circle cx="41" cy="50" r="13"/><circle cx="59" cy="50" r="13"/></g></svg>`;
 
 function shell(title: string, body: string, status = 200): Response {
 	const n = nonce();
@@ -122,8 +131,8 @@ function shell(title: string, body: string, status = 200): Response {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#F3F3F0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0D0D0F" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F7F3EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)">
 <title>${escapeHtml(title)}</title>
 <style nonce="${n}">${CSS}</style>
 </head>
@@ -179,7 +188,7 @@ export function renderPickedPage(id: string, inv: StoredInvite): Response {
 	const name = escapeHtml(inv.fromName);
 	const gcal = googleCalendarLink(slot, inv.title, `Picked on Kizuna. ${inv.fromName} can see your pick.`);
 	const body = `<p class="eyebrow">Picked</p>
-<h1>You're <em>set</em>.</h1>
+<h1>You're set.</h1>
 <p class="sub">${name} will see your pick.</p>
 <div class="picked" data-start="${escapeHtml(slot.start)}" data-end="${escapeHtml(slot.end)}">
 ${SEAL}

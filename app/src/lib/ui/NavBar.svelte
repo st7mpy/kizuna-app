@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Numbered places on the left, Talk on the right under the thumb.
+	// Places on the left, Talk on the right under the thumb.
 	// From 720 px wide the same bar stands up as a left rail: brand, places, Talk, Settings.
 	import { page } from '$app/state';
 	import Icon from './Icon.svelte';
@@ -27,10 +27,9 @@
 		<span class="word">Kizuna</span>
 	</a>
 	<ul>
-		{#each PLACES as place, i (place.href)}
+		{#each PLACES as place (place.href)}
 			<li>
 				<a href={place.href} class="tab" aria-current={place.match(path) ? 'page' : undefined}>
-					<span class="n num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
 					<span class="t">{place.label}</span>
 				</a>
 			</li>
@@ -96,13 +95,6 @@
 		border-radius: 12px;
 		transition: color var(--dur) var(--ease);
 	}
-	.n {
-		font-size: 0.6875rem;
-		font-weight: 500;
-		line-height: 1;
-		letter-spacing: 0.02em;
-		color: var(--text-3);
-	}
 	.t {
 		font-size: 1rem;
 		font-weight: 500;
@@ -113,12 +105,12 @@
 		content: '';
 		position: absolute;
 		left: 10px;
-		bottom: 8px;
-		width: 18px;
-		height: 2px;
-		background: var(--text);
-		transform: scaleX(0);
-		transform-origin: left;
+		bottom: 10px;
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: var(--accent);
+		transform: scale(0);
 		transition: transform var(--dur) var(--ease);
 	}
 	.tab[aria-current='page'] {
@@ -181,7 +173,7 @@
 			padding: calc(22px + var(--safe-t)) 14px 20px;
 			border-top: 0;
 			border-right: 1px solid var(--line);
-			background: var(--bg);
+			background: var(--bg-2);
 			backdrop-filter: none;
 			-webkit-backdrop-filter: none;
 			overflow-y: auto;
@@ -211,8 +203,8 @@
 			align-items: baseline;
 			justify-content: flex-start;
 			gap: 14px;
-			min-height: 48px;
-			padding: 11px 12px;
+			min-height: 44px;
+			padding: 9px 14px;
 		}
 		.tab .t {
 			font-size: 1.0625rem;
@@ -225,7 +217,8 @@
 			color: var(--text);
 		}
 		.tab[aria-current='page'] {
-			background: var(--sunk);
+			background: var(--surface);
+			box-shadow: var(--card-shadow);
 		}
 		.talk {
 			justify-content: space-between;
@@ -233,6 +226,7 @@
 			padding: 6px 6px 6px 20px;
 			background: var(--accent);
 			color: var(--on-accent);
+			box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--accent) 70%, transparent);
 			transition: transform 160ms var(--ease);
 		}
 		.talk .t {
@@ -277,7 +271,8 @@
 			color: var(--text);
 		}
 		.side[aria-current='page'] {
-			background: var(--sunk);
+			background: var(--surface);
+			box-shadow: var(--card-shadow);
 			color: var(--text);
 		}
 	}

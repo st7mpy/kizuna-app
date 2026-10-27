@@ -259,7 +259,7 @@
 		<nav class="index" aria-label="Settings sections">
 			<ol>
 				{#each INDEX as [id, label], i (id)}
-					<li><a href="#{id}"><span class="num">{String(i + 1).padStart(2, '0')}</span> {label}</a></li>
+					<li><a href="#{id}">{label}</a></li>
 				{/each}
 			</ol>
 		</nav>
@@ -267,7 +267,7 @@
 	<div class="content">
 	{#if s}
 		<section class="block" id="you">
-			<h2><span class="n num">01</span> You</h2>
+			<h2>You</h2>
 			<label class="field">
 				<span>Your first name</span>
 				<input
@@ -281,7 +281,7 @@
 		</section>
 
 		<section class="block" id="free">
-			<h2><span class="n num">02</span> When you’re free for people</h2>
+			<h2>When you’re free for people</h2>
 			<p class="note">Kizuna only suggests times inside these hours.</p>
 			<div class="days">
 				{#each WEEK_ORDER as d (d)}
@@ -325,7 +325,7 @@
 		</section>
 
 		<section class="block" id="quiet">
-			<h2><span class="n num">03</span> Quiet hours</h2>
+			<h2>Quiet hours</h2>
 			<div class="row quiet-row">
 				<label class="field grow">
 					<span>No nudges after</span>
@@ -349,7 +349,7 @@
 		</section>
 
 		<section class="block" id="calendar">
-			<h2><span class="n num">04</span> Your calendar</h2>
+			<h2>Your calendar</h2>
 			<label class="field">
 				<span>Private calendar link (iCal)</span>
 				<input
@@ -366,7 +366,7 @@
 		</section>
 
 		<section class="block" id="map">
-			<h2><span class="n num">05</span> Kizuna map</h2>
+			<h2>Kizuna map</h2>
 			<div class="notice">
 				<p><strong>Shared, sealed:</strong> your first name, time zone, up to three free windows this week, and “free today” for 12 hours if you turn it on.</p>
 				<p><strong>Never shared:</strong> where you are, calendar titles, notes, gift ideas or how much room you have.</p>
@@ -442,7 +442,7 @@
 		</section>
 
 		<section class="block" id="langs">
-			<h2><span class="n num">06</span> Languages you speak in</h2>
+			<h2>Languages you speak in</h2>
 			<div class="row wrap langs" role="group" aria-label="Languages">
 				{#each LANGS as l (l.code)}
 					<button
@@ -459,7 +459,7 @@
 	{/if}
 
 	<section class="block" id="look">
-		<h2><span class="n num">07</span> Look</h2>
+		<h2>Look</h2>
 		<Segmented
 			label="Theme"
 			value={theme}
@@ -473,7 +473,7 @@
 	</section>
 
 	<section class="block" id="notes">
-		<h2><span class="n num">08</span> Your notes</h2>
+		<h2>Your notes</h2>
 		<ul class="rows actions-list">
 			<li>
 				<button class="btn" type="button" onclick={askSample} disabled={sampling}>
@@ -495,7 +495,7 @@
 	</section>
 
 	<section class="block about">
-		<h2><span class="n num">09</span> About Kizuna</h2>
+		<h2>About Kizuna</h2>
 		<p>
 			<strong>Your notes stay on this phone.</strong> When Kizuna reads a note or hears you, the words pass
 			through to the model and back; Kizuna’s server keeps none of it. A pick-a-time link holds just your
@@ -584,17 +584,17 @@
 			list-style: none;
 			margin: 0;
 			padding: 0;
-			border-top: 2px solid var(--rule);
-		}
-		.index li {
-			border-bottom: 1px solid var(--line);
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
 		}
 		.index a {
 			display: flex;
 			gap: 12px;
 			align-items: baseline;
-			min-height: 44px;
-			padding: 11px 0;
+			min-height: 40px;
+			padding: 9px 14px;
+			border-radius: 12px;
 			color: var(--text-2);
 			text-decoration: none;
 			font-size: var(--t-small);
@@ -602,19 +602,23 @@
 		}
 		.index a:hover {
 			color: var(--text);
-		}
-		.index .num {
-			color: var(--text-3);
-			min-width: 22px;
+			background: var(--bg-2);
 		}
 	}
-	/* Numbered blocks, each topped by an ink rule. */
+	/* Each block is a soft rounded surface. */
 	.block {
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		padding-top: 12px;
-		border-top: 2px solid var(--rule);
+		padding: 22px 22px 18px;
+		border-radius: var(--r-card);
+		background: var(--surface);
+		box-shadow: var(--card-shadow);
+	}
+	@media (max-width: 719px) {
+		.block {
+			padding: 18px 14px 14px;
+		}
 	}
 	.block h2 {
 		display: flex;
@@ -622,11 +626,6 @@
 		gap: 12px;
 		font-size: 1.25rem;
 		letter-spacing: -0.02em;
-	}
-	.block .n {
-		font-size: var(--t-small);
-		color: var(--text-3);
-		min-width: 22px;
 	}
 	.days {
 		display: flex;
@@ -659,10 +658,10 @@
 	.win input {
 		min-width: 0;
 		width: 100%;
-		border-bottom: 0;
-		font-size: var(--t-lead);
+		font-size: var(--t-small);
+		font-variant-numeric: tabular-nums;
 		text-align: left;
-		padding: 8px 0;
+		padding: 8px 8px;
 	}
 	.win input::-webkit-calendar-picker-indicator {
 		display: none;
@@ -692,7 +691,7 @@
 		padding: 0 16px;
 		border-radius: 999px;
 		border: 0;
-		box-shadow: inset 0 0 0 1px var(--line);
+		box-shadow: inset 0 0 0 1px var(--line-2);
 		background: transparent;
 		color: var(--text-2);
 		font: inherit;

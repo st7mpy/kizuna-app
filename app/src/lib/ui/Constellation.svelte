@@ -55,6 +55,11 @@
 <figure class="map" aria-label="Your Kizuna map">
 	<svg viewBox="0 {layout.top} {layout.width} {layout.bottom - layout.top}" width="100%" role="group" aria-label="People on your map">
 		<defs>
+			<linearGradient id="dawn-{uid}" x1="40" y1="30" x2="86" y2="72" gradientUnits="userSpaceOnUse">
+				<stop offset="0" stop-color="#4f86d4" />
+				<stop offset="0.5" stop-color="#7d6fc8" />
+				<stop offset="1" stop-color="#d9706c" />
+			</linearGradient>
 			{#each layout.dots as d (d.id)}
 				<clipPath id="c-{gid(d.id)}"><circle cx={d.x} cy={d.y} r={DOT_R} /></clipPath>
 			{/each}
@@ -83,11 +88,11 @@
 			<g transform="translate({layout.cx - 14} {layout.cy - 20}) scale(0.28)">
 				<g transform="rotate(-28 50 50)" fill="none" stroke-width="8">
 					<circle cx="37" cy="50" r="20" class="ink" />
-					<circle cx="63" cy="50" r="20" class="acc" />
+					<circle cx="63" cy="50" r="20" stroke="url(#dawn-{uid})" />
 					<path d={TOP} class="paper" stroke-width="13" />
 					<path d={TOP} class="ink" stroke-linecap="round" />
 					<path d={BOTTOM} class="paper" stroke-width="13" />
-					<path d={BOTTOM} class="acc" stroke-linecap="round" />
+					<path d={BOTTOM} stroke="url(#dawn-{uid})" stroke-linecap="round" />
 				</g>
 			</g>
 			<text x={layout.cx} y={layout.cy + 22} text-anchor="middle" class="me-name">{me.name || 'You'}</text>
@@ -193,24 +198,22 @@
 	.ink {
 		stroke: var(--text);
 	}
-	.acc {
-		stroke: var(--seal);
-	}
 	.paper {
 		stroke: var(--bg);
 	}
 	.me-name {
 		font-family: var(--sans);
-		font-size: 10px;
+		font-size: 9px;
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
 		fill: var(--text-3);
 	}
 	.name {
-		font-family: var(--serif);
-		font-style: italic;
-		font-size: 18px;
+		font-family: var(--sans);
+		font-size: 15px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
 		fill: var(--text);
 	}
 	.sub {
@@ -290,7 +293,7 @@
 		stroke-linecap: round;
 	}
 	.flame {
-		fill: var(--seal);
+		fill: #e39a62;
 	}
 	.leaf {
 		fill: none;

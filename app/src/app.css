@@ -1,45 +1,63 @@
 /* Kizuna design system.
-   Quiet and type-led: a near-monochrome paper, ink type, hairlines instead of boxes,
-   one indigo accent for the main action and a vermilion seal used only as a small flourish.
-   Names and feelings are set in an italic serif; everything else in a grotesk. */
+   Warm ivory paper and warm charcoal, ink type in one family (Geist), soft rounded surfaces
+   with long gentle shadows, and one blue for the main action, the picked item and progress.
+   Dawn colours (sky, lilac, coral, peach) are kept for atmosphere: the hero sky, the family
+   tree lines and the glow of someone who is open to a call. No italics; hierarchy comes from
+   size, weight and colour. */
 @import './lib/ui/fonts.css';
 
 :root {
 	color-scheme: light;
 	/* paper and ink */
-	--bg: #f3f3f0;
-	--surface: #fafaf8; /* sheets */
-	--sunk: #e9e9e5; /* skeletons, pressed rows */
-	--text: #121214;
-	--text-2: #55545c;
-	--text-3: #6b6a72;
-	--line: #d6d5cf; /* hairlines */
-	--rule: #121214; /* thick rules, black circular buttons */
-	--on-rule: #f3f3f0;
-	/* accent: deep indigo, only for the main action, the picked state and focus */
-	--accent: #2b3a92;
-	--accent-ink: #2b3a92;
+	--bg: #f7f3ea;
+	--bg-2: #efe9dd; /* alternate bands */
+	--surface: #fffcf6; /* cards and sheets */
+	--sunk: #efe9dd; /* skeletons, pressed rows */
+	--text: #141311;
+	--text-2: #4c4841;
+	--text-3: #6b665b;
+	--line: rgb(20 19 17 / 0.11); /* hairlines */
+	--line-2: rgb(20 19 17 / 0.18);
+	--rule: #141311; /* ink pills and circular buttons */
+	--on-rule: #f7f3ea;
+	/* accent: one calm blue, only for the main action, the picked state and progress */
+	--accent: #2740ff;
+	--accent-ink: #2740ff;
 	--on-accent: #ffffff;
-	--accent-soft: rgb(43 58 146 / 0.08);
-	/* the seal: vermilion, a small mark when you poke someone or while the mic listens */
-	--seal: #d4432a;
-	--scrim: rgb(18 18 20 / 0.32);
+	--accent-soft: rgb(39 64 255 / 0.08);
+	--accent-line: rgb(39 64 255 / 0.45);
+	--danger: #b8432b;
+	--scrim: rgb(40 32 18 / 0.28);
+	/* dawn: atmosphere only, never for actions */
+	--dawn-sky: #9ec4e6;
+	--dawn-lilac: #b7b3d6;
+	--dawn-coral: #e59a9a;
+	--dawn-peach: #f2c3b5;
+	--glow: rgb(236 178 120 / 0.55); /* open to a call */
+	--sky:
+		radial-gradient(60% 55% at 78% 8%, rgb(242 195 181 / 0.55), transparent 70%),
+		radial-gradient(70% 60% at 12% 0%, rgb(158 196 230 / 0.55), transparent 70%),
+		linear-gradient(180deg, #e4ecf2 0%, #ece6ee 34%, #f4e6df 62%, var(--bg) 100%);
+	--card-shadow: 0 0 0 1px rgb(40 30 10 / 0.07), 0 1px 2px rgb(60 45 20 / 0.05), 0 10px 30px -14px rgb(60 45 20 / 0.18);
+	--shadow: 0 30px 80px -30px rgb(60 45 20 / 0.35), 0 8px 24px -12px rgb(60 45 20 / 0.18);
 
 	--sans: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Devanagari',
 		'Helvetica Neue', Arial, sans-serif;
-	--serif: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif;
 
 	/* type scale */
 	--t-display: 2.75rem; /* 44px: one per screen */
-	--t-title: 1.875rem; /* 30px: names in rows, sheet titles */
+	--t-title: 1.625rem; /* 26px: sheet titles */
 	--t-lead: 1.1875rem; /* 19px */
 	--t-body: 1.0625rem; /* 17px */
 	--t-small: 0.9375rem; /* 15px */
-	--t-label: 0.75rem; /* 12px caps labels */
+	--t-label: 0.6875rem; /* 11px tracked caps labels */
 
+	--r-card: 22px;
+	--r-field: 14px;
 	--tap: 48px;
 	--gutter: 20px;
-	--ease: cubic-bezier(0.22, 0.7, 0.2, 1);
+	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 	--dur: 240ms;
 	--nav-h: 72px;
 	--rail-w: 224px; /* the left rail from 720 px */
@@ -51,40 +69,68 @@
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
 		color-scheme: dark;
-		--bg: #0d0d0f;
-		--surface: #151518;
-		--sunk: #1c1c20;
-		--text: #ecece8;
-		--text-2: #a9a8b0;
-		--text-3: #8e8d95;
-		--line: #2b2b30;
-		--rule: #ecece8;
-		--on-rule: #0d0d0f;
-		--accent: #a3adff;
-		--accent-ink: #b4bcff;
-		--on-accent: #0d0d0f;
-		--accent-soft: rgb(163 173 255 / 0.12);
-		--seal: #f0603f;
-		--scrim: rgb(0 0 0 / 0.6);
+		--bg: #161514;
+		--bg-2: #1b1a19;
+		--surface: #222120;
+		--sunk: #2a2927;
+		--text: #ecebe7;
+		--text-2: #bcb8af;
+		--text-3: #9b968c;
+		--line: rgb(236 235 231 / 0.1);
+		--line-2: rgb(236 235 231 / 0.18);
+		--rule: #ecebe7;
+		--on-rule: #161514;
+		--accent: #5a9fec;
+		--accent-ink: #7cb3f0;
+		--on-accent: #0d1520;
+		--accent-soft: rgb(90 159 236 / 0.13);
+		--accent-line: rgb(90 159 236 / 0.5);
+		--danger: #ef7a5f;
+		--scrim: rgb(0 0 0 / 0.55);
+		--dawn-sky: #5f86b3;
+		--dawn-lilac: #8a80b8;
+		--dawn-coral: #c97a80;
+		--dawn-peach: #d9a08c;
+		--glow: rgb(226 168 110 / 0.42);
+		--sky:
+			radial-gradient(60% 55% at 78% 10%, rgb(150 82 96 / 0.32), transparent 70%),
+			radial-gradient(70% 60% at 12% 0%, rgb(52 74 120 / 0.55), transparent 70%),
+			linear-gradient(180deg, #1a2030 0%, #221d2b 38%, #261c1e 66%, var(--bg) 100%);
+		--card-shadow: 0 0 0 1px rgb(255 250 240 / 0.07), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+		--shadow: 0 40px 90px -30px rgb(0 0 0 / 0.75), 0 10px 30px -14px rgb(0 0 0 / 0.6);
 	}
 }
 :root[data-theme='dark'] {
 	color-scheme: dark;
-	--bg: #0d0d0f;
-	--surface: #151518;
-	--sunk: #1c1c20;
-	--text: #ecece8;
-	--text-2: #a9a8b0;
-	--text-3: #8e8d95;
-	--line: #2b2b30;
-	--rule: #ecece8;
-	--on-rule: #0d0d0f;
-	--accent: #a3adff;
-	--accent-ink: #b4bcff;
-	--on-accent: #0d0d0f;
-	--accent-soft: rgb(163 173 255 / 0.12);
-	--seal: #f0603f;
-	--scrim: rgb(0 0 0 / 0.6);
+	--bg: #161514;
+	--bg-2: #1b1a19;
+	--surface: #222120;
+	--sunk: #2a2927;
+	--text: #ecebe7;
+	--text-2: #bcb8af;
+	--text-3: #9b968c;
+	--line: rgb(236 235 231 / 0.1);
+	--line-2: rgb(236 235 231 / 0.18);
+	--rule: #ecebe7;
+	--on-rule: #161514;
+	--accent: #5a9fec;
+	--accent-ink: #7cb3f0;
+	--on-accent: #0d1520;
+	--accent-soft: rgb(90 159 236 / 0.13);
+	--accent-line: rgb(90 159 236 / 0.5);
+	--danger: #ef7a5f;
+	--scrim: rgb(0 0 0 / 0.55);
+	--dawn-sky: #5f86b3;
+	--dawn-lilac: #8a80b8;
+	--dawn-coral: #c97a80;
+	--dawn-peach: #d9a08c;
+	--glow: rgb(226 168 110 / 0.42);
+	--sky:
+		radial-gradient(60% 55% at 78% 10%, rgb(150 82 96 / 0.32), transparent 70%),
+		radial-gradient(70% 60% at 12% 0%, rgb(52 74 120 / 0.55), transparent 70%),
+		linear-gradient(180deg, #1a2030 0%, #221d2b 38%, #261c1e 66%, var(--bg) 100%);
+	--card-shadow: 0 0 0 1px rgb(255 250 240 / 0.07), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+	--shadow: 0 40px 90px -30px rgb(0 0 0 / 0.75), 0 10px 30px -14px rgb(0 0 0 / 0.6);
 }
 
 *,
@@ -120,38 +166,40 @@ p {
 }
 h1 {
 	font-size: var(--t-display);
-	line-height: 1.02;
+	line-height: 1.04;
 	font-weight: 500;
-	letter-spacing: -0.035em;
+	letter-spacing: -0.04em;
 	text-wrap: balance;
 }
 h2 {
 	font-size: var(--t-lead);
 	line-height: 1.3;
 	font-weight: 500;
-	letter-spacing: -0.01em;
+	letter-spacing: -0.02em;
 }
 h3,
 .label {
 	font-size: var(--t-label);
 	line-height: 1.4;
 	font-weight: 500;
-	letter-spacing: 0.08em;
+	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: var(--text-3);
 }
 
-/* The italic serif: names and feelings. Slightly larger so it sits level with the grotesk. */
+/* One family, no italics. <em> marks a name or the key word; it stays upright and
+   simply keeps the weight of its line (500 inside body text). */
 em,
+i,
 .serif {
-	font-family: var(--serif);
-	font-style: italic;
-	font-weight: 400;
-	letter-spacing: -0.005em;
+	font-style: normal;
+	font-family: inherit;
 }
-h1 em {
-	font-size: 1.08em;
-	letter-spacing: -0.01em;
+p em,
+li em,
+span em {
+	font-weight: 500;
+	color: var(--text);
 }
 
 a {
@@ -287,15 +335,20 @@ a {
 	flex: 1;
 }
 
-/* A section: tiny label over hairline rows. */
+/* A section: a tiny tracked label floating over its rows. */
 .section {
 	display: flex;
 	flex-direction: column;
 }
 .section > h3,
 .section > .label {
-	padding-bottom: 10px;
-	border-bottom: 1px solid var(--line);
+	padding-bottom: 6px;
+}
+/* A soft rounded surface, for groups that need a frame. */
+.surface-card {
+	background: var(--surface);
+	border-radius: var(--r-card);
+	box-shadow: var(--card-shadow);
 }
 .rows {
 	list-style: none;
@@ -304,10 +357,7 @@ a {
 	display: flex;
 	flex-direction: column;
 }
-.rows > * {
-	border-bottom: 1px solid var(--line);
-}
-.rows.open-top > :first-child {
+.rows > * + * {
 	border-top: 1px solid var(--line);
 }
 
@@ -361,22 +411,42 @@ a {
 	cursor: default;
 	transform: none;
 }
+.btn:hover:not(:disabled) {
+	color: var(--text);
+}
 /* The one main action on a screen. */
 .btn.primary {
 	padding: 0 24px;
 	background: var(--accent);
 	color: var(--on-accent);
+	box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.btn.primary:hover:not(:disabled),
+.btn.ink:hover:not(:disabled) {
+	color: var(--on-accent);
+	transform: translateY(-1px);
 }
 .btn.primary:disabled {
 	opacity: 1;
 	background: transparent;
 	color: var(--text-3);
-	box-shadow: inset 0 0 0 1px var(--line);
+	box-shadow: inset 0 0 0 1px var(--line-2);
+}
+/* An ink pill: a strong second action, or the main one where blue would shout. */
+.btn.ink {
+	padding: 0 22px;
+	background: var(--rule);
+	color: var(--on-rule);
+}
+.btn.ink:hover:not(:disabled) {
+	color: var(--on-rule);
+	box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--text) 60%, transparent);
 }
 /* A quiet outlined pill, for a second choice that still needs presence. */
 .btn.line {
 	padding: 0 20px;
-	box-shadow: inset 0 0 0 1px var(--line);
+	background: var(--surface);
+	box-shadow: inset 0 0 0 1px var(--line-2);
 }
 .btn.line:active {
 	background: var(--sunk);
@@ -408,7 +478,7 @@ a {
 	border: 0;
 	background: transparent;
 	color: var(--text);
-	box-shadow: inset 0 0 0 1px var(--line);
+	box-shadow: inset 0 0 0 1px var(--line-2);
 	cursor: pointer;
 	text-decoration: none;
 	transition:
@@ -438,14 +508,17 @@ a {
 	flex-direction: column;
 	gap: 2px;
 }
+.field {
+	gap: 8px;
+}
 .field > span:first-child {
 	font-size: var(--t-label);
 	font-weight: 500;
-	letter-spacing: 0.08em;
+	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: var(--text-3);
 }
-/* Fields are a line, not a box. */
+/* Fields are soft rounded wells on the paper. */
 input[type='text'],
 input[type='tel'],
 input[type='url'],
@@ -456,14 +529,15 @@ textarea {
 	font: inherit;
 	font-size: var(--t-body);
 	color: var(--text);
-	background: transparent;
-	border: 0;
-	border-bottom: 1px solid var(--line);
-	border-radius: 0;
-	padding: 10px 0;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--r-field);
+	padding: 11px 14px;
 	min-height: var(--tap);
 	width: 100%;
-	transition: border-color var(--dur) var(--ease);
+	transition:
+		border-color var(--dur) var(--ease),
+		box-shadow var(--dur) var(--ease);
 }
 textarea {
 	resize: vertical;
@@ -473,8 +547,8 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
 	outline: none;
-	border-bottom-color: var(--accent);
-	box-shadow: 0 1px 0 0 var(--accent);
+	border-color: var(--accent-line);
+	box-shadow: 0 0 0 4px var(--accent-soft);
 }
 ::placeholder {
 	color: var(--text-3);
@@ -489,6 +563,7 @@ textarea:focus-visible {
 	min-height: 34px;
 	padding: 4px 14px;
 	border-radius: 999px;
+	background: var(--surface);
 	box-shadow: inset 0 0 0 1px var(--line);
 	color: var(--text);
 	font-size: var(--t-small);
@@ -508,11 +583,12 @@ textarea:focus-visible {
 .window {
 	position: relative;
 	overflow: hidden;
-	border-radius: 28px;
+	border-radius: var(--r-card);
 	/* Same in both themes: a pastel that fades toward white, like light through paper. */
 	background:
-		radial-gradient(130% 100% at 15% 0%, color-mix(in srgb, var(--hue) 70%, #3b3f8f 30%) 0%, transparent 62%),
-		linear-gradient(172deg, var(--hue) 0%, color-mix(in srgb, var(--hue) 45%, #ffffff) 100%);
+		radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--dawn-peach) 35%, transparent) 0%, transparent 55%),
+		radial-gradient(130% 100% at 10% 0%, color-mix(in srgb, var(--hue) 80%, var(--dawn-sky)) 0%, transparent 65%),
+		linear-gradient(172deg, var(--hue) 0%, color-mix(in srgb, var(--hue) 40%, #fffcf6) 100%);
 }
 .window::after {
 	content: '';
@@ -521,7 +597,7 @@ textarea:focus-visible {
 	background-image: var(--grain);
 	background-size: 180px;
 	mix-blend-mode: multiply;
-	opacity: 0.38;
+	opacity: 0.22;
 	pointer-events: none;
 }
 
@@ -535,7 +611,23 @@ textarea:focus-visible {
 	font-size: 1.75rem;
 	line-height: 1.15;
 	font-weight: 500;
-	letter-spacing: -0.025em;
+	letter-spacing: -0.03em;
+}
+
+/* Someone who is open to a call: a slow breathing glow behind their dot or avatar. */
+.breathe {
+	position: relative;
+	isolation: isolate;
+}
+.breathe::before {
+	content: '';
+	position: absolute;
+	inset: -40%;
+	z-index: -1;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, var(--glow), transparent);
+	animation: breathe 4.8s ease-in-out infinite;
+	pointer-events: none;
 }
 
 /* ---------- motion ---------- */
@@ -547,6 +639,17 @@ textarea:focus-visible {
 	to {
 		opacity: 1;
 		transform: none;
+	}
+}
+@keyframes breathe {
+	0%,
+	100% {
+		opacity: 0.55;
+		transform: scale(0.9);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.08);
 	}
 }
 @keyframes fade {

@@ -28,49 +28,46 @@
 </div>
 
 <style>
-	/* Words on a hairline; the picked one is underlined in ink. */
+	/* A soft pill track; the picked word sits on a raised surface. */
 	.seg {
 		display: grid;
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
-		border-bottom: 1px solid var(--line);
+		gap: 4px;
+		padding: 4px;
+		border-radius: 999px;
+		background: var(--bg-2);
+		box-shadow: inset 0 0 0 1px var(--line);
 	}
 	button {
 		appearance: none;
 		position: relative;
-		min-height: 52px;
-		padding: 0;
+		min-height: 44px;
+		padding: 0 12px;
 		border: 0;
-		border-radius: 0;
+		border-radius: 999px;
 		background: transparent;
 		color: var(--text-3);
 		font: inherit;
 		font-size: var(--t-body);
 		font-weight: 500;
 		letter-spacing: -0.01em;
-		text-align: left;
+		text-align: center;
 		cursor: pointer;
-		transition: color var(--dur) var(--ease);
+		transition:
+			color var(--dur) var(--ease),
+			background var(--dur) var(--ease),
+			box-shadow var(--dur) var(--ease);
 	}
-	button::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		right: 14px;
-		bottom: -1px;
-		height: 2px;
-		background: var(--text);
-		transform: scaleX(0);
-		transform-origin: left;
-		transition: transform var(--dur) var(--ease);
+	button:hover {
+		color: var(--text);
 	}
 	button.on {
 		color: var(--text);
-	}
-	button.on::after {
-		transform: none;
+		background: var(--surface);
+		box-shadow: var(--card-shadow);
 	}
 	button:focus-visible {
-		border-radius: 4px;
+		border-radius: 999px;
 	}
 </style>

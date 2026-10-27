@@ -53,13 +53,13 @@
 <ol class="steps" bind:this={root}>
 	<li class="step" use:reveal={0}>
 		<div class="top">
-			<span class="n num">01</span>
+			<span class="n">Talk</span>
 			<h3>Talk it out</h3>
 			<p>Hold the mic and say what’s on your mind, in English, Hindi or both. Words appear as you speak.</p>
 		</div>
 		<div class="pic note" aria-hidden="true">
 			<div class="listen">
-				<span class="seal" class:on={stage === 1}></span>
+				<span class="rec" class:on={stage === 1}></span>
 				<span class="lbl">{stage === 1 ? 'Listening' : 'Your note'}</span>
 			</div>
 			<p class="said">{typed}<span class="caret" class:hide={stage > 1}></span></p>
@@ -69,17 +69,17 @@
 
 	<li class="step" use:reveal={120}>
 		<div class="top">
-			<span class="n num">02</span>
+			<span class="n">Remember</span>
 			<h3>Kizuna remembers</h3>
 			<p>It picks out the people, dates and promises inside what you said. Your circle builds itself.</p>
 		</div>
 		<div class="pic got" class:on={stage >= 2} aria-hidden="true">
 			<span class="lbl">Understood</span>
 			<ul>
-				<li style="--k:0"><i style="--hue:#9cc6ee"></i><em>Mum</em><span>appointment, Thursday</span></li>
-				<li style="--k:1"><i style="--hue:#f39b80"></i><em>Kabir</em><span>new job · call him</span></li>
-				<li style="--k:2"><i style="--hue:#b6a4f4"></i><em>Riya</em><span>plan for Papa</span></li>
-				<li style="--k:3"><i style="--hue:#d6e38a"></i><em>Papa</em><span>birthday coming up</span></li>
+				<li style="--k:0"><i style="--hue:#a4c6e8"></i><em>Mum</em><span>appointment, Thursday</span></li>
+				<li style="--k:1"><i style="--hue:#eba596"></i><em>Kabir</em><span>new job · call him</span></li>
+				<li style="--k:2"><i style="--hue:#bcb2e6"></i><em>Riya</em><span>plan for Papa</span></li>
+				<li style="--k:3"><i style="--hue:#cbd49e"></i><em>Papa</em><span>birthday coming up</span></li>
 			</ul>
 			<p class="merge" style="--k:4">Ma, Mum and Mummy are the same person.</p>
 		</div>
@@ -87,13 +87,13 @@
 
 	<li class="step" use:reveal={240}>
 		<div class="top">
-			<span class="n num">03</span>
+			<span class="n">Nudge</span>
 			<h3>A nudge at the right moment</h3>
 			<p>Only when there’s a reason and a free time. You get a ready line, edit it, and send it in WhatsApp yourself.</p>
 		</div>
 		<div class="pic nudge" class:on={stage >= 3} aria-hidden="true">
 			<span class="lbl">For today</span>
-			<p class="who"><i style="--hue:#f39b80"></i><em>Kabir</em></p>
+			<p class="who"><i style="--hue:#eba596"></i><em>Kabir</em></p>
 			<p class="why">Started his new job. You said you’d call.</p>
 			<p class="when"><b>Sat 19:00</b> your time · 08:30 in Toronto</p>
 			<p class="line">Kabir! Naya job kaisa chal raha hai? Saturday ko call karein?</p>
@@ -122,13 +122,13 @@
 	.top {
 		display: grid;
 		gap: 10px;
-		padding-top: 18px;
-		border-top: 2px solid var(--rule);
 	}
 	.n {
-		font-size: 0.875rem;
+		font-size: 0.75rem;
 		font-weight: 500;
-		color: var(--text-3);
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--accent-ink);
 	}
 	h3 {
 		font-size: 1.375rem;
@@ -146,11 +146,9 @@
 		position: relative;
 		flex: 1;
 		min-height: 268px;
-		border-radius: 24px;
+		border-radius: var(--r-card);
 		background: var(--surface);
-		box-shadow:
-			inset 0 0 0 1px var(--line),
-			0 24px 60px -40px rgb(0 0 0 / 0.35);
+		box-shadow: var(--card-shadow), 0 24px 60px -36px rgb(60 45 20 / 0.35);
 		padding: 22px;
 		display: flex;
 		flex-direction: column;
@@ -159,7 +157,7 @@
 	.lbl {
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: var(--text-3);
 	}
@@ -168,27 +166,26 @@
 		align-items: center;
 		gap: 10px;
 	}
-	.seal {
+	.rec {
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
-		background: var(--line);
+		background: var(--line-2);
 		transition: background 300ms;
 	}
-	.seal.on {
-		background: var(--seal);
+	.rec.on {
+		background: var(--accent);
 		animation: beat 1.1s ease-in-out infinite;
 	}
 	@keyframes beat {
 		50% {
-			box-shadow: 0 0 0 6px color-mix(in srgb, var(--seal) 18%, transparent);
+			box-shadow: 0 0 0 6px var(--accent-soft);
 		}
 	}
 	.said {
-		font-family: var(--serif);
-		font-style: italic;
-		font-size: 1.375rem;
-		line-height: 1.32;
+		font-size: 1.1875rem;
+		line-height: 1.4;
+		letter-spacing: -0.015em;
 		color: var(--text);
 		min-height: 5.3em;
 	}
@@ -222,9 +219,8 @@
 		align-items: baseline;
 		gap: 10px;
 		padding: 9px 14px;
-		border-radius: 999px;
-		box-shadow: inset 0 0 0 1px var(--line);
-		background: var(--bg);
+		border-radius: 12px;
+		background: var(--bg-2);
 		font-size: var(--t-small);
 		opacity: 0;
 		transform: translateY(8px);
@@ -243,7 +239,7 @@
 		background: var(--hue);
 	}
 	.got li em {
-		font-size: 1.125rem;
+		font-weight: 500;
 	}
 	.got li span {
 		color: var(--text-2);
@@ -293,8 +289,10 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		font-size: 1.75rem;
-		line-height: 1;
+		font-size: 1.5rem;
+		font-weight: 500;
+		letter-spacing: -0.03em;
+		line-height: 1.1;
 		margin-top: 2px;
 	}
 	.why {

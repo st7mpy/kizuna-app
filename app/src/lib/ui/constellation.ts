@@ -49,14 +49,14 @@ export const DOT_R = 12;
 /** Half-size of the square around a dot that also holds its small marks. */
 export const DOT_BOX = 21;
 const GAP = 4;
-const NAME_PX = 18; // Instrument Serif italic
+const NAME_PX = 15; // Geist 500
 const SUB_PX = 11; // Geist, tabular
 export const LABEL_H = 38;
 const EDGE = 4;
 
 /** Rough width of a label, a little generous so real text never runs over. */
 export function labelWidth(name: string, sub: string): number {
-	const n = [...name].reduce((w, ch) => w + (/[A-Z]/.test(ch) ? 0.56 : /[mw]/.test(ch) ? 0.62 : 0.42), 0) * NAME_PX;
+	const n = [...name].reduce((w, ch) => w + (/[A-Z]/.test(ch) ? 0.68 : /[mw]/.test(ch) ? 0.82 : 0.54), 0) * NAME_PX;
 	const s = [...sub].length * 0.6 * SUB_PX;
 	return Math.ceil(Math.max(n, s) + 6);
 }

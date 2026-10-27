@@ -320,7 +320,28 @@
 		background: var(--accent);
 		color: var(--on-accent);
 		cursor: pointer;
+		box-shadow: 0 18px 40px -16px var(--accent);
 		transition: transform 200ms var(--ease);
+	}
+	/* A soft dawn glow behind the mic, like light before sunrise. */
+	.mic-wrap {
+		position: relative;
+		isolation: isolate;
+	}
+	.mic-wrap::before {
+		content: '';
+		position: absolute;
+		z-index: -1;
+		left: 50%;
+		top: 68px;
+		width: 340px;
+		height: 260px;
+		transform: translate(-50%, -50%);
+		background:
+			radial-gradient(closest-side at 35% 50%, color-mix(in srgb, var(--dawn-sky) 55%, transparent), transparent),
+			radial-gradient(closest-side at 65% 50%, color-mix(in srgb, var(--dawn-peach) 55%, transparent), transparent);
+		filter: blur(10px);
+		pointer-events: none;
 	}
 	.mic:active {
 		transform: scale(0.96);
@@ -367,13 +388,15 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: var(--seal);
+		background: var(--accent);
+		animation: breathe 1.6s ease-in-out infinite;
 	}
 	.live {
 		min-height: 140px;
-		padding: 16px 0;
-		border-top: 1px solid var(--line);
-		border-bottom: 1px solid var(--line);
+		padding: 18px 20px;
+		border-radius: var(--r-card);
+		background: var(--surface);
+		box-shadow: var(--card-shadow);
 		font-size: 1.375rem;
 		line-height: 1.45;
 		letter-spacing: -0.015em;

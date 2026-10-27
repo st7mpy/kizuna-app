@@ -95,13 +95,13 @@
 		line-height: 1.4;
 	}
 	thead th {
-		border-bottom: 2px solid var(--rule);
+		border-bottom: 1px solid var(--line-2);
 		padding-top: 22px;
 	}
 	tbody th {
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: var(--text-3);
 		padding-left: 0;
@@ -126,23 +126,24 @@
 		color: var(--text-3);
 	}
 	.us {
-		background: var(--accent-soft);
+		background: var(--surface);
 		color: var(--text);
 		font-weight: 500;
+		box-shadow: 1px 0 0 var(--line), -1px 0 0 var(--line);
 	}
 	thead .us {
 		border-radius: 18px 18px 0 0;
+		box-shadow: 1px 0 0 var(--line), -1px 0 0 var(--line), 0 -1px 0 var(--line);
 	}
 	thead .us .cn {
-		font-family: var(--serif);
-		font-style: italic;
-		font-weight: 400;
-		font-size: 1.625rem;
-		line-height: 1;
+		font-weight: 600;
+		font-size: 1.25rem;
+		letter-spacing: -0.03em;
 		color: var(--accent-ink);
 	}
 	tbody tr:last-child .us {
 		border-radius: 0 0 18px 18px;
+		box-shadow: 1px 0 0 var(--line), -1px 0 0 var(--line), 0 1px 0 var(--line), 0 24px 40px -30px rgb(60 45 20 / 0.4);
 	}
 	tbody tr:last-child th,
 	tbody tr:last-child td {
@@ -161,8 +162,10 @@
 		}
 	}
 	.blk {
-		padding: 20px 0 6px;
-		border-top: 1px solid var(--line);
+		padding: 18px 18px 8px;
+		border-radius: var(--r-card);
+		background: var(--surface);
+		box-shadow: var(--card-shadow);
 	}
 	.blk h3 {
 		margin-bottom: 12px;
@@ -171,16 +174,16 @@
 		display: grid;
 		gap: 2px;
 		padding: 14px 16px;
-		border-radius: 16px;
+		border-radius: 14px;
 		background: var(--accent-soft);
 		font-weight: 500;
 		line-height: 1.35;
 	}
 	.mine .who {
-		font-family: var(--serif);
-		font-style: italic;
-		font-weight: 400;
-		font-size: 1.25rem;
+		font-weight: 600;
+		font-size: 0.75rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
 		color: var(--accent-ink);
 	}
 	dl {

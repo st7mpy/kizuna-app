@@ -21,6 +21,7 @@ function familyHeaders(n: string): Record<string, string> {
 			`script-src 'nonce-${n}'`,
 			"connect-src 'self'",
 			'img-src data:',
+			"font-src 'self'",
 			"form-action 'none'",
 			"base-uri 'none'",
 			"frame-ancestors 'none'"
@@ -258,33 +259,33 @@ h1{font-size:36px}
 .hi{display:block;color:var(--muted);font-size:.86em;font-weight:400;letter-spacing:0;margin-top:2px}
 .sub .hi{font-size:17px}
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 22px}
-.chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:96px;padding:14px 16px;border-radius:20px;border:0;box-shadow:inset 0 0 0 1px var(--line);background:none;color:var(--text);font:inherit;font-size:20px;font-weight:500;letter-spacing:-.01em;text-align:left;cursor:pointer;transition:background .15s,color .15s}
+.chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:96px;padding:14px 16px;border-radius:20px;border:0;box-shadow:var(--card);background:var(--surface);color:var(--text);font:inherit;font-size:20px;font-weight:500;letter-spacing:-.015em;text-align:left;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
 .chip .hi{font-size:16px}
 .chip .when{font-size:13px;font-weight:400;color:var(--faint);margin-top:4px}
-.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);box-shadow:none}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);box-shadow:0 10px 22px -14px var(--accent)}
 .chip[aria-pressed="true"] .hi,.chip[aria-pressed="true"] .when{color:var(--on-accent);opacity:.85}
 .chip[disabled]{opacity:.45;cursor:default}
 .chip:focus-visible,.btn:focus-visible,.link:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .field{display:block;margin:0 0 18px;font-size:15px;color:var(--muted)}
 .field>span{display:block;margin-bottom:6px}
 .field .hi{display:inline;margin-left:6px}
-input,textarea{width:100%;font:inherit;font-size:19px;color:var(--text);background:none;border:0;box-shadow:inset 0 0 0 1px var(--line);border-radius:16px;padding:14px 16px;min-height:56px}
+input,textarea{width:100%;font:inherit;font-size:19px;color:var(--text);background:var(--surface);border:0;box-shadow:inset 0 0 0 1px var(--line);border-radius:14px;padding:14px 16px;min-height:56px}
 textarea{resize:vertical}
-input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+input:focus,textarea:focus{outline:none;box-shadow:inset 0 0 0 1px var(--accent),0 0 0 4px var(--accent-soft)}
 .stack{display:grid;gap:10px}
 button.btn{width:100%;border:0;font:inherit;font-weight:500;cursor:pointer;min-height:60px;font-size:18px;gap:8px;flex-wrap:wrap}
 button.btn .hi{display:inline;color:inherit;opacity:.8;font-size:15px;margin:0}
-button.btn.secondary{background:none}
+button.btn.secondary{background:var(--surface)}
 button.btn[disabled]{opacity:.45;cursor:default}
-.or{display:flex;align-items:center;gap:12px;color:var(--faint);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:28px 0 14px}
+.or{display:flex;align-items:center;gap:12px;color:var(--faint);font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:28px 0 14px}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .link{background:none;border:0;font:inherit;color:var(--muted);text-decoration:underline;text-underline-offset:3px;min-height:48px;padding:0;cursor:pointer;font-size:16px}
 .link .hi{display:inline;margin-left:6px;font-size:15px}
 .mic[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent);color:var(--accent)}
 .status{min-height:1.5em;color:var(--muted);margin:8px 0 0;font-size:15px}
-.err{color:var(--seal);font-size:15px;margin:14px 0 0;min-height:1em}
-.heard{margin:22px 0 0;padding:18px;border-radius:20px;box-shadow:inset 0 0 0 1px var(--line)}
-.heard .quote{font-family:var(--serif);font-style:italic;color:var(--muted);margin:0 0 8px}
+.err{color:var(--danger);font-size:15px;margin:14px 0 0;min-height:1em}
+.heard{margin:22px 0 0;padding:18px;border-radius:20px;background:var(--surface);box-shadow:var(--card)}
+.heard .quote{color:var(--muted);margin:0 0 8px}
 .times{list-style:none;margin:0 0 16px;padding:0;font-size:20px;font-variant-numeric:tabular-nums}
 .times li{padding:8px 0;border-bottom:1px solid var(--line)}
 .note{color:var(--faint);font-size:14px;margin:18px 0 0}
@@ -361,8 +362,8 @@ export function renderFamilyPage(circleId: string): Response {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#F3F3F0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0D0D0F" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F7F3EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)">
 <title>Family call</title>
 <style nonce="${n}">${CSS}${FAMILY_CSS}</style>
 </head>

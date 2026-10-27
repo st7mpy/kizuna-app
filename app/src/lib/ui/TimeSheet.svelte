@@ -189,7 +189,7 @@
 	.slots {
 		display: flex;
 		flex-direction: column;
-		border-top: 1px solid var(--line);
+		gap: 10px;
 	}
 	.slot {
 		appearance: none;
@@ -197,17 +197,20 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
-		min-height: 88px;
-		padding: 14px 4px 14px 0;
+		min-height: 84px;
+		padding: 14px 18px;
 		border: 0;
-		border-bottom: 1px solid var(--line);
-		border-radius: 0;
-		background: transparent;
+		border-radius: 18px;
+		background: var(--bg);
+		box-shadow: inset 0 0 0 1px var(--line);
 		color: var(--text-2);
 		font: inherit;
 		text-align: left;
 		cursor: pointer;
-		transition: color var(--dur) var(--ease);
+		transition:
+			color var(--dur) var(--ease),
+			background var(--dur) var(--ease),
+			box-shadow var(--dur) var(--ease);
 	}
 	.when {
 		display: flex;
@@ -215,9 +218,9 @@
 		gap: 2px;
 	}
 	.time {
-		font-size: 2.25rem;
+		font-size: 2rem;
 		line-height: 1.05;
-		font-weight: 400;
+		font-weight: 500;
 		letter-spacing: -0.04em;
 	}
 	.to {
@@ -228,6 +231,8 @@
 	}
 	.slot.on {
 		color: var(--text);
+		background: var(--accent-soft);
+		box-shadow: inset 0 0 0 1px var(--accent-line);
 	}
 	.slot.on .label {
 		color: var(--accent-ink);
@@ -237,13 +242,13 @@
 		width: 24px;
 		height: 24px;
 		border-radius: 50%;
-		box-shadow: inset 0 0 0 1.5px var(--line);
+		box-shadow: inset 0 0 0 1.5px var(--line-2);
 		transition: box-shadow var(--dur) var(--ease);
 	}
 	.slot.on .radio {
 		box-shadow:
 			inset 0 0 0 1.5px var(--accent),
-			inset 0 0 0 6px var(--surface),
+			inset 0 0 0 6px var(--bg),
 			inset 0 0 0 12px var(--accent);
 	}
 	.slot:focus-visible {

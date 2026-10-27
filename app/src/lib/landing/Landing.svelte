@@ -8,7 +8,7 @@
 	import Mark from '#lib/ui/Mark.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { getTheme, setTheme } from '#lib/ui/theme.js';
-	import HeroMap from './HeroMap.svelte';
+	import FamilyTree from './FamilyTree.svelte';
 	import HowItWorks from './HowItWorks.svelte';
 	import FamilyPhone from './FamilyPhone.svelte';
 	import Compare from './Compare.svelte';
@@ -113,12 +113,12 @@
 	<main id="top">
 		<!-- hero -->
 		<section class="hero">
-			<div class="glow" aria-hidden="true"></div>
+			<div class="sky" aria-hidden="true"><i class="cloud c1"></i><i class="cloud c2"></i><i class="cloud c3"></i></div>
 			<div class="in hero-grid">
 				<div class="hero-copy">
 					<p class="kicker fade" style="--d:80ms"><span>絆</span><span class="sep">·</span><span>the bonds between people</span></p>
 					<h1>
-						<span class="w" style="--i:0">Know when your people are free to <em>talk</em>.</span>
+						<span class="w" style="--i:0">Know when your people are free to talk.</span>
 						<span class="w soft" style="--i:1">Never where they are.</span>
 					</h1>
 					<p class="lede fade" style="--d:520ms">
@@ -129,12 +129,7 @@
 					<p class="fine fade" style="--d:820ms"><span>Works in your browser</span><span>No account</span><span>Nothing for your family to install</span></p>
 				</div>
 				<div class="hero-art fade" style="--d:300ms">
-					<HeroMap />
-					<div class="plan-card">
-						<span class="lbl">This weekend</span>
-						<p class="big num">Sunday 10:00</p>
-						<p><i style="--hue:#9cc6ee"></i><em>Mum</em> and <i style="--hue:#f4c46c"></i><em>Nani</em> are free. It’s Diwali that day.</p>
-					</div>
+					<FamilyTree />
 				</div>
 			</div>
 		</section>
@@ -142,10 +137,10 @@
 		<!-- what it isn't -->
 		<section class="band" aria-label="What Kizuna never does">
 			<div class="in nots">
-				<p use:reveal={0}><span class="x">No</span> location, ever</p>
-				<p use:reveal={80}><span class="x">No</span> app for your family</p>
-				<p use:reveal={160}><span class="x">No</span> streaks or scores</p>
-				<p use:reveal={240}><span class="x">No</span> message sent without you</p>
+				<p use:reveal={0}><span class="x" aria-hidden="true"></span>No location, ever</p>
+				<p use:reveal={80}><span class="x" aria-hidden="true"></span>No app for your family</p>
+				<p use:reveal={160}><span class="x" aria-hidden="true"></span>No streaks or scores</p>
+				<p use:reveal={240}><span class="x" aria-hidden="true"></span>No message sent without you</p>
 			</div>
 		</section>
 
@@ -154,7 +149,7 @@
 			<div class="in">
 				<div class="shead" use:reveal>
 					<p class="kicker"><span>How it works</span></p>
-					<h2>Say it once. Kizuna <em>remembers</em>.</h2>
+					<h2>Say it once. Kizuna remembers.</h2>
 					<p class="lede">No contacts to type in, no reminders to set. Talk the way you think, half sentences and all, and let Kizuna find the right moment.</p>
 				</div>
 				<HowItWorks />
@@ -166,7 +161,7 @@
 			<div class="in split">
 				<div class="copy">
 					<p class="kicker" use:reveal><span>The Kizuna map</span></p>
-					<h2 use:reveal={60}>Free, not <em>found</em>.</h2>
+					<h2 use:reveal={60}>Free, not found.</h2>
 					<p class="lede" use:reveal={120}>
 						Your people on one calm map: you in the middle, family close, friends further out. Each shows their local time,
 						night falling where it’s late, and a soft glow when they’re open to a call.
@@ -188,7 +183,7 @@
 			<div class="in">
 				<div class="shead" use:reveal>
 					<p class="kicker"><span>How it’s different</span></p>
-					<h2>Other apps watch, count or <em>wait</em>.</h2>
+					<h2>Other apps watch, count or wait.</h2>
 					<p class="lede">
 						Trackers show where people are. Personal CRMs count the days. Group calendars wait for everyone to fill them in.
 						Kizuna finds one good moment, hands you the words, and gets out of the way.
@@ -207,26 +202,26 @@
 			<div class="in">
 				<div class="shead" use:reveal>
 					<p class="kicker"><span>Yours</span></p>
-					<h2>Quiet by <em>design</em>.</h2>
+					<h2>Quiet by design.</h2>
 				</div>
 				<div class="facts">
 					<div class="fact" use:reveal={0}>
-						<span class="fn num">01</span>
+						<span class="fn">On your phone</span>
 						<h3>Notes stay on your phone</h3>
 						<p>No account. Notes, people and threads live in your browser. Text is sent only to be understood, and isn’t stored.</p>
 					</div>
 					<div class="fact" use:reveal={80}>
-						<span class="fn num">02</span>
+						<span class="fn">No location</span>
 						<h3>No location, ever</h3>
 						<p>The map shows local time and the free windows people choose to share. Never where anyone is.</p>
 					</div>
 					<div class="fact" use:reveal={160}>
-						<span class="fn num">03</span>
+						<span class="fn">Sealed</span>
 						<h3>Sealed for family</h3>
 						<p>Map entries are locked on the device. The server only holds what it can’t read, and it’s gone after 8 days.</p>
 					</div>
 					<div class="fact" use:reveal={240}>
-						<span class="fn num">04</span>
+						<span class="fn">No scores</span>
 						<h3>No streaks, no scores</h3>
 						<p>No counters, “days since” or red badges. “Not now” is a normal answer, and you send every message yourself.</p>
 					</div>
@@ -239,7 +234,7 @@
 			<div class="in">
 				<div class="shead" use:reveal>
 					<p class="kicker"><span>Built on Meta’s Muse models</span></p>
-					<h2>Two models, each doing <em>one</em> job well.</h2>
+					<h2>Two models, each doing one job well.</h2>
 				</div>
 				<div class="models">
 					<article use:reveal={0}>
@@ -259,9 +254,9 @@
 		<!-- finale -->
 		<section class="finale">
 			<div class="in">
-				<div class="card" use:reveal>
+				<div class="titlecard" use:reveal>
 					<div class="word"><Mark size={64} --mark-paper="var(--surface)" /><span>Kizuna</span></div>
-					<p class="tagline">Keep your thoughts and your <em>people</em> from slipping away.</p>
+					<p class="tagline">Keep your thoughts and your people from slipping away.</p>
 					{@render ctas('end')}
 				</div>
 			</div>
@@ -272,7 +267,7 @@
 		<div class="in foot">
 			<div class="about">
 				<span class="brand"><Mark size={24} --mark-paper="var(--bg)" /><span>Kizuna</span></span>
-				<p><em>Kizuna</em> (絆) is Japanese for the bonds between people.</p>
+				<p>Kizuna (絆) is Japanese for the bonds between people.</p>
 			</div>
 			<div>
 				<h4>Kizuna</h4>
@@ -335,7 +330,7 @@
 			border-color 300ms var(--ease);
 	}
 	.nav.scrolled {
-		background: color-mix(in srgb, var(--bg) 80%, transparent);
+		background: color-mix(in srgb, var(--bg) 78%, transparent);
 		backdrop-filter: blur(14px) saturate(1.2);
 		-webkit-backdrop-filter: blur(14px) saturate(1.2);
 		border-bottom-color: var(--line);
@@ -345,7 +340,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
-		height: 68px;
+		height: 72px;
 	}
 	.brand {
 		display: inline-flex;
@@ -361,6 +356,7 @@
 		display: flex;
 		gap: 28px;
 		font-size: 0.9375rem;
+		font-weight: 500;
 	}
 	.nav nav a {
 		color: var(--text-2);
@@ -378,17 +374,18 @@
 	.round {
 		display: grid;
 		place-items: center;
-		width: 40px;
-		height: 40px;
+		width: 38px;
+		height: 38px;
 		border-radius: 50%;
 		border: 0;
 		background: transparent;
 		color: var(--text);
-		box-shadow: inset 0 0 0 1px var(--line);
+		box-shadow: inset 0 0 0 1px var(--line-2);
 		cursor: pointer;
+		transition: background 200ms;
 	}
 	.round:hover {
-		background: var(--accent-soft);
+		background: color-mix(in srgb, var(--surface) 70%, transparent);
 	}
 	@media (max-width: 820px) {
 		.nav nav {
@@ -408,8 +405,8 @@
 		align-items: center;
 		justify-content: center;
 		gap: 10px;
-		min-height: 54px;
-		padding: 0 26px;
+		min-height: 52px;
+		padding: 0 24px;
 		border: 0;
 		border-radius: 999px;
 		font: inherit;
@@ -423,21 +420,25 @@
 			box-shadow 300ms var(--ease),
 			background 200ms;
 	}
+	/* Ink pills, as on a printed page; blue stays inside the app for the one main action. */
 	.cta.primary {
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--rule);
+		color: var(--on-rule);
 	}
-	.cta.primary:hover:not(:disabled) {
+	.cta:hover:not(:disabled) {
 		transform: translateY(-1px);
-		box-shadow: 0 14px 28px -14px color-mix(in srgb, var(--accent) 80%, transparent);
+		box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--text) 55%, transparent);
 	}
 	.cta.line {
-		background: transparent;
+		background: color-mix(in srgb, var(--surface) 72%, transparent);
 		color: var(--text);
 		box-shadow: inset 0 0 0 1px var(--line);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
 	}
-	.cta.line:hover {
-		background: var(--accent-soft);
+	.cta.line:hover:not(:disabled) {
+		background: var(--surface);
+		box-shadow: inset 0 0 0 1px var(--line), 0 10px 24px -14px rgb(60 45 20 / 0.3);
 	}
 	.cta.small {
 		min-height: 40px;
@@ -464,9 +465,9 @@
 		display: inline-flex;
 		gap: 0.6em;
 		align-items: center;
-		font-size: var(--t-label);
+		font-size: 0.75rem;
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
 		color: var(--accent-ink);
 	}
@@ -474,8 +475,8 @@
 		opacity: 0.5;
 	}
 	h1 {
-		font-size: clamp(2.5rem, 4.3vw, 4rem);
-		line-height: 1;
+		font-size: clamp(2.625rem, 5vw, 4.75rem);
+		line-height: 1.02;
 		letter-spacing: -0.045em;
 	}
 	h1 .w {
@@ -483,19 +484,15 @@
 	}
 	h1 .soft {
 		color: var(--text-3);
-		margin-top: 0.22em;
-		font-size: 0.68em;
-		letter-spacing: -0.035em;
+		margin-top: 0.18em;
+		font-size: 0.62em;
+		letter-spacing: -0.04em;
 	}
 	h2 {
 		font-size: clamp(2.125rem, 4vw, 3.5rem);
 		line-height: 1.04;
 		letter-spacing: -0.04em;
 		text-wrap: balance;
-	}
-	h2 em {
-		font-size: 1.08em;
-		letter-spacing: -0.01em;
 	}
 	.lede {
 		font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
@@ -505,31 +502,78 @@
 		text-wrap: pretty;
 	}
 
-	/* hero */
+	/* hero: a soft time-of-day sky that fades into the paper, with slow drifting light */
 	.hero {
 		position: relative;
 		isolation: isolate;
-		padding-block: clamp(28px, 5vw, 64px) clamp(56px, 7vw, 96px);
+		margin-top: calc(-72px - var(--safe-t));
+		padding-block: calc(72px + var(--safe-t) + clamp(28px, 5vw, 72px)) clamp(64px, 8vw, 112px);
 	}
-	.glow {
+	.sky {
 		position: absolute;
-		inset: -120px 0 0;
+		inset: 0;
 		z-index: -1;
+		overflow: hidden;
 		pointer-events: none;
-		background:
-			radial-gradient(520px 380px at 74% 34%, color-mix(in srgb, #9cc6ee 34%, transparent), transparent 70%),
-			radial-gradient(420px 320px at 86% 64%, color-mix(in srgb, #f4c46c 24%, transparent), transparent 70%),
-			radial-gradient(600px 400px at 10% 0%, var(--accent-soft), transparent 70%);
-		animation: breathe 9s ease-in-out infinite;
+		background: var(--sky);
 	}
-	@keyframes breathe {
-		50% {
-			opacity: 0.75;
+	.sky::after {
+		content: '';
+		position: absolute;
+		inset: auto 0 0;
+		height: 36%;
+		background: linear-gradient(180deg, transparent, var(--bg));
+	}
+	.cloud {
+		position: absolute;
+		border-radius: 50%;
+		filter: blur(48px);
+		opacity: 0.7;
+		animation: drift 46s ease-in-out infinite alternate;
+	}
+	.c1 {
+		width: 46vw;
+		height: 22vw;
+		left: -8vw;
+		top: 6%;
+		background: color-mix(in srgb, #ffffff 70%, transparent);
+	}
+	.c2 {
+		width: 38vw;
+		height: 20vw;
+		right: -6vw;
+		top: 18%;
+		background: color-mix(in srgb, var(--dawn-lilac) 55%, transparent);
+		animation-duration: 58s;
+		animation-direction: alternate-reverse;
+	}
+	.c3 {
+		width: 40vw;
+		height: 16vw;
+		left: 30vw;
+		top: 52%;
+		background: color-mix(in srgb, var(--dawn-peach) 50%, transparent);
+		animation-duration: 64s;
+	}
+	:global(:root[data-theme='dark']) .c1 {
+		background: color-mix(in srgb, #8fa6d6 18%, transparent);
+	}
+	@media (prefers-color-scheme: dark) {
+		:global(:root:not([data-theme='light'])) .c1 {
+			background: color-mix(in srgb, #8fa6d6 18%, transparent);
+		}
+	}
+	@keyframes drift {
+		from {
+			transform: translate3d(-3vw, 0, 0) scale(1);
+		}
+		to {
+			transform: translate3d(4vw, 1.5vw, 0) scale(1.08);
 		}
 	}
 	.hero-grid {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
 		gap: clamp(32px, 5vw, 72px);
 		align-items: center;
 	}
@@ -556,49 +600,6 @@
 	}
 	.hero-art {
 		position: relative;
-	}
-	.plan-card {
-		position: relative;
-		display: grid;
-		gap: 2px;
-		width: fit-content;
-		margin: 22px 0 0 auto;
-		padding: 16px 20px;
-		border-radius: 22px;
-		background: var(--surface);
-		box-shadow:
-			inset 0 0 0 1px var(--line),
-			0 24px 50px -28px rgb(0 0 0 / 0.45);
-		font-size: var(--t-small);
-		max-width: 360px;
-		animation: float 9s ease-in-out infinite;
-	}
-	.plan-card .lbl {
-		font-size: 0.6875rem;
-		font-weight: 500;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--text-3);
-	}
-	.plan-card .big {
-		font-size: 1.625rem;
-		font-weight: 500;
-		line-height: 1.15;
-	}
-	.plan-card p {
-		color: var(--text-2);
-	}
-	.plan-card em {
-		color: var(--text);
-		font-size: 1.1em;
-	}
-	.plan-card i {
-		display: inline-block;
-		width: 8px;
-		height: 8px;
-		margin: 0 4px 1px 0;
-		border-radius: 50%;
-		background: var(--hue);
 	}
 	@keyframes float {
 		50% {
@@ -635,56 +636,57 @@
 			width: 100%;
 			margin: 8px auto 0;
 		}
-		.plan-card {
-			margin: 18px auto 0;
-			animation: none;
-		}
 	}
 
-	/* the band of nevers */
-	.band {
-		border-block: 1px solid var(--line);
-	}
+	/* the band of nevers: four quiet promises, no rules */
 	.nots {
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 12px 40px;
+		padding-block: 8px 24px;
 	}
 	.nots p {
-		padding: 22px 0;
-		font-size: 1.0625rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 0.9375rem;
 		font-weight: 500;
-		letter-spacing: -0.01em;
+		color: var(--text-2);
+		letter-spacing: -0.005em;
 	}
-	.nots p + p {
-		padding-left: 24px;
-		border-left: 1px solid var(--line);
-	}
+	/* a small struck circle: "never" */
 	.x {
-		font-family: var(--serif);
-		font-style: italic;
-		font-weight: 400;
-		font-size: 1.25em;
-		color: var(--seal);
-		margin-right: 2px;
+		position: relative;
+		flex: none;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		box-shadow: inset 0 0 0 1.5px var(--text-3);
 	}
-	@media (max-width: 860px) {
+	.x::after {
+		content: '';
+		position: absolute;
+		left: 50%;
+		top: 1px;
+		bottom: 1px;
+		width: 1.5px;
+		background: var(--text-3);
+		transform: translateX(-50%) rotate(45deg);
+	}
+	@media (max-width: 560px) {
 		.nots {
+			display: grid;
 			grid-template-columns: 1fr 1fr;
+			gap: 14px 16px;
+			justify-items: start;
 		}
 		.nots p {
-			padding: 16px 0;
-			font-size: 0.9375rem;
+			font-size: 0.875rem;
+			align-items: flex-start;
 		}
-		.nots p + p {
-			padding-left: 0;
-			border-left: 0;
-		}
-		.nots p:nth-child(even) {
-			padding-left: 16px;
-			border-left: 1px solid var(--line);
-		}
-		.nots p:nth-child(n + 3) {
-			border-top: 1px solid var(--line);
+		.x {
+			margin-top: 2px;
 		}
 	}
 
@@ -693,7 +695,7 @@
 		padding-block: clamp(72px, 10vw, 136px);
 	}
 	.tint {
-		background: color-mix(in srgb, var(--sunk) 55%, var(--bg));
+		background: var(--bg-2);
 	}
 	.shead {
 		display: grid;
@@ -745,8 +747,9 @@
 	}
 	.aside {
 		margin-top: 36px;
-		padding-left: 16px;
-		border-left: 2px solid var(--accent);
+		padding: 20px 24px;
+		border-radius: 18px;
+		background: var(--bg-2);
 		color: var(--text-2);
 		max-width: 44em;
 	}
@@ -761,7 +764,7 @@
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 1px;
 		background: var(--line);
-		border-radius: 24px;
+		border-radius: var(--r-card);
 		overflow: hidden;
 		box-shadow: 0 0 0 1px var(--line);
 	}
@@ -769,16 +772,16 @@
 		display: grid;
 		align-content: start;
 		gap: 10px;
-		padding: 28px 24px 32px;
-		background: var(--bg);
+		padding: 26px 24px 30px;
+		background: var(--bg-2);
 	}
 	.fn {
-		font-size: 2.5rem;
+		font-size: 0.6875rem;
 		font-weight: 500;
-		line-height: 1;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
 		color: var(--text-3);
-		opacity: 0.6;
-		margin-bottom: 18px;
+		margin-bottom: 6px;
 	}
 	.fact h3 {
 		font-size: 1.1875rem;
@@ -801,10 +804,6 @@
 		.facts {
 			grid-template-columns: minmax(0, 1fr);
 		}
-		.fn {
-			margin-bottom: 6px;
-			font-size: 1.75rem;
-		}
 	}
 
 	/* models */
@@ -818,9 +817,16 @@
 		align-content: start;
 		gap: 14px;
 		padding: clamp(24px, 3vw, 36px);
-		border-radius: 24px;
+		border-radius: var(--r-card);
 		background: var(--surface);
-		box-shadow: inset 0 0 0 1px var(--line);
+		box-shadow: var(--card-shadow);
+		transition:
+			transform 500ms var(--ease-out),
+			box-shadow 500ms var(--ease-out);
+	}
+	.models article:hover {
+		transform: translateY(-6px);
+		box-shadow: var(--card-shadow), var(--shadow);
 	}
 	.mname {
 		font-size: clamp(1.5rem, 2.4vw, 2rem);
@@ -843,8 +849,9 @@
 	.chips li {
 		padding: 6px 12px;
 		border-radius: 999px;
-		box-shadow: inset 0 0 0 1px var(--line);
+		background: var(--bg-2);
 		font-size: 0.8125rem;
+		font-weight: 500;
 		color: var(--text-2);
 	}
 	@media (max-width: 760px) {
@@ -857,7 +864,7 @@
 	.finale {
 		padding-block: 0 clamp(72px, 9vw, 120px);
 	}
-	.card {
+	.titlecard {
 		position: relative;
 		overflow: hidden;
 		isolation: isolate;
@@ -869,27 +876,24 @@
 		padding: clamp(56px, 8vw, 110px) var(--pad);
 		border-radius: clamp(24px, 3vw, 36px);
 		background: var(--surface);
-		box-shadow:
-			inset 0 0 0 1px var(--line),
-			0 40px 90px -50px rgb(0 0 0 / 0.4);
+		box-shadow: var(--shadow);
 	}
-	.card::before {
+	.titlecard::before {
 		content: '';
 		position: absolute;
 		inset: 0;
 		z-index: -1;
-		background:
-			radial-gradient(500px 300px at 30% 0%, color-mix(in srgb, #9cc6ee 30%, transparent), transparent 70%),
-			radial-gradient(500px 300px at 75% 100%, color-mix(in srgb, #f4c46c 22%, transparent), transparent 70%);
+		background: var(--sky);
+		opacity: 0.85;
 	}
-	.card::after {
+	.titlecard::after {
 		content: '';
 		position: absolute;
 		inset: 0;
 		z-index: -1;
 		background-image: var(--grain);
 		background-size: 180px;
-		opacity: 0.18;
+		opacity: 0.12;
 		mix-blend-mode: multiply;
 	}
 	.word {
@@ -897,7 +901,7 @@
 		align-items: center;
 		gap: clamp(12px, 2vw, 22px);
 		font-size: clamp(3rem, 8vw, 6.5rem);
-		font-weight: 600;
+		font-weight: 500;
 		letter-spacing: -0.05em;
 		line-height: 1;
 	}
@@ -905,16 +909,13 @@
 		width: clamp(52px, 8vw, 96px);
 		height: auto;
 	}
-	.card .tagline {
+	.titlecard .tagline {
 		font-size: clamp(1.125rem, 2vw, 1.5rem);
 		color: var(--text-2);
 		letter-spacing: -0.02em;
 		max-width: 26em;
 	}
-	.card .tagline em {
-		color: var(--text);
-	}
-	.card .ctas {
+	.titlecard .ctas {
 		justify-content: center;
 	}
 
@@ -938,7 +939,7 @@
 		margin: 0 0 14px;
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
 		color: var(--text-3);
 	}
@@ -1036,8 +1037,7 @@
 			transform: none;
 			animation: none;
 		}
-		.glow,
-		.plan-card {
+		.cloud {
 			animation: none;
 		}
 	}

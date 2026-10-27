@@ -78,7 +78,7 @@
 	.when {
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: var(--text-3);
 		margin-top: 2px;

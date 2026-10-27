@@ -12,7 +12,7 @@
 	}: {
 		open?: boolean;
 		title: string;
-		/** Set after the title in the italic serif, e.g. a name. */
+		/** Set after the title, a little stronger, e.g. a name. */
 		em?: string;
 		onclose?: () => void;
 		children: Snippet;
@@ -77,8 +77,8 @@
 	}
 	.sheet {
 		background: var(--surface);
-		border-radius: 24px 24px 0 0;
-		box-shadow: inset 0 1px 0 var(--line);
+		border-radius: 26px 26px 0 0;
+		box-shadow: 0 0 0 1px var(--line), var(--shadow);
 		padding: 8px var(--gutter) calc(24px + var(--safe-b));
 		max-height: 92dvh;
 		overflow-y: auto;
@@ -108,7 +108,7 @@
 		padding-top: 4px;
 	}
 	h2 em {
-		font-size: 1.1em;
+		font-weight: 600;
 	}
 	@keyframes up {
 		from {
@@ -128,8 +128,8 @@
 			max-height: 88dvh;
 		}
 		.sheet {
-			border-radius: 24px;
-			box-shadow: inset 0 0 0 1px var(--line);
+			border-radius: 26px;
+			box-shadow: 0 0 0 1px var(--line), var(--shadow);
 			padding: 12px 28px 28px;
 			max-height: 88dvh;
 		}

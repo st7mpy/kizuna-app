@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f3f3f0"/><g transform="translate(11 11) scale(0.78)"><g transform="rotate(-28 50 50)" fill="none" stroke-width="8" stroke-linecap="butt">
-<circle class="ink" cx="37" cy="50" r="20" stroke="#121214"/>
-<circle cx="63" cy="50" r="20" stroke="#d4432a"/>
-<path class="paper" d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="#f3f3f0" stroke-width="13"/><path class="ink" d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="#121214" stroke-linecap="round"/>
-<path class="paper" d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="#f3f3f0" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="#d4432a" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f7f3ea"/><g transform="translate(11 11) scale(0.78)"><defs><linearGradient id="dawn" x1="40" y1="30" x2="86" y2="72" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4f86d4"/><stop offset=".5" stop-color="#7d6fc8"/><stop offset="1" stop-color="#d9706c"/></linearGradient></defs><g transform="rotate(-28 50 50)" fill="none" stroke-width="8" stroke-linecap="butt">
+<circle class="ink" cx="37" cy="50" r="20" stroke="#141311"/>
+<circle cx="63" cy="50" r="20" stroke="url(#dawn)"/>
+<path class="paper" d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="#f7f3ea" stroke-width="13"/><path class="ink" d="M43.36 31.04 A20 20 0 0 1 54.75 40.78" stroke="#141311" stroke-linecap="round"/>
+<path class="paper" d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="#f7f3ea" stroke-width="13"/><path d="M56.64 68.96 A20 20 0 0 1 45.25 59.22" stroke="url(#dawn)" stroke-linecap="round"/>
 </g></g></svg>

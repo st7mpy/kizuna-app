@@ -418,22 +418,21 @@
 		justify-content: space-between;
 		min-height: 236px;
 		padding: 20px 22px 18px;
-		color: #121214;
+		color: #141311;
+		box-shadow: var(--card-shadow);
 	}
 	.portrait .label {
 		position: relative;
 		z-index: 1;
-		color: rgb(18 18 20 / 0.72);
+		color: rgb(20 19 17 / 0.66);
 	}
 	.portrait h1 {
 		position: relative;
 		z-index: 1;
-		font-size: 4.25rem;
-		line-height: 0.95;
-		letter-spacing: -0.02em;
-	}
-	.portrait h1 em {
-		font-size: 1em;
+		font-size: 3.5rem;
+		font-weight: 500;
+		line-height: 1;
+		letter-spacing: -0.045em;
 	}
 	.summary {
 		font-size: var(--t-lead);
@@ -456,14 +455,14 @@
 		line-height: 1;
 	}
 	.d {
-		font-size: 2.5rem;
-		font-weight: 400;
-		letter-spacing: -0.04em;
+		font-size: 2.25rem;
+		font-weight: 500;
+		letter-spacing: -0.045em;
 	}
 	.m {
 		font-size: var(--t-label);
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.14em;
 		color: var(--text-3);
 		margin-top: 4px;
 	}

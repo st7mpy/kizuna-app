@@ -175,7 +175,7 @@
 		padding: 4px 16px 4px 5px;
 		border-radius: 999px;
 		background: var(--surface);
-		box-shadow: inset 0 0 0 1px var(--line);
+		box-shadow: var(--card-shadow);
 		color: var(--text);
 		font-size: var(--t-small);
 		font-weight: 500;
@@ -194,7 +194,7 @@
 		height: 30px;
 		border-radius: 50%;
 		background: var(--hue);
-		color: #121214;
+		color: #141311;
 		font-size: 0.75rem;
 		font-weight: 600;
 		box-shadow: 0 0 0 2px var(--surface);
@@ -218,7 +218,7 @@
 		fill: var(--text-2);
 	}
 	.flame {
-		fill: var(--seal);
+		fill: #e39a62;
 	}
 	.legend {
 		display: flex;
@@ -229,8 +229,8 @@
 	/* Beside the list, the constellation gets room to breathe. */
 	@media (min-width: 1100px) {
 		.stage {
-			--map-w: 640px;
-			padding: 12px 0 0;
+			--map-w: 600px;
+			padding: 40px 28px 22px;
 		}
 		.panes > .side {
 			gap: 20px;
@@ -248,21 +248,29 @@
 		border-radius: 50%;
 	}
 	.legend .g {
-		background: #f4c46c;
-		box-shadow: 0 0 0 4px rgb(244 196 108 / 0.35);
+		background: #e9b36f;
+		box-shadow: 0 0 0 4px var(--glow);
 	}
 	.legend .n {
-		background: linear-gradient(90deg, #9cc6ee 50%, color-mix(in srgb, #9cc6ee 38%, var(--bg)) 50%);
+		background: linear-gradient(90deg, #a4c6e8 50%, color-mix(in srgb, #a4c6e8 38%, var(--bg)) 50%);
 		box-shadow: inset 0 0 0 0.75px var(--text-3);
 	}
+	/* The map floats in a soft sky that follows the theme. */
 	.stage {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
+		padding: 28px 12px 18px;
+		border-radius: 28px;
+		background: var(--sky);
+		box-shadow: inset 0 0 0 1px var(--line);
+		overflow: hidden;
 	}
 	.cards {
 		display: flex;
 		flex-direction: column;
+		gap: 14px;
 	}
 	.cards:empty {
 		display: none;
@@ -272,8 +280,10 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 10px;
-		padding-top: 14px;
-		border-top: 2px solid var(--rule);
+		padding: 22px 22px 20px;
+		border-radius: var(--r-card);
+		background: var(--surface);
+		box-shadow: var(--card-shadow);
 	}
 	.invite .btn {
 		margin-top: 6px;

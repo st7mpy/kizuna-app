@@ -65,15 +65,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
-		padding: 18px 0 6px;
-		border-bottom: 1px solid var(--line);
+		padding: 18px 20px 8px;
+		background: var(--surface);
+		border-radius: var(--r-card);
+		box-shadow: var(--card-shadow);
 	}
 	.lead {
 		font-size: var(--t-lead);
 		line-height: 1.45;
-	}
-	.lead em {
-		font-size: 1.12em;
 	}
 	.acts {
 		display: flex;
@@ -85,6 +84,6 @@
 		margin-left: auto;
 	}
 	.inline {
-		font-size: 1.12em;
+		font-weight: 600;
 	}
 </style>

@@ -98,11 +98,9 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		font-size: var(--t-title);
-		line-height: 1.1;
-	}
-	.who em {
-		font-size: 1.12em;
+		font-size: 1.5rem;
+		line-height: 1.15;
+		letter-spacing: -0.03em;
 	}
 	.who .dot {
 		width: 12px;
@@ -124,7 +122,7 @@
 		flex: none;
 		width: 52px;
 		height: 52px;
-		border-radius: 16px;
+		border-radius: 50%;
 	}
 	.who-col {
 		flex: 1;
@@ -133,10 +131,10 @@
 		flex-direction: column;
 	}
 	.name {
-		font-family: var(--serif);
-		font-style: italic;
-		font-size: 1.75rem;
-		line-height: 1.1;
+		font-size: 1.25rem;
+		font-weight: 500;
+		letter-spacing: -0.025em;
+		line-height: 1.2;
 	}
 	.sum {
 		color: var(--text-2);
@@ -189,22 +187,23 @@
 			align-items: stretch;
 			gap: 14px;
 			padding: 14px 14px 18px;
-			border-radius: 24px;
+			border-radius: var(--r-card);
 			background: var(--surface);
-			box-shadow: inset 0 0 0 1px var(--line);
+			box-shadow: var(--card-shadow);
 			transition:
-				transform 160ms var(--ease),
-				box-shadow var(--dur) var(--ease);
+				transform 500ms var(--ease-out),
+				box-shadow 500ms var(--ease-out);
 		}
 		.person:hover {
-			box-shadow: inset 0 0 0 1px var(--text-3);
+			transform: translateY(-4px);
+			box-shadow: var(--card-shadow), var(--shadow);
 		}
 		.person:active {
 			transform: scale(0.99);
 		}
 		.swatch {
 			width: 100%;
-			height: 96px;
+			height: 104px;
 			border-radius: 16px;
 		}
 		.who-col {
