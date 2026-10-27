@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { liveQuery } from 'dexie';
 	import type { Card, GiftCard as Gift, Person, Room, Settings, WeekendCard as Weekend } from '@kizuna/shared';
-	import { answerCard, loadSampleLife, setRoom, todayCards, todayExtras } from '#lib/core/index.js';
+	import { answerCard, setRoom, todayCards, todayExtras } from '#lib/core/index.js';
 	import { allPeople, db, hasAnyData, settingsLive } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { dayKey, greeting } from '#lib/ui/format.js';
@@ -14,10 +14,18 @@
 	import { hueFor } from '#lib/ui/hue.js';
 	import WeekendCard from '#lib/ui/WeekendCard.svelte';
 	import GiftCard from '#lib/ui/GiftCard.svelte';
+	import Landing from '#lib/landing/Landing.svelte';
+	import { hasEntered } from '#lib/landing/entered.js';
+	import Constellation from '#lib/ui/Constellation.svelte';
+	import { screen } from '#lib/ui/screen.svelte.js';
+	import { mapLive, type MapView } from '#lib/db.js';
+	import { occasionChip } from '#lib/ui/mapformat.js';
 
 	const settings = watch<Settings | undefined>(() => settingsLive(), undefined);
 	const hasData = watch(() => hasAnyData(), false);
 	const people = watch<Person[]>(() => allPeople(), []);
+	// The side column on a wide screen: a small map and what's coming up.
+	const map = watch<MapView | undefined>(() => mapLive(), undefined);
 	// Changes when notes get understood or people appear, so Today can refresh quietly.
 	const pulse = watch(
 		() =>
@@ -36,8 +44,6 @@
 	let gifts = $state<Gift[]>([]);
 	let loaded = $state(false);
 	let failed = $state(false);
-	let sampling = $state(false);
-	let sampleFailed = $state(false);
 
 	const now = new Date();
 	const hello = greeting(now.getHours());
@@ -103,19 +109,6 @@
 		}
 	}
 
-	async function trySample() {
-		sampling = true;
-		sampleFailed = false;
-		try {
-			await loadSampleLife();
-			await load();
-		} catch {
-			sampleFailed = true;
-		} finally {
-			sampling = false;
-		}
-	}
-
 	// sheets
 	let pokeOpen = $state(false);
 	let timeOpen = $state(false);
@@ -131,42 +124,31 @@
 		timeOpen = true;
 	}
 
-	const firstRun = $derived(hasData.ready && !hasData.value && loaded && cards.length === 0);
+	// A first visit with nothing on this device sees the landing page, until they step inside.
+	const entered = hasEntered();
+	const firstRun = $derived(hasData.ready && !hasData.value && !entered);
+	// Stays up while the sample family loads, so Today doesn't flash before the map opens.
+	let landing = $state(false);
+	$effect(() => {
+		if (firstRun) landing = true;
+	});
 </script>
 
-<svelte:head><title>Today · Kizuna</title></svelte:head>
+<svelte:head><title>{firstRun || landing ? 'Kizuna: know when your people are free to talk' : 'Today · Kizuna'}</title></svelte:head>
 
-<div class="page">
-	{#if firstRun}
-		<section class="welcome" in:soft>
-			<div class="head">
-				<p class="label">Welcome</p>
-				<h1>Keep your thoughts and your <em>people</em> from slipping away.</h1>
-			</div>
-			<div class="stack">
-				<a href="/talk" class="btn primary big block"><Icon name="mic" size={22} /> Talk to Kizuna</a>
-				<button class="btn line big block" type="button" onclick={trySample} disabled={sampling}>
-					{sampling ? 'Setting up a sample life…' : 'Try with sample life'}
-				</button>
-			</div>
-			<ol class="rows open-top steps">
-				<li><span class="n num">01</span><span>Say what’s on your mind, in English, Hindi or both.</span></li>
-				<li><span class="n num">02</span><span>Kizuna remembers the people, dates and plans.</span></li>
-				<li><span class="n num">03</span><span>It speaks up only when there’s a good moment, or stays quiet.</span></li>
-			</ol>
-			<div class="window hero" style="--hue:#9cc6ee" aria-hidden="true">
-				<span class="sun"></span>
-			</div>
-			{#if sampleFailed}
-				<p class="note" role="status">Couldn’t load the sample just now. Try again in a moment.</p>
-			{/if}
-		</section>
-	{:else}
+{#if !hasData.ready && !entered}
+	<!-- a moment while we check this device for notes -->
+{:else if firstRun || landing}
+	<Landing />
+{:else}
+<div class="page" class:wide={!firstRun}>
 		<div class="head">
 			<p class="label">{dateLine}</p>
 			<h1>{hello}{#if myName},<br /><em>{myName}</em>{/if}</h1>
 		</div>
 
+		<div class="panes today">
+		<div class="main">
 		<section class="room" aria-labelledby="room-q">
 			<h2 id="room-q" class="label">How much room today?</h2>
 			<Segmented
@@ -255,8 +237,33 @@
 			<span class="sub"><em>ideas, plans, promises, errands</em></span>
 			<span class="icon-btn solid" aria-hidden="true"><Icon name="arrow" size={20} /></span>
 		</a>
-	{/if}
+		</div>
+		{#if screen.wide}
+			<aside class="side" aria-label="Your map">
+				{#if map.value?.people.length}
+					<section class="mini">
+						<div class="spread">
+							<h3>Your map</h3>
+							<a href="/map" class="btn accent small-link">Open the map</a>
+						</div>
+						<Constellation people={map.value.people} me={{ name: 'You', localTime: map.value.me.localTime }} />
+					</section>
+				{/if}
+				{#if map.value?.occasions.length}
+					<section class="section">
+						<h3>Coming up</h3>
+						<ul class="rows">
+							{#each map.value.occasions.slice(0, 4) as o (o.day + o.name)}
+								<li class="soon">{occasionChip(o.name, o.day)}</li>
+							{/each}
+						</ul>
+					</section>
+				{/if}
+			</aside>
+		{/if}
+		</div>
 </div>
+{/if}
 
 <PokeSheet
 	bind:open={pokeOpen}
@@ -273,46 +280,6 @@
 />
 
 <style>
-	.welcome {
-		display: flex;
-		flex-direction: column;
-		gap: 28px;
-	}
-	.welcome h1 {
-		font-size: 2.625rem;
-	}
-	.hero {
-		height: 132px;
-		border-radius: 28px;
-	}
-	.sun {
-		position: absolute;
-		right: 28px;
-		top: 26px;
-		width: 34px;
-		height: 34px;
-		border-radius: 50%;
-		background: var(--seal);
-		opacity: 0.9;
-	}
-	.steps {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-	.steps li {
-		display: grid;
-		grid-template-columns: 36px 1fr;
-		gap: 8px;
-		padding: 14px 0;
-		color: var(--text-2);
-		line-height: 1.45;
-	}
-	.steps .n {
-		font-size: var(--t-small);
-		color: var(--text);
-		font-weight: 500;
-	}
 	.room {
 		display: flex;
 		flex-direction: column;
@@ -412,5 +379,34 @@
 	}
 	.threads:focus-visible {
 		outline-offset: 4px;
+	}
+	.today > .main {
+		gap: 28px;
+	}
+	.mini {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 18px 20px 16px;
+		border-radius: 24px;
+		background: var(--surface);
+		box-shadow: inset 0 0 0 1px var(--line);
+		--map-w: 360px;
+	}
+	.small-link {
+		min-height: 36px;
+		font-size: var(--t-small);
+	}
+	.soon {
+		padding: 12px 0;
+		font-size: var(--t-small);
+	}
+	@media (min-width: 720px) {
+		.reason {
+			max-width: 52ch;
+		}
+		.moment {
+			padding: 26px 0 12px;
+		}
 	}
 </style>

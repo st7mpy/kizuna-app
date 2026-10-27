@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { clearEntered } from '#lib/landing/entered.js';
+	import { screen } from '#lib/ui/screen.svelte.js';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { Settings, Window } from '@kizuna/shared';
@@ -219,6 +221,7 @@
 		deleting = true;
 		try {
 			await deleteEverything();
+			clearEntered();
 			confirmDelete = false;
 			goto('/');
 		} catch {
@@ -228,19 +231,42 @@
 			deleting = false;
 		}
 	}
+
+	const INDEX: [string, string][] = [
+		['you', 'You'],
+		['free', 'When you’re free'],
+		['quiet', 'Quiet hours'],
+		['calendar', 'Your calendar'],
+		['map', 'Kizuna map'],
+		['langs', 'Languages'],
+		['look', 'Look'],
+		['notes', 'Your notes'],
+		['about', 'About Kizuna']
+	];
 </script>
 
 <svelte:head><title>Settings · Kizuna</title></svelte:head>
 
 <div class="page">
-	<a href="/" class="back"><Icon name="back" size={18} /> Today</a>
+	{#if !screen.rail}<a href="/" class="back"><Icon name="back" size={18} /> Today</a>{/if}
 	<div class="head">
 		<p class="label">Settings</p>
 		<h1>Settings</h1>
 	</div>
 
+	<div class="settings-grid">
+	{#if screen.wide}
+		<nav class="index" aria-label="Settings sections">
+			<ol>
+				{#each INDEX as [id, label], i (id)}
+					<li><a href="#{id}"><span class="num">{String(i + 1).padStart(2, '0')}</span> {label}</a></li>
+				{/each}
+			</ol>
+		</nav>
+	{/if}
+	<div class="content">
 	{#if s}
-		<section class="block">
+		<section class="block" id="you">
 			<h2><span class="n num">01</span> You</h2>
 			<label class="field">
 				<span>Your first name</span>
@@ -254,7 +280,7 @@
 			</label>
 		</section>
 
-		<section class="block">
+		<section class="block" id="free">
 			<h2><span class="n num">02</span> When you’re free for people</h2>
 			<p class="note">Kizuna only suggests times inside these hours.</p>
 			<div class="days">
@@ -298,7 +324,7 @@
 			</div>
 		</section>
 
-		<section class="block">
+		<section class="block" id="quiet">
 			<h2><span class="n num">03</span> Quiet hours</h2>
 			<div class="row quiet-row">
 				<label class="field grow">
@@ -322,7 +348,7 @@
 			</div>
 		</section>
 
-		<section class="block">
+		<section class="block" id="calendar">
 			<h2><span class="n num">04</span> Your calendar</h2>
 			<label class="field">
 				<span>Private calendar link (iCal)</span>
@@ -415,7 +441,7 @@
 			{#if mapNote}<p class="note" role="status">{mapNote}</p>{/if}
 		</section>
 
-		<section class="block">
+		<section class="block" id="langs">
 			<h2><span class="n num">06</span> Languages you speak in</h2>
 			<div class="row wrap langs" role="group" aria-label="Languages">
 				{#each LANGS as l (l.code)}
@@ -432,7 +458,7 @@
 		{#if note}<p class="note" role="alert">{note}</p>{/if}
 	{/if}
 
-	<section class="block">
+	<section class="block" id="look">
 		<h2><span class="n num">07</span> Look</h2>
 		<Segmented
 			label="Theme"
@@ -446,7 +472,7 @@
 		/>
 	</section>
 
-	<section class="block">
+	<section class="block" id="notes">
 		<h2><span class="n num">08</span> Your notes</h2>
 		<ul class="rows actions-list">
 			<li>
@@ -482,7 +508,10 @@
 		</p>
 		<p>You send every message yourself. No streaks, no scores, no counting.</p>
 		<p class="muted">Kizuna is not a health app. It doesn’t diagnose, track moods or give advice.</p>
+		<a href="/about" class="btn line about-link">About Kizuna <Icon name="arrow" size={18} /></a>
 	</section>
+	</div>
+	</div>
 </div>
 
 <Sheet bind:open={confirmSample} title="Try a sample life?">
@@ -510,6 +539,75 @@
 </Sheet>
 
 <style>
+	.settings-grid,
+	.content {
+		display: flex;
+		flex-direction: column;
+		gap: 28px;
+		min-width: 0;
+	}
+	.block {
+		scroll-margin-top: 24px;
+	}
+	.about-link {
+		align-self: flex-start;
+		margin-top: 4px;
+	}
+	@media (min-width: 720px) {
+		.content {
+			gap: 40px;
+		}
+		.days .day {
+			grid-template-columns: 64px minmax(0, 1fr);
+		}
+		.wins .win {
+			grid-template-columns: 8.5em auto 8.5em auto;
+			width: auto;
+		}
+	}
+	/* Wide: a section index on the left, settings on the right. */
+	@media (min-width: 1100px) {
+		.page {
+			max-width: 1080px;
+		}
+		.settings-grid {
+			display: grid;
+			grid-template-columns: 220px minmax(0, 680px);
+			gap: 64px;
+			align-items: start;
+		}
+		.index {
+			position: sticky;
+			top: 28px;
+		}
+		.index ol {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			border-top: 2px solid var(--rule);
+		}
+		.index li {
+			border-bottom: 1px solid var(--line);
+		}
+		.index a {
+			display: flex;
+			gap: 12px;
+			align-items: baseline;
+			min-height: 44px;
+			padding: 11px 0;
+			color: var(--text-2);
+			text-decoration: none;
+			font-size: var(--t-small);
+			font-weight: 500;
+		}
+		.index a:hover {
+			color: var(--text);
+		}
+		.index .num {
+			color: var(--text-3);
+			min-width: 22px;
+		}
+	}
 	/* Numbered blocks, each topped by an ink rule. */
 	.block {
 		display: flex;

@@ -426,4 +426,11 @@
 			transition: none;
 		}
 	}
+	/* Wider screens: one calm column in the middle. */
+	@media (min-width: 720px) {
+		.page.talk {
+			max-width: 640px;
+			padding-top: calc(56px + var(--safe-t));
+		}
+	}
 </style>

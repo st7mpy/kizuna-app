@@ -120,4 +120,34 @@
 			opacity: 1;
 		}
 	}
+	/* Wider screens: a centred card instead of a bottom sheet. */
+	@media (min-width: 720px) {
+		dialog {
+			margin: auto;
+			max-width: 520px;
+			max-height: 88dvh;
+		}
+		.sheet {
+			border-radius: 24px;
+			box-shadow: inset 0 0 0 1px var(--line);
+			padding: 12px 28px 28px;
+			max-height: 88dvh;
+		}
+		.grab {
+			display: none;
+		}
+		dialog[open] .sheet {
+			animation: pop 260ms var(--ease);
+		}
+	}
+	@keyframes pop {
+		from {
+			transform: translateY(12px) scale(0.98);
+			opacity: 0;
+		}
+		to {
+			transform: none;
+			opacity: 1;
+		}
+	}
 </style>

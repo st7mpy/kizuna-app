@@ -175,7 +175,7 @@
 	.map {
 		margin: 0 auto;
 		width: 100%;
-		max-width: 430px;
+		max-width: var(--map-w, 430px);
 	}
 	svg {
 		display: block;

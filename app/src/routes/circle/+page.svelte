@@ -33,7 +33,7 @@
 
 <svelte:head><title>Circle · Kizuna</title></svelte:head>
 
-<div class="page">
+<div class="page wide">
 	<div class="head">
 		<p class="label">Circle</p>
 		<h1>Your circle</h1>
@@ -63,7 +63,7 @@
 
 	<section class="section" aria-label="People in your circle">
 		{#if suggested.value.length && circle.value.length}<h3>In your circle</h3>{/if}
-		<div class="rows" class:open-top={!suggested.value.length}>
+		<div class="rows people" class:open-top={!suggested.value.length}>
 			{#each circle.value as p (p.id)}
 				<a class="person" href="/circle/{p.id}" in:soft>
 					<span class="window swatch" style="--hue:{hueFor(p.id)}" aria-hidden="true"></span>
@@ -165,5 +165,54 @@
 	}
 	.pad {
 		padding-top: 14px;
+	}
+	/* Wider screens: the circle as a grid of soft tiles, still one tap to a person. */
+	@media (min-width: 720px) {
+		.head .lede {
+			max-width: none;
+		}
+		.suggest .muted {
+			max-width: 60ch;
+		}
+		.people {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+			gap: 16px;
+			padding-top: 16px;
+		}
+		.people.open-top > :first-child,
+		.people > * {
+			border: 0;
+		}
+		.person {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 14px;
+			padding: 14px 14px 18px;
+			border-radius: 24px;
+			background: var(--surface);
+			box-shadow: inset 0 0 0 1px var(--line);
+			transition:
+				transform 160ms var(--ease),
+				box-shadow var(--dur) var(--ease);
+		}
+		.person:hover {
+			box-shadow: inset 0 0 0 1px var(--text-3);
+		}
+		.person:active {
+			transform: scale(0.99);
+		}
+		.swatch {
+			width: 100%;
+			height: 96px;
+			border-radius: 16px;
+		}
+		.who-col {
+			padding: 0 6px;
+			gap: 4px;
+		}
+		.person > :global(svg) {
+			display: none;
+		}
 	}
 </style>

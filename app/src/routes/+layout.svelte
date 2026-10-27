@@ -6,6 +6,7 @@
 	import Mark from '#lib/ui/Mark.svelte';
 	import NavBar from '#lib/ui/NavBar.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { chrome } from '#lib/ui/chrome.svelte.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -20,27 +21,32 @@
 	});
 </script>
 
-<div class="shell">
-	<header>
-		<a href="/" class="brand" aria-label="Kizuna, Today">
-			<Mark size={24} />
-			<span class="word">Kizuna</span>
-		</a>
-		<a
-			href="/settings"
-			class="icon-btn bare"
-			aria-label="Settings"
-			aria-current={page.url.pathname.startsWith('/settings') ? 'page' : undefined}
-		>
-			<Icon name="gear" size={22} />
-		</a>
-	</header>
+<div class="shell" class:bare={chrome.bare}>
+	{#if !chrome.bare}
+		<header>
+			<a href="/" class="brand" aria-label="Kizuna, Today">
+				<Mark size={24} />
+				<span class="word">Kizuna</span>
+			</a>
+			<div class="row end">
+				<a href="/about" class="about">About</a>
+				<a
+					href="/settings"
+					class="icon-btn bare"
+					aria-label="Settings"
+					aria-current={page.url.pathname.startsWith('/settings') ? 'page' : undefined}
+				>
+					<Icon name="gear" size={22} />
+				</a>
+			</div>
+		</header>
+	{/if}
 	<main id="main">
 		{#key page.url.pathname}
 			{@render children()}
 		{/key}
 	</main>
-	<NavBar />
+	{#if !chrome.bare}<NavBar />{/if}
 </div>
 
 <style>
@@ -73,7 +79,41 @@
 		color: var(--text);
 		box-shadow: inset 0 0 0 1px var(--line);
 	}
+	.end {
+		gap: 2px;
+	}
+	.about {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 10px;
+		color: var(--text-2);
+		font-size: var(--t-small);
+		font-weight: 500;
+		text-decoration: none;
+	}
 	main {
 		padding-bottom: calc(var(--nav-h) + 32px + var(--safe-b));
+	}
+	/* The landing page: no header, no tab bar, full width. */
+	.shell.bare {
+		max-width: none;
+	}
+	.shell.bare main {
+		padding-bottom: 0;
+	}
+
+	/* From 720 px the tab bar becomes a left rail and the content takes the rest. */
+	@media (min-width: 720px) {
+		.shell:not(.bare) {
+			max-width: none;
+			padding-left: var(--rail-w);
+		}
+		.shell:not(.bare) header {
+			display: none;
+		}
+		.shell:not(.bare) main {
+			padding-bottom: 0;
+		}
 	}
 </style>

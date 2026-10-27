@@ -182,6 +182,8 @@
 	<a href="/circle" class="back"><Icon name="back" size={18} /> Circle</a>
 
 	{#if p.value}
+		<div class="person-grid">
+		<div class="lead">
 		<section class="intro">
 			<div class="window portrait" style="--hue:{hueFor(p.value.id)}">
 				<p class="label">{RELATION[p.value.relation] ?? 'In your circle'}</p>
@@ -217,7 +219,9 @@
 				</div>
 			</form>
 		</section>
+		</div>
 
+		<div class="rest">
 		{#if onMap && (onMap.localTime || onMap.windows.length || onMap.occasion || openGift)}
 			<section class="section">
 				<h3>On the map</h3>
@@ -377,6 +381,8 @@
 		<button class="btn quiet remove" type="button" onclick={() => (removeOpen = true)}>
 			Remove {p.value.name} from Kizuna
 		</button>
+		</div>
+		</div>
 
 		<PokeSheet bind:open={pokeOpen} person={p.value} reason={p.value.summary ?? ''} />
 		<TimeSheet bind:open={timeOpen} person={p.value} />
@@ -508,5 +514,42 @@
 	}
 	select {
 		appearance: auto;
+	}
+	.person-grid,
+	.lead,
+	.rest {
+		display: flex;
+		flex-direction: column;
+		gap: 28px;
+		min-width: 0;
+	}
+	@media (min-width: 720px) {
+		.person-grid,
+		.lead,
+		.rest {
+			gap: 32px;
+		}
+	}
+	/* Wide: the portrait and actions stay on the left, the story scrolls on the right. */
+	@media (min-width: 1100px) {
+		.page {
+			max-width: 1200px;
+		}
+		.person-grid {
+			display: grid;
+			grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+			align-items: start;
+			gap: 64px;
+		}
+		.lead {
+			position: sticky;
+			top: 28px;
+		}
+		.portrait {
+			min-height: 300px;
+		}
+		.rest {
+			padding-top: 8px;
+		}
 	}
 </style>

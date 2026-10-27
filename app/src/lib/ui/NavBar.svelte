@@ -1,14 +1,17 @@
 <script lang="ts">
 	// Numbered places on the left, Talk on the right under the thumb.
-	// Add a place here (e.g. a map) and the bar makes room for it.
+	// From 720 px wide the same bar stands up as a left rail: brand, places, Talk, Settings.
 	import { page } from '$app/state';
 	import Icon from './Icon.svelte';
+	import Mark from './Mark.svelte';
+	import { screen } from './screen.svelte.js';
 
 	const PLACES: { href: string; label: string; match: (p: string) => boolean }[] = [
 		{
 			href: '/',
 			label: 'Today',
-			match: (p) => p === '/' || p.startsWith('/threads') || p.startsWith('/settings')
+			// On a phone Settings lives under Today; the rail gives it its own place.
+			match: (p) => p === '/' || p.startsWith('/threads') || (!screen.rail && p.startsWith('/settings'))
 		},
 		{ href: '/circle', label: 'Circle', match: (p) => p.startsWith('/circle') },
 		{ href: '/map', label: 'Map', match: (p) => p.startsWith('/map') }
@@ -19,6 +22,10 @@
 </script>
 
 <nav aria-label="Main">
+	<a href="/" class="brand rail-only" aria-label="Kizuna, Today">
+		<Mark size={26} />
+		<span class="word">Kizuna</span>
+	</a>
 	<ul>
 		{#each PLACES as place, i (place.href)}
 			<li>
@@ -33,6 +40,19 @@
 		<span class="t">Talk</span>
 		<span class="disc" aria-hidden="true"><Icon name="mic" size={24} stroke={1.8} /></span>
 	</a>
+	{#if screen.rail}
+		<div class="foot">
+			<a
+				href="/settings"
+				class="side"
+				aria-label="Settings"
+				aria-current={path.startsWith('/settings') ? 'page' : undefined}
+			>
+				<Icon name="gear" size={20} /> <span>Settings</span>
+			</a>
+			<a href="/about" class="side small">About Kizuna</a>
+		</div>
+	{/if}
 </nav>
 
 <style>
@@ -142,5 +162,123 @@
 	}
 	.talk:focus-visible {
 		outline-offset: 2px;
+	}
+	.rail-only {
+		display: none;
+	}
+
+	/* ---------- the rail ---------- */
+	@media (min-width: 720px) {
+		nav {
+			top: 0;
+			right: auto;
+			width: var(--rail-w);
+			max-width: none;
+			flex-direction: column;
+			align-items: stretch;
+			justify-content: flex-start;
+			gap: 0;
+			padding: calc(22px + var(--safe-t)) 14px 20px;
+			border-top: 0;
+			border-right: 1px solid var(--line);
+			background: var(--bg);
+			backdrop-filter: none;
+			-webkit-backdrop-filter: none;
+			overflow-y: auto;
+		}
+		.rail-only {
+			display: inline-flex;
+		}
+		.brand {
+			align-items: center;
+			gap: 10px;
+			min-height: var(--tap);
+			padding: 0 10px;
+			margin-bottom: 28px;
+			color: var(--text);
+		}
+		.word {
+			font-size: 1.0625rem;
+			font-weight: 600;
+			letter-spacing: -0.015em;
+		}
+		ul {
+			flex-direction: column;
+			gap: 4px;
+		}
+		.tab {
+			flex-direction: row;
+			align-items: baseline;
+			justify-content: flex-start;
+			gap: 14px;
+			min-height: 48px;
+			padding: 11px 12px;
+		}
+		.tab .t {
+			font-size: 1.0625rem;
+			line-height: 1.4;
+		}
+		.tab::after {
+			display: none;
+		}
+		.tab:hover {
+			color: var(--text);
+		}
+		.tab[aria-current='page'] {
+			background: var(--sunk);
+		}
+		.talk {
+			justify-content: space-between;
+			margin-top: 22px;
+			padding: 6px 6px 6px 20px;
+			background: var(--accent);
+			color: var(--on-accent);
+			transition: transform 160ms var(--ease);
+		}
+		.talk .t {
+			font-size: 1.0625rem;
+		}
+		.talk:active {
+			transform: scale(0.98);
+		}
+		.disc {
+			width: 44px;
+			height: 44px;
+			background: color-mix(in srgb, var(--on-accent) 18%, transparent);
+		}
+		.talk[aria-current='page'] .disc::after {
+			inset: -3px;
+			box-shadow: 0 0 0 1px var(--on-accent);
+		}
+		.foot {
+			margin-top: auto;
+			padding-top: 24px;
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+		}
+		.side {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			min-height: 44px;
+			padding: 0 12px;
+			border-radius: 12px;
+			color: var(--text-2);
+			font-size: var(--t-small);
+			font-weight: 500;
+		}
+		.side.small {
+			color: var(--text-3);
+			font-size: 0.8125rem;
+			min-height: 36px;
+		}
+		.side:hover {
+			color: var(--text);
+		}
+		.side[aria-current='page'] {
+			background: var(--sunk);
+			color: var(--text);
+		}
 	}
 </style>

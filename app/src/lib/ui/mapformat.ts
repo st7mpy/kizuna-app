@@ -54,3 +54,26 @@ export function skippedLine(name: string, why: string): string {
 	return `${line}.`;
 }
 
+
+/** "KB" from "Kabir Bhatia", "M" from "Mum": initials for a round avatar. */
+export function initials(name: string): string {
+	const words = name.trim().split(/\s+/).filter(Boolean);
+	if (!words.length) return '·';
+	const first = [...words[0]][0] ?? '';
+	const last = words.length > 1 ? ([...words[words.length - 1]][0] ?? '') : '';
+	return (first + last).toUpperCase();
+}
+
+/** One status line under a name in the member list. Never a count, never a place. */
+export function memberStatus(
+	p: { localTime: string | null; tz: string | null; daylight: number; glow: 'open' | 'maybe' | null },
+	city: (tz: string | null) => string
+): { text: string; tone: 'open' | 'maybe' | 'night' | 'plain' | 'none' } {
+	if (!p.localTime) return { text: 'Nothing shared', tone: 'none' };
+	const place = city(p.tz);
+	const clock = place ? `${p.localTime} ${place}` : p.localTime;
+	if (p.glow === 'open') return { text: `Open to a call · ${clock}`, tone: 'open' };
+	if (p.glow === 'maybe') return { text: `Maybe later · ${clock}`, tone: 'maybe' };
+	if (p.daylight <= 0) return { text: `Night there · ${clock}`, tone: 'night' };
+	return { text: clock, tone: 'plain' };
+}
