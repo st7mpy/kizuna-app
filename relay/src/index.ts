@@ -10,6 +10,28 @@ import { handlePage } from './page.ts';
 import { createCircle, deleteMember, getCircle, putMember } from './circle.ts';
 import { handleFamilyPage } from './family-page.ts';
 
+// The app's own pages (app/src/routes). Anything else that isn't a file gets the app shell
+// with a 404 status, so the app shows its "not found" page and crawlers see a real 404.
+const APP_PATH = /^\/(?:about|circle|circle\/[^/]+|map|settings|talk|threads)?\/?$/;
+
+export function isAppPath(path: string): boolean {
+	return APP_PATH.test(path);
+}
+
+/** Static files first; an unknown path gets the SPA shell (200 for app pages, 404 otherwise). */
+export async function serveApp(req: Request, env: Env): Promise<Response> {
+	const res = await env.ASSETS.fetch(req);
+	if (res.status !== 404 || (req.method !== 'GET' && req.method !== 'HEAD')) return res;
+	const path = new URL(req.url).pathname;
+	// '/200' rather than '/200.html': the asset layer redirects .html to the bare path.
+	// No request headers: a reload's If-None-Match would get a 304, which can't carry a 404 status.
+	const shell = await env.ASSETS.fetch(new Request(new URL('/200', req.url)));
+	if (!shell.ok) return res;
+	const headers = new Headers(shell.headers);
+	headers.set('cache-control', 'no-cache');
+	return new Response(req.method === 'HEAD' ? null : shell.body, { status: isAppPath(path) ? 200 : 404, headers });
+}
+
 export async function route(req: Request, env: Env): Promise<Response> {
 	const url = new URL(req.url);
 	const path = url.pathname;
@@ -23,7 +45,7 @@ export async function route(req: Request, env: Env): Promise<Response> {
 		const match = /^\/c\/([^/]*)\/?$/.exec(path);
 		return handleFamilyPage(req, match?.[1] ?? '');
 	}
-	if (!path.startsWith('/api/')) return env.ASSETS.fetch(req);
+	if (!path.startsWith('/api/')) return serveApp(req, env);
 
 	if (path === '/api/health') return m === 'GET' ? json({ ok: true, service: 'kizuna', time: new Date().toISOString() }) : fail('method_not_allowed');
 	if (path === '/api/spark') return m === 'POST' ? handleSpark(req, env) : fail('method_not_allowed');

@@ -114,8 +114,13 @@ export interface Settings {
 	timeZone?: string; // IANA, the phone's current zone (read from Intl each time, not stored)
 	homeTz?: string; // IANA; set only for a sample family, whose "your time" is its home city
 	lastWeaveAt?: string;
-	weaveFailedAt?: string; // last failed weave; no new try for 6 h after it
+	weaveFailedAt?: string; // last failed weave (history; the wait is weaveRetryAt)
+	weaveRetryAt?: string; // no new weave try before this
+	weaveFails?: number; // failures in a row that were the model's (bad output, model error)
+	weaveBusy?: number; // tries in a row the relay was busy, slow or unreachable
 	notesSinceWeave: number;
+	/** Pick-a-time links this phone shared, so their picks can show on Today. */
+	pickInvites?: PickInvite[];
 	/** The Kizuna map circle this phone belongs to (absent = none yet). The key never leaves the device except in links. */
 	circle?: {
 		id: string;
@@ -154,3 +159,18 @@ export interface Card {
 	slot?: Slot;
 	actions: ('poke' | 'time' | 'not_now' | 'keep' | 'done')[];
 }
+
+/** A pick-a-time link the user shared (kept on the phone; the relay holds it for 7 days). */
+export interface PickInvite {
+	id: string;
+	personId: string;
+	personName: string;
+	title: string;
+	slots: Slot[];
+	createdAt: string;
+	expiresAt: string;
+	pickedIndex?: number | null;
+	pickedAt?: string; // when this phone first saw the pick
+	closed?: boolean; // the user closed the line on Today
+}
+

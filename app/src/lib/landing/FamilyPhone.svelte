@@ -128,7 +128,7 @@
 			0 16px 34px -18px rgb(0 0 0 / 0.45);
 		font-size: 0.8125rem;
 		white-space: nowrap;
-		animation: float 8s ease-in-out infinite;
+		animation: float 8s steps(8) infinite;
 	}
 	.tag em {
 		font-weight: 600;
@@ -168,9 +168,34 @@
 		right: -64px;
 		animation-delay: -4s;
 	}
+	/* sampled ease, stepped about eight times a second (no redraw every frame) */
 	@keyframes float {
-		50% {
-			transform: translateY(-8px);
+		0.0% {
+			transform: translateY(-0.0px);
+		}
+		12.5% {
+			transform: translateY(-1.17px);
+		}
+		25.0% {
+			transform: translateY(-4.0px);
+		}
+		37.5% {
+			transform: translateY(-6.83px);
+		}
+		50.0% {
+			transform: translateY(-8.0px);
+		}
+		62.5% {
+			transform: translateY(-6.83px);
+		}
+		75.0% {
+			transform: translateY(-4.0px);
+		}
+		87.5% {
+			transform: translateY(-1.17px);
+		}
+		100.0% {
+			transform: translateY(-0.0px);
 		}
 	}
 	@media (max-width: 560px) {

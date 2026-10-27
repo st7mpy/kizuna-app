@@ -61,7 +61,7 @@ describe('plan tool loop', () => {
 				expect(tool.tool_call_id).toBe('c1');
 				offered = JSON.parse(tool.content);
 				expect(body.messages.at(-2).tool_calls[0].id).toBe('c1');
-				return completion({ tool_calls: [toolCall('c2', 'finish', { slot_ids: [offered.slots[3].id, offered.slots[0].id], note: null })] });
+				return completion({ tool_calls: [toolCall('c2', 'finish', { slot_ids: [offered.slots[3].id, offered.slots[0].id], note: 'null' })] }); // the live model wrote the word
 			});
 		const { output, usage } = await runPlan(makeEnv(), input);
 		expect(fetchMock).toHaveBeenCalledTimes(2);

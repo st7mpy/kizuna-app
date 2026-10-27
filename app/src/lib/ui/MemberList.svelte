@@ -49,8 +49,6 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--surface);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		border-radius: var(--r-card);
 		box-shadow: var(--card-shadow);
 		padding: 14px 18px 6px;
@@ -111,7 +109,7 @@
 		z-index: -1;
 		border-radius: 50%;
 		background: radial-gradient(closest-side, var(--glow), transparent);
-		animation: breathe 4.8s ease-in-out infinite;
+		animation: breathe 4.8s steps(6) infinite; /* stepped: see app.css */
 	}
 	.avatar.open {
 		isolation: isolate;
@@ -165,7 +163,7 @@
 		border-radius: 50%;
 		background: #e9b36f;
 		box-shadow: 0 0 0 3px var(--glow);
-		animation: breathe 4.8s ease-in-out infinite;
+		animation: breathe 4.8s steps(6) infinite; /* stepped: see app.css */
 	}
 	.maybe .glow {
 		opacity: 0.6;

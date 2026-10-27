@@ -125,6 +125,8 @@ describe('why someone is skipped', () => {
 		const at = Date.parse('2026-11-08T10:30:00+05:30');
 		const out = specificWhy([{ personId: 'jordan', why: 'Not free then.', alt: null }, { personId: 'mom', why: 'not free then', alt: null }, { personId: 'dad', why: 'At the game', alt: null }], i, at);
 		expect(out.map((x) => x.why)).toEqual(["It's 00:00 in Toronto then.", 'Not free then.', 'At the game']);
+		// Their zone rides along, so the card's "instead?" line can name their time too.
+		expect(out.map((x) => x.tz)).toEqual(['America/Toronto', undefined, undefined]);
 	});
 });
 
@@ -278,6 +280,17 @@ describe('weekend drafts', () => {
 		const jordan = await draftForPerson(card, 'jordan');
 		expect(jordan.line).toMatch(/^Hi Jordan, we're doing a family call this weekend\. Would Sun \d+ Feb, 17:00 work for you\?$/);
 		expect(jordan.link.startsWith('https://wa.me/131255501001?text=')).toBe(true);
+	});
+
+	it('the draft for a skipped person names their other time, in their zone, never the group time', async () => {
+		await seed();
+		const card = (await weekendCard())!;
+		const alt = { start: '2026-10-31T23:00:00Z', end: '2026-11-01T00:00:00Z', label: '' }; // Sat 18:00 Chicago = Sun 10:00 Melbourne
+		await db.members.where('personId').equals('jordan').delete();
+		const c = { ...card, personIds: card.personIds.filter((id) => id !== 'jordan'), skipped: [{ personId: 'jordan', why: 'x', alt, tz: 'Australia/Melbourne' }] };
+		const d = await draftForPerson(c, 'jordan');
+		expect(d.line).toContain('Would Sun 1 Nov, 10:00 work for you?');
+		expect(d.line).not.toContain(card.slot.label.replace(/ to .*/, ''));
 	});
 
 	it('uses the drafted line when it passes the checks', async () => {

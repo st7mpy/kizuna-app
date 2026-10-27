@@ -13,6 +13,7 @@
 	import FamilyPhone from './FamilyPhone.svelte';
 	import Compare from './Compare.svelte';
 	import { reveal } from './reveal.js';
+	import { cloud } from '#lib/ui/clouds.js';
 	import { markEntered } from './entered.js';
 
 	/** True when this device already has notes: the sample would replace them, so offer "Open Kizuna". */
@@ -29,7 +30,8 @@
 
 	onMount(() => {
 		const onScroll = () => (scrolled = window.scrollY > 8);
-		onScroll();
+		// on the next frame: reading scrollY now would force the page's first layout mid-build
+		requestAnimationFrame(onScroll);
 		addEventListener('scroll', onScroll, { passive: true });
 		return () => removeEventListener('scroll', onScroll);
 	});
@@ -124,7 +126,11 @@
 	<main id="top">
 		<!-- hero -->
 		<section class="hero">
-			<div class="sky" aria-hidden="true"><i class="cloud c1"></i><i class="cloud c2"></i><i class="cloud c3"></i></div>
+			<div class="sky" aria-hidden="true">
+				<i class="cloud c1" use:cloud={{ sigma: 48, dur: 46, y1: 1.5 }}></i>
+				<i class="cloud c2" use:cloud={{ sigma: 48, dur: 58, y1: 1.5, reverse: true }}></i>
+				<i class="cloud c3" use:cloud={{ sigma: 48, dur: 64, y1: 1.5 }}></i>
+			</div>
 			<div class="in hero-grid">
 				<div class="hero-copy">
 					<p class="kicker fade" style="--d:80ms"><span>絆</span><span class="sep">·</span><span>the bonds between people</span></p>
@@ -449,8 +455,6 @@
 		background: color-mix(in srgb, var(--surface) 72%, transparent);
 		color: var(--text);
 		box-shadow: inset 0 0 0 1px var(--line);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
 	}
 	.cta.line:hover:not(:disabled) {
 		background: var(--surface);
@@ -501,8 +505,6 @@
 		border-radius: 999px;
 		background: var(--surface);
 		box-shadow: inset 0 0 0 1px var(--line);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		color: var(--text-2);
 		font: inherit;
 		font-size: 0.875rem;
@@ -589,51 +591,45 @@
 		height: 36%;
 		background: linear-gradient(180deg, transparent, var(--bg));
 	}
+	/* The box is the ellipse; ::before draws it blurred (see clouds.ts), so no filter is redrawn. */
 	.cloud {
 		position: absolute;
-		border-radius: 50%;
-		filter: blur(48px);
 		opacity: 0.7;
-		animation: drift 46s ease-in-out infinite alternate;
+		will-change: transform;
+	}
+	.cloud::before {
+		content: '';
+		position: absolute;
+		inset: calc(-1 * var(--cloud-m, 125px));
+		background: var(--cloud-bg, radial-gradient(closest-side, var(--cloud-color), transparent));
 	}
 	.c1 {
 		width: 46vw;
 		height: 22vw;
 		left: -8vw;
 		top: 6%;
-		background: color-mix(in srgb, #ffffff 70%, transparent);
+		--cloud-color: color-mix(in srgb, #ffffff 70%, transparent);
 	}
 	.c2 {
 		width: 38vw;
 		height: 20vw;
 		right: -6vw;
 		top: 18%;
-		background: color-mix(in srgb, var(--dawn-lilac) 55%, transparent);
-		animation-duration: 58s;
-		animation-direction: alternate-reverse;
+		--cloud-color: color-mix(in srgb, var(--dawn-lilac) 55%, transparent);
 	}
 	.c3 {
 		width: 40vw;
 		height: 16vw;
 		left: 30vw;
 		top: 52%;
-		background: color-mix(in srgb, var(--dawn-peach) 50%, transparent);
-		animation-duration: 64s;
+		--cloud-color: color-mix(in srgb, var(--dawn-peach) 50%, transparent);
 	}
 	:global(:root[data-theme='dark']) .c1 {
-		background: color-mix(in srgb, #8fa6d6 18%, transparent);
+		--cloud-color: color-mix(in srgb, #8fa6d6 18%, transparent);
 	}
 	@media (prefers-color-scheme: dark) {
 		:global(:root:not([data-theme='light'])) .c1 {
-			background: color-mix(in srgb, #8fa6d6 18%, transparent);
-		}
-	}
-	@keyframes drift {
-		from {
-			transform: translate3d(-3vw, 0, 0) scale(1);
-		}
-		to {
-			transform: translate3d(4vw, 1.5vw, 0) scale(1.08);
+			--cloud-color: color-mix(in srgb, #8fa6d6 18%, transparent);
 		}
 	}
 	.hero-grid {
@@ -1063,17 +1059,14 @@
 	.landing :global(.rv) {
 		opacity: 0;
 		transform: translateY(24px);
-		filter: blur(5px);
 		transition:
 			opacity 900ms var(--ease),
-			transform 1000ms var(--ease),
-			filter 900ms var(--ease);
+			transform 1000ms var(--ease);
 		transition-delay: var(--d, 0ms);
 	}
 	.landing :global(.rv.shown) {
 		opacity: 1;
 		transform: none;
-		filter: none;
 	}
 
 	@media (max-width: 560px) {
@@ -1100,9 +1093,6 @@
 			opacity: 1;
 			filter: none;
 			transform: none;
-			animation: none;
-		}
-		.cloud {
 			animation: none;
 		}
 	}

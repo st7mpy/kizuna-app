@@ -2,6 +2,7 @@
 	// The landing's opening picture: fine lines of light grow from you and branch out to your family,
 	// each with their real local time. Open people glow (while it's day there); night dims them.
 	import { onMount } from 'svelte';
+	import { slowLoop, wave } from '../ui/slow.js';
 	import { timeIn } from './clock.js';
 	import { H, ROOT, SAMPLE_FAMILY, SAMPLE_HOME, W, grow, nodeState, rng, treeLabel, type TreePerson } from './tree.js';
 
@@ -24,6 +25,43 @@
 	let go = $state(false);
 	let still = $state(false);
 	let el: HTMLElement;
+	let svg: SVGSVGElement;
+
+	// The colours drift along the lines, a pearly band slides across them, the glows breathe and
+	// the specks twinkle. All on a slow clock (only while the tree is on screen), set straight on
+	// the elements, so the picture is not repainted every frame while it sits still.
+	const GRAD = [0, 1, 2].map((g) => ({
+		pts: [
+			[0, 0],
+			[g === 1 ? -40 : 40, -70],
+			[0, 40],
+			[0, 0]
+		],
+		dur: 16 + g * 5
+	}));
+	function along(pts: number[][], f: number): [number, number] {
+		const seg = pts.length - 1;
+		const i = Math.min(seg - 1, Math.floor(f * seg));
+		const u = f * seg - i;
+		return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u];
+	}
+	function shimmer(t: number) {
+		if (still || !svg) return;
+		GRAD.forEach((g, k) => {
+			const [x, y] = along(g.pts, (t / g.dur) % 1);
+			svg.getElementById(id('g' + k))?.setAttribute('gradientTransform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+		});
+		const f = (t / 9) % 1;
+		svg.getElementById(id('pearl'))?.setAttribute('gradientTransform', `translate(${Math.round(-620 + 1240 * f)} ${Math.round(380 - 760 * f)})`);
+		for (const h of svg.querySelectorAll<SVGElement>('.halo')) {
+			const w = wave(t + Number(h.dataset.i ?? 0) * 1.3, 5);
+			h.style.opacity = (0.55 + 0.45 * w).toFixed(3);
+			h.style.transform = `scale(${(0.8 + 0.35 * w).toFixed(3)})`;
+		}
+		svg.querySelectorAll<SVGElement>('.specks circle').forEach((c, k) => {
+			c.style.opacity = `calc(var(--ft-speck-o) * ${(1 - 0.7 * wave(t + specks[k].d, 6)).toFixed(3)})`;
+		});
+	}
 
 	onMount(() => {
 		const mq = matchMedia('(prefers-reduced-motion: reduce)');
@@ -42,7 +80,9 @@
 			{ threshold: 0.2 }
 		);
 		io.observe(el);
+		const stop = slowLoop(el, 16, shimmer);
 		return () => {
+			stop();
 			clearInterval(tick);
 			io.disconnect();
 			mq.removeEventListener('change', onMq);
@@ -59,7 +99,7 @@
 	const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 </script>
 
-{#snippet strands(kind: 'bloom' | 'main' | 'sheen')}
+{#snippet strands(kind: 'main' | 'sheen')}
 	{#each branches as b, i (b.person.name)}
 		<g mask="url(#{id('m' + i)})">
 			{#each b.strands as s, k (k)}
@@ -70,7 +110,31 @@
 {/snippet}
 
 <figure class="ft" class:go class:still bind:this={el} role="img" aria-label={label}>
-	<svg viewBox="0 0 {W} {H}" aria-hidden="true" focusable="false">
+	<!-- The bloom under the lines: blurred once on a layer of its own that never changes, faded in as they grow. -->
+	<svg class="glow" viewBox="0 0 {W} {H}" aria-hidden="true" focusable="false">
+		<defs>
+			{#each [[0, H, 0, 30], [W, H, 120, 20], [0, H - 20, W - 80, 0]] as [x1, y1, x2, y2], g (g)}
+				<linearGradient id={id('b' + g)} gradientUnits="userSpaceOnUse" {x1} {y1} {x2} {y2} spreadMethod="reflect">
+					<stop offset="0.04" class="c4" />
+					<stop offset="0.24" class="c3" />
+					<stop offset="0.5" class="c2" />
+					<stop offset="0.76" class="c1" />
+					<stop offset="1" class="c5" />
+				</linearGradient>
+			{/each}
+			<filter id={id('bloom')} x="-20%" y="-20%" width="140%" height="140%">
+				<feGaussianBlur stdDeviation="4" />
+			</filter>
+		</defs>
+		<g filter="url(#{id('bloom')})">
+			{#each branches as b (b.person.name)}
+				{#each b.strands as s, k (k)}
+					<path d={s.d} fill="url(#{id('b' + s.hue)})" opacity={s.opacity} />
+				{/each}
+			{/each}
+		</g>
+	</svg>
+	<svg bind:this={svg} viewBox="0 0 {W} {H}" aria-hidden="true" focusable="false">
 		<defs>
 			{#each [[0, H, 0, 30], [W, H, 120, 20], [0, H - 20, W - 80, 0]] as [x1, y1, x2, y2], g (g)}
 				<linearGradient id={id('g' + g)} gradientUnits="userSpaceOnUse" {x1} {y1} {x2} {y2} spreadMethod="reflect">
@@ -80,15 +144,6 @@
 					<stop offset="0.5" class="c2" />
 					<stop offset="0.76" class="c1" />
 					<stop offset="1" class="c5" />
-					{#if !still}
-						<animateTransform
-							attributeName="gradientTransform"
-							type="translate"
-							values="0 0; {g === 1 ? -40 : 40} -70; 0 40; 0 0"
-							dur="{16 + g * 5}s"
-							repeatCount="indefinite"
-						/>
-					{/if}
 				</linearGradient>
 			{/each}
 			<!-- a pearly highlight band that slides across the lines -->
@@ -96,21 +151,16 @@
 				<stop offset="0.36" stop-color="#fff" stop-opacity="0" />
 				<stop offset="0.5" stop-color="#fff" stop-opacity="0.9" />
 				<stop offset="0.64" stop-color="#fff" stop-opacity="0" />
-				{#if !still}
-					<animateTransform attributeName="gradientTransform" type="translate" values="-620 380; 620 -380" dur="9s" repeatCount="indefinite" />
-				{/if}
 			</linearGradient>
 			<radialGradient id={id('halo')}>
 				<stop offset="0" class="halo-0" />
 				<stop offset="0.45" class="halo-1" />
 				<stop offset="1" class="halo-2" />
 			</radialGradient>
-			<filter id={id('bloom')} x="-20%" y="-20%" width="140%" height="140%">
-				<feGaussianBlur stdDeviation="4" />
-			</filter>
-			<filter id={id('soft')} x="-50%" y="-50%" width="200%" height="200%">
-				<feGaussianBlur stdDeviation="1.6" />
-			</filter>
+			<!-- a soft glow as a gradient: a dot of r 6-7 blurred by 1.6 (a blur filter here would be redrawn every frame) -->
+			<radialGradient id={id('aura')}>
+				{#each [[0, 1], [0.29, 0.977], [0.43, 0.84], [0.56, 0.5], [0.7, 0.16], [0.85, 0.023], [1, 0]] as [o, a] (o)}<stop offset={o} class="aura-stop" stop-opacity={a} />{/each}
+			</radialGradient>
 			{#each branches as b, i (b.person.name)}
 				<mask id={id('m' + i)} maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
 					<path class="grow" d={b.spine} pathLength="1" style="--dur:{dur(b.far)}s; --del:{delay(i)}s" />
@@ -124,7 +174,6 @@
 			{/each}
 		</g>
 
-		<g class="bloom" filter="url(#{id('bloom')})">{@render strands('bloom')}</g>
 		<g class="main">{@render strands('main')}</g>
 		<g class="sheen">{@render strands('sheen')}</g>
 
@@ -136,8 +185,8 @@
 		{/each}
 
 		<g class="root">
-			<circle class="halo still-halo" cx={ROOT.x} cy={ROOT.y} r="20" fill="url(#{id('halo')})" />
-			<circle class="aura" cx={ROOT.x} cy={ROOT.y} r="7" filter="url(#{id('soft')})" />
+			<circle class="halo still-halo" cx={ROOT.x} cy={ROOT.y} r="20" fill="url(#{id('halo')})" data-i="0" />
+			<circle class="aura" cx={ROOT.x} cy={ROOT.y} r="12" fill="url(#{id('aura')})" />
 			<circle class="dot" cx={ROOT.x} cy={ROOT.y} r="3.8" />
 		</g>
 
@@ -145,9 +194,9 @@
 			{@const st = nodeState(b.person, now)}
 			<g class="node" class:night={st.night} style="--del:{arrive(i, b.far)}s; --i:{i}">
 				{#if st.glow}
-					<circle class="halo" cx={b.at.x} cy={b.at.y} r="22" fill="url(#{id('halo')})" />
+					<circle class="halo" cx={b.at.x} cy={b.at.y} r="22" fill="url(#{id('halo')})" data-i={i} />
 				{/if}
-				<circle class="aura" cx={b.at.x} cy={b.at.y} r="6" filter="url(#{id('soft')})" />
+				<circle class="aura" cx={b.at.x} cy={b.at.y} r="11" fill="url(#{id('aura')})" />
 				<circle class="dot" cx={b.at.x} cy={b.at.y} r={st.night ? 2.6 : 3.2} />
 			</g>
 		{/each}
@@ -252,7 +301,14 @@
 		stop-opacity: 0;
 	}
 
-	.bloom {
+	svg.glow {
+		pointer-events: none;
+		opacity: 0;
+		will-change: opacity;
+		transition: opacity 1.2s ease-out 0.5s;
+	}
+	.go svg.glow,
+	.still svg.glow {
 		opacity: var(--ft-bloom);
 	}
 	.sheen {
@@ -284,7 +340,8 @@
 		stroke-dasharray: 0.035 1.2;
 		stroke-dashoffset: 0.06;
 		opacity: 0;
-		animation: travel 5.5s cubic-bezier(0.5, 0, 0.4, 1) var(--del) infinite paused;
+		/* twice, then it rests: a light that ran forever kept the whole picture repainting */
+		animation: travel 5.5s cubic-bezier(0.5, 0, 0.4, 1) var(--del) 2 paused;
 	}
 	@keyframes travel {
 		0% {
@@ -311,8 +368,10 @@
 		stroke-opacity: 0.9;
 	}
 	.aura {
-		fill: var(--ft-halo);
 		opacity: 0.7;
+	}
+	.aura-stop {
+		stop-color: var(--ft-halo);
 	}
 	.night .aura {
 		display: none;
@@ -333,36 +392,19 @@
 			opacity: var(--to, 1);
 		}
 	}
+	/* breathing: set by shimmer() */
 	.halo {
 		transform-box: fill-box;
 		transform-origin: center;
-		animation: breathe 5s ease-in-out infinite;
-		animation-delay: calc(var(--i, 0) * -1.3s);
+		opacity: 0.55;
+		transform: scale(0.8);
 	}
 	.still-halo {
 		opacity: 0.8;
 	}
-	@keyframes breathe {
-		0%,
-		100% {
-			opacity: 0.55;
-			transform: scale(0.8);
-		}
-		50% {
-			opacity: 1;
-			transform: scale(1.15);
-		}
-	}
 	.specks circle {
 		fill: var(--ft-speck);
 		opacity: var(--ft-speck-o);
-		animation: twinkle 6s ease-in-out infinite;
-		animation-delay: calc(var(--d) * -1);
-	}
-	@keyframes twinkle {
-		50% {
-			opacity: calc(var(--ft-speck-o) * 0.3);
-		}
 	}
 
 	.go .grow,
@@ -455,9 +497,12 @@
 		.pulse {
 			display: none;
 		}
-		.halo,
-		.specks circle {
-			animation: none;
+		.halo {
+			transform: none;
+			opacity: 1;
+		}
+		.halo.still-halo {
+			opacity: 0.8;
 		}
 	}
 </style>

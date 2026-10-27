@@ -147,7 +147,7 @@ export async function createCircle(): Promise<CircleSettings> {
 		paused: prev?.paused ?? false
 	};
 	await updateSettings({ circle });
-	await publishMyEntry().catch(() => {});
+	await publishMyEntry({ force: true }).catch(() => {});
 	return circle;
 }
 
@@ -172,19 +172,96 @@ export async function myWindows(): Promise<CircleWindow[]> {
 	return buildMyEntry({ ...s, circle: { ...(s.circle ?? { id: '', key: '', memberId: '', freeToday: false, paused: false }), share: true, paused: false } }, new Date(), await busyTimes(s), tz).windows;
 }
 
-/** Writes (or, while paused, deletes) my sealed entry. Nothing happens without a circle or offline. */
-export async function publishMyEntry(): Promise<void> {
+/** Pure: what my entry says, minus the parts that move by themselves every minute. */
+export function entryContentKey(circleId: string, memberId: string, entry: CircleEntry | null): string {
+	if (!entry) return JSON.stringify([circleId, memberId, 'paused']);
+	const hour = (iso: string | null) => (iso ? iso.slice(0, 13) : null);
+	return JSON.stringify([
+		circleId,
+		memberId,
+		entry.name,
+		entry.tz,
+		entry.status,
+		hour(entry.statusUntil),
+		entry.windows.map((w) => [hour(w.start), w.end]),
+		entry.notThisWeekend ?? false,
+		entry.quietStart,
+		entry.quietEnd
+	]);
+}
+
+/** At most one automatic write every 30 s; an unchanged entry is rewritten only every 6 h. */
+export const PUBLISH_MIN_GAP_MS = 30_000;
+export const PUBLISH_REFRESH_MS = 6 * 3600_000;
+const PUBLISH_KEY = 'kizuna.published';
+let memo: { key: string; at: number } | null = null;
+let trailing: ReturnType<typeof setTimeout> | undefined;
+
+function lastPublished(): { key: string; at: number } | null {
+	if (memo) return memo;
+	try {
+		const raw = localStorage.getItem(PUBLISH_KEY);
+		memo = raw ? JSON.parse(raw) : null;
+	} catch {
+		/* no storage: memory only */
+	}
+	return memo;
+}
+function rememberPublished(key: string, at: number) {
+	memo = { key, at };
+	try {
+		localStorage.setItem(PUBLISH_KEY, JSON.stringify(memo));
+	} catch {
+		/* memory only */
+	}
+}
+/** Test hook. */
+export function forgetPublished(): void {
+	memo = null;
+	clearTimeout(trailing);
+	trailing = undefined;
+	try {
+		localStorage.removeItem(PUBLISH_KEY);
+	} catch {
+		/* nothing stored */
+	}
+}
+
+/**
+ * Writes (or, while paused, deletes) my sealed entry. Nothing happens without a circle or offline.
+ * Automatic calls skip an unchanged entry and wait out the 30 s gap; `force` is for the user's own taps.
+ */
+export async function publishMyEntry(opts: { force?: boolean } = {}): Promise<void> {
 	const s = await readSettings();
 	const c = s.circle;
 	if (!c || isSample(c) || !isOnline()) return;
 	const path = `/api/circle/${c.id}/m/${c.memberId}`;
-	if (c.paused) {
-		await relayJson(path, { method: 'DELETE', timeoutMs: 15_000 });
-		return;
+	const entry = c.paused ? null : buildMyEntry(s, new Date(), c.share ? await busyTimes(s) : [], deviceTimeZone());
+	const key = entryContentKey(c.id, c.memberId, entry);
+	const now = Date.now();
+	const last = lastPublished();
+	if (!opts.force && last) {
+		if (last.key === key && now - last.at < PUBLISH_REFRESH_MS) return;
+		const wait = last.at + PUBLISH_MIN_GAP_MS - now;
+		if (wait > 0) {
+			clearTimeout(trailing);
+			trailing = setTimeout(() => void publishMyEntry().catch(() => {}), wait + 50);
+			return;
+		}
 	}
-	const entry = buildMyEntry(s, new Date(), c.share ? await busyTimes(s) : [], deviceTimeZone());
-	const sealed = await sealEntry(c.key, c.id, c.memberId, entry);
-	await relayJson(path, { method: 'PUT', body: sealed, timeoutMs: 15_000 });
+	clearTimeout(trailing);
+	try {
+		if (!entry) await relayJson(path, { method: 'DELETE', timeoutMs: 15_000 });
+		else await relayJson(path, { method: 'PUT', body: await sealEntry(c.key, c.id, c.memberId, entry), timeoutMs: 15_000 });
+		rememberPublished(key, Date.now());
+	} catch (e) {
+		// Asked to slow down: try once more after a minute, not on the next refresh.
+		if (e instanceof RelayError && e.code === 'rate_limited') {
+			rememberPublished('', Date.now() + 30_000);
+			trailing = setTimeout(() => void publishMyEntry().catch(() => {}), 60_000);
+		}
+		throw e;
+	}
 }
 
 /** Pure: who a member is among my people (by name or alias, circle in or suggested). */
@@ -284,7 +361,7 @@ export async function setSharing(patch: Partial<Pick<CircleSettings, 'share' | '
 	const s = await readSettings();
 	if (!s.circle) return;
 	await updateSettings({ circle: { ...s.circle, ...patch } });
-	await publishMyEntry().catch(() => {});
+	await publishMyEntry({ force: true }).catch(() => {});
 }
 
 /** What in settings changes my entry (used to republish only when needed). */

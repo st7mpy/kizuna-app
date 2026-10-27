@@ -46,9 +46,9 @@
 	let calOpen = $state(false);
 
 	/** "Saturday 12:00 your time instead? That's 10:00 for Jordan." Never two bare times side by side. */
-	function altLine(personId: string, start: string): string {
+	function altLine(personId: string, start: string, theirTz?: string): string {
 		const mine = `${whenLocal(start)} ${yourTime()} instead?`;
-		const tz = zoneOf?.(personId);
+		const tz = theirTz || zoneOf?.(personId);
 		if (!tz) return mine;
 		const theirs = whenLocal(start, tz);
 		if (theirs === whenLocal(start)) return mine;
@@ -131,7 +131,7 @@
 			{#each c.skipped as s (s.personId)}
 				<li>
 					{skippedLine(nameOf(s.personId), s.why)}
-					{#if s.alt}<span class="alt">{altLine(s.personId, s.alt.start)}</span>{/if}
+					{#if s.alt}<span class="alt">{altLine(s.personId, s.alt.start, s.tz)}</span>{/if}
 				</li>
 			{/each}
 		</ul>
@@ -213,8 +213,6 @@
 			radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--dawn-peach) 26%, transparent), transparent 70%),
 			radial-gradient(100% 70% at 0% 0%, color-mix(in srgb, var(--dawn-sky) 22%, transparent), transparent 70%),
 			var(--surface);
-			-webkit-backdrop-filter: var(--blur);
-			backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 	}
 	.when {

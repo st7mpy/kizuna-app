@@ -5,6 +5,7 @@ import { db, newId, readSettings } from '../db.ts';
 import { localDay, weekdayName } from './days.ts';
 import { upsertPerson } from './people.ts';
 import { looksSensitive } from './poke.ts';
+import { giftHintsInText } from './gifts.ts';
 import { RelayError, isOnline, spark } from './relay.ts';
 import { runWeave, weaveDue } from './weave.ts';
 
@@ -28,10 +29,21 @@ let onlineHooked = false;
 function hookOnline() {
 	if (onlineHooked || typeof window === 'undefined') return;
 	onlineHooked = true;
+	// Back online: read waiting notes now, and once more after the network settles
+	// (the first fetch right after the event often still fails).
 	window.addEventListener('online', () => {
-		void processPending();
+		void processPending().catch(() => {});
+		setTimeout(() => void processPending().catch(() => {}), ONLINE_SETTLE_MS);
 	});
+	if (typeof document !== 'undefined')
+		document.addEventListener('visibilitychange', () => {
+			if (document.visibilityState === 'visible') void processPending().catch(() => {});
+		});
 }
+
+/** Second look after the 'online' event, and the retry after a failed fetch while the phone says online. */
+export const ONLINE_SETTLE_MS = 4000;
+export const NETWORK_RETRY_MS = 15_000;
 
 /** Save a note at once (never waits for the model), then process it in the background. */
 export async function saveFragment(text: string, source: Source): Promise<Fragment> {
@@ -156,7 +168,9 @@ export async function applyExtract(f: Fragment, out: ExtractOutput, opts: ApplyO
 
 		// Gift hints, matched to people like events are. Never money or health.
 		const hints = await db.gifts.where('status').equals('open').toArray();
-		for (const g of out.gift_hints ?? []) {
+		// The model sometimes misses a hint among several clauses; a plain "Dad wants new running shoes" is caught here.
+		const giftList = out.gift_hints?.length ? out.gift_hints : giftHintsInText(f.text, (out.people ?? []).map((p) => p.name));
+		for (const g of giftList) {
 			const what = (g.what ?? '').trim().replace(/[.\s]+$/, '');
 			if (!what || what.length > 120 || looksSensitive(what) || /(₹|\brs\.?\s?\d|\brupees?\b|\bprice\b|\bcost\b|https?:)/i.test(what)) continue;
 			const personId = g.person ? await idFor(g.person) : null;
@@ -247,9 +261,10 @@ async function processOnce(): Promise<void> {
 	let understood = 0;
 	for (const f of pending) {
 		const r = await understand(f);
-		if (r === 'pause') {
-			// The relay is busy or slow: look again in a couple of minutes (the online event covers offline).
-			if (isOnline()) scheduleRetry(Date.now() + 120_000);
+		if (r === 'pause' || r === 'network') {
+			// The relay is busy or slow: look again in a couple of minutes. A dropped connection
+			// gets a quicker look (the online event covers the phone being offline).
+			if (isOnline()) scheduleRetry(Date.now() + (r === 'network' ? NETWORK_RETRY_MS : 120_000));
 			return;
 		}
 		if (r === 'done') understood++;
@@ -263,7 +278,11 @@ async function processOnce(): Promise<void> {
 			const s = await readSettings();
 			await db.settings.put({ ...s, notesSinceWeave: (s.notesSinceWeave ?? 0) + understood });
 		});
-		if (weaveDue(await readSettings())) await runWeave().catch(() => {});
+	}
+	// Also covers a weave that was waiting for the network (without holding up the next notes).
+	if (weaveDue(await readSettings())) {
+		const w = runWeave().catch(() => {});
+		if (understood) await w;
 	}
 }
 
@@ -271,7 +290,7 @@ async function processOnce(): Promise<void> {
  * One try. Offline, timeouts and rate limits are not the note's fault: stop the queue,
  * don't count a try. Other errors count, and the next try waits longer.
  */
-async function understand(f: Fragment): Promise<'done' | 'later' | 'failed' | 'pause'> {
+async function understand(f: Fragment): Promise<'done' | 'later' | 'failed' | 'pause' | 'network'> {
 	const people = await db.people.toArray();
 	const day = localDay(f.createdAt);
 	try {
@@ -286,6 +305,7 @@ async function understand(f: Fragment): Promise<'done' | 'later' | 'failed' | 'p
 		await applyExtract(f, out);
 		return 'done';
 	} catch (e) {
+		if (e instanceof RelayError && e.isConnectivity) return 'network';
 		if (e instanceof RelayError && e.isTransient) return 'pause';
 		const tries = (f.tries ?? 0) + 1;
 		const failed = tries >= MAX_TRIES;

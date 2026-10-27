@@ -67,8 +67,6 @@
 		gap: 6px;
 		padding: 18px 20px 8px;
 		background: var(--surface);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		border-radius: var(--r-card);
 		box-shadow: var(--card-shadow);
 	}

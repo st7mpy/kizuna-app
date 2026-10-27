@@ -369,8 +369,10 @@ export function specificWhy(skipped: WeekendOutput['skipped'], input: WeekendInp
 		const p = input.people.find((q) => q.id === x.personId);
 		const generic = !x.why || /^(not free then|asleep then)/i.test(x.why.trim());
 		const clock = p ? zonedClock(at, p.timeZone) : null;
-		if (!p || !generic || !clock || clock === myClock) return { ...x, why: generic ? 'Not free then.' : x.why };
-		return { ...x, why: `It's ${clock} in ${city(p.timeZone)} then.` };
+		// Their zone travels with the card, so its "instead?" line and their draft name the same time.
+		const tz = p && p.timeZone !== input.timeZone ? { tz: p.timeZone } : {};
+		if (!p || !generic || !clock || clock === myClock) return { ...x, why: generic ? 'Not free then.' : x.why, ...tz };
+		return { ...x, why: `It's ${clock} in ${city(p.timeZone)} then.`, ...tz };
 	});
 }
 
@@ -479,7 +481,7 @@ export async function draftForPerson(card: WeekendCard, personId: string, quick?
 	const skip = card.skipped.find((x) => x.personId === personId);
 	const slot = card.personIds.includes(personId) ? card.slot : (skip?.alt ?? undefined);
 	const member = (await db.members.where('personId').equals(personId).toArray())[0];
-	const tz = member?.entry.tz ?? deviceTimeZone();
+	const tz = skip?.tz ?? member?.entry.tz ?? deviceTimeZone();
 	const label = slot ? zonedSlotLabel(Date.parse(slot.start), Date.parse(slot.end), tz) : undefined;
 	const reason = card.occasion ? `Planning a family call for ${card.occasion}` : 'Planning a family call this weekend';
 	const { input, person } = await buildDraftInput(personId, reason, slot);

@@ -27,13 +27,26 @@ function clean(s: unknown, max: number): string {
 	return typeof s === 'string' ? s.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max) : '';
 }
 
+/** A usable first name: two or more characters with a letter in them; '' otherwise. */
+export function usableName(s: unknown): string {
+	const first = clean(s, 40).split(' ')[0] ?? '';
+	return first.length >= 2 && /\p{L}/u.test(first) ? first : '';
+}
+
+/** "Leo", or "A friend" when the sender gave no usable name. */
+export function senderName(fromName: string): string {
+	return usableName(fromName) || 'A friend';
+}
+
 /** Validates and trims an invite request; returns null if it can't be used. */
 export function parseInviteRequest(raw: any): InviteRequest | null {
 	if (!raw || typeof raw !== 'object') return null;
-	const fromName = clean(raw.fromName, 40).split(' ')[0] ?? '';
-	const title = clean(raw.title, 80);
+	// A blank or one-letter name is dropped (the page then says "A friend"), not refused.
+	const fromName = usableName(raw.fromName);
+	let title = clean(raw.title, 80);
+	if (!fromName && /^catch up with\b/i.test(title)) title = 'Catch up';
 	const timeZone = typeof raw.timeZone === 'string' ? raw.timeZone : '';
-	if (!fromName || !title || !isValidTimeZone(timeZone)) return null;
+	if (!title || !isValidTimeZone(timeZone)) return null;
 	if (!Array.isArray(raw.slots) || raw.slots.length < 1 || raw.slots.length > 3) return null;
 	const slots: Slot[] = [];
 	for (const s of raw.slots) {
@@ -133,7 +146,7 @@ export function icsFor(id: string, inv: StoredInvite, index: number, now = Date.
 		start: slot.start,
 		end: slot.end,
 		title: inv.title,
-		description: `Picked on Kizuna. ${inv.fromName} can see your pick.`,
+		description: `Picked on Kizuna. ${usableName(inv.fromName) || 'Your friend'} can see your pick.`,
 		now
 	});
 }

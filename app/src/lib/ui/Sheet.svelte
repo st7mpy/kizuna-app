@@ -77,8 +77,6 @@
 	}
 	.sheet {
 		background: var(--sheet);
-		-webkit-backdrop-filter: blur(30px) saturate(1.5);
-		backdrop-filter: blur(30px) saturate(1.5);
 		border-radius: 26px 26px 0 0;
 		box-shadow: 0 0 0 1px var(--line), var(--shadow);
 		padding: 8px var(--gutter) calc(24px + var(--safe-b));

@@ -1,8 +1,9 @@
 // Find us a time: slots from free hours (+ busy times from a private iCal link),
 // pick-a-time invites, Google Calendar links and .ics files.
 import type { IcalResponse, InviteResponse, PlanOutput, Settings, Slot, Window } from '@kizuna/shared';
-import { freeSlots, icsText, pickSpread } from '@kizuna/shared';
-import { readSettings } from '../db.ts';
+import { freeSlots, icsText, modelText, pickSpread } from '@kizuna/shared';
+import { db, readSettings } from '../db.ts';
+import { recordInvite } from './picks.ts';
 import { addDays, dayToDate, deviceTimeZone, isoWithOffset, localDay, minutesOf, slotLabel, weekdayOf } from './days.ts';
 import { isOnline, relayJson, spark } from './relay.ts';
 
@@ -12,6 +13,8 @@ const BUSY_TTL = 30 * 60_000;
 const FAIL_TTL = 5 * 60_000;
 /** The busy lookup is a nice-to-have: free hours alone still give good slots, so never wait long for it. */
 export const ICAL_TIMEOUT = 5_000;
+/** Settings' one-off check can wait longer: a big calendar's first read is often slow. */
+export const ICAL_CHECK_TIMEOUT = 15_000;
 let busyCache: { url: string; at: number; busy: Busy[]; failed?: boolean } | null = null;
 let inflight: { url: string; p: Promise<Busy[]> } | null = null;
 
@@ -28,19 +31,19 @@ export function isCalendarLink(url: string): boolean {
 	return /^(https?|webcal):\/\/[^\s/?#]+\.[^\s/?#]+(\/\S*)?$/i.test(url.trim());
 }
 
-async function fetchBusy(url: string): Promise<Busy[]> {
+async function fetchBusy(url: string, timeoutMs = ICAL_TIMEOUT): Promise<Busy[]> {
 	const now = new Date();
 	const r = await relayJson<IcalResponse>('/api/ical', {
 		body: { url: url.replace(/^webcal:/i, 'https:'), from: now.toISOString(), to: new Date(now.getTime() + 21 * 86_400_000).toISOString() },
-		timeoutMs: ICAL_TIMEOUT
+		timeoutMs
 	});
 	return r.busy ?? [];
 }
 
 /** One lookup at a time per link; the result (or the failure) is remembered. */
-function lookup(url: string): Promise<Busy[]> {
+function lookup(url: string, timeoutMs = ICAL_TIMEOUT): Promise<Busy[]> {
 	if (inflight?.url === url) return inflight.p;
-	const p = fetchBusy(url)
+	const p = fetchBusy(url, timeoutMs)
 		.then((busy) => {
 			busyCache = { url, at: Date.now(), busy };
 			return busy;
@@ -80,7 +83,7 @@ export async function checkCalendar(url: string): Promise<'ok' | 'failed' | 'off
 	if (!isOnline()) return 'offline';
 	if (inflight?.url !== u && busyCache?.url === u) busyCache = null; // a fresh look
 	try {
-		await lookup(u);
+		await lookup(u, ICAL_CHECK_TIMEOUT);
 		return 'ok';
 	} catch {
 		return 'failed';
@@ -117,8 +120,9 @@ export async function suggestSlots(request = ''): Promise<{ slots: Slot[]; note:
 				busy,
 				durationMinutes: 60
 			});
-			if (out.slots?.length) return { slots: out.slots.slice(0, 2), note: out.note ?? null };
-			if (out.note) return { slots: [], note: out.note };
+			const note = modelText(out.note);
+			if (out.slots?.length) return { slots: out.slots.slice(0, 2), note };
+			if (note) return { slots: [], note };
 		} catch {
 			/* fall back to local maths below */
 		}
@@ -135,13 +139,17 @@ export async function suggestSlots(request = ''): Promise<{ slots: Slot[]; note:
 /** Creates a pick-a-time page and returns its URL. */
 export async function createInvite(personId: string, slots: Slot[]): Promise<string> {
 	const s = await readSettings();
-	// The page shows only the sender's first name; personId is kept for the call site's own use.
-	void personId;
-	const myName = (s.myName || '').trim().split(/\s+/)[0] || 'a friend';
+	// The page shows only the sender's first name; personId is kept here so the pick can show on Today.
+	// A blank or one-letter name is left out; the page then says "A friend".
+	const first = (s.myName || '').trim().split(/\s+/)[0] ?? '';
+	const myName = first.length >= 2 && /\p{L}/u.test(first) ? first : '';
 	const r = await relayJson<InviteResponse>('/api/invite', {
-		body: { fromName: myName, title: `Catch up with ${myName}`, slots: slots.slice(0, 3), timeZone: deviceTimeZone() },
+		body: { fromName: myName, title: myName ? `Catch up with ${myName}` : 'Catch up', slots: slots.slice(0, 3), timeZone: deviceTimeZone() },
 		timeoutMs: 15_000
 	});
+	const person = await db.people.get(personId);
+	if (person && r.id)
+		await recordInvite({ id: r.id, personId, personName: person.name, title: myName ? `Catch up with ${myName}` : 'Catch up', slots: slots.slice(0, 3) }).catch(() => {});
 	if (/^https?:\/\//.test(r.url)) return r.url;
 	const base = s.relayUrl?.replace(/\/+$/, '') || (typeof location !== 'undefined' ? location.origin : '');
 	return base + (r.url.startsWith('/') ? r.url : `/${r.url}`);

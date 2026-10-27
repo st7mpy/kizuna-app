@@ -119,3 +119,30 @@ export async function draftGiftLine(card: GiftCard, quick?: (line: string) => vo
 export async function markGift(id: string, status: 'done' | 'dropped'): Promise<void> {
 	await db.gifts.update(id, { status });
 }
+
+const WANT = String.raw`(?:really\s+)?(?:wants|would\s+love|'d\s+love|would\s+like|needs(?=\s+(?:a\s+)?new\b)|has\s+been\s+eyeing)`;
+
+/**
+ * Pure: a safety net when the model returns no gift hints. Finds "<name> wants new running shoes"
+ * style phrases for names the note is about. Plans ("wants to meet"), money and health are skipped.
+ */
+export function giftHintsInText(text: string, names: string[]): { person: string; what: string }[] {
+	const out: { person: string; what: string }[] = [];
+	for (const name of names) {
+		if (!name.trim()) continue;
+		const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const re = new RegExp(String.raw`(?:^|[^\p{L}])${esc}\s+${WANT}\s+(?!to\b)(?:(?:a|an|some|the)\s+)?([^,.;:!?\n]{2,60})`, 'giu');
+		for (const m of text.matchAll(re)) {
+			const what = m[1]
+				.replace(/\s+(?:and|but|so|for (?:his|her|their) birthday)\b.*$/i, '')
+				.trim()
+				.split(/\s+/)
+				.slice(0, 8)
+				.join(' ');
+			if (what.split(/\s+/).length < 1 || what.length < 3) continue;
+			if (looksSensitive(what) || MONEY.test(what) || /https?:|\d{3,}/.test(what)) continue;
+			if (!out.some((g) => g.person === name && g.what.toLowerCase() === what.toLowerCase())) out.push({ person: name, what });
+		}
+	}
+	return out;
+}

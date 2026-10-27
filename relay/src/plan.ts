@@ -14,6 +14,7 @@ import {
 	type Slot,
 	type Window
 } from '@kizuna/shared';
+import { modelText } from '@kizuna/shared';
 import type { Env } from './env.ts';
 import { addUsage, chat, type Message, type Usage } from './model.ts';
 
@@ -104,7 +105,7 @@ export async function runPlan(env: Env, raw: any): Promise<{ output: PlanOutput;
 				if (s && !picked.includes(s)) picked.push(s);
 			}
 		}
-		const note = typeof args?.note === 'string' && args.note.trim() ? args.note.trim().slice(0, 200) : null;
+		const note = modelText(args?.note, 200);
 		finished = { slots: picked.slice(0, 2), note };
 	};
 

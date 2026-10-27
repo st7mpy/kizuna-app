@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WeaveOutput } from '@kizuna/shared';
 import { db, defaultSettings } from '../db.ts';
-import { applyWeave, runWeave, weaveDue } from './weave.ts';
+import { applyWeave, onWeaveBuilding, runWeave, weaveBackoffMs, weaveDue } from './weave.ts';
+import { RelayError } from './relay.ts';
 import { mergePeople, removePerson } from './people.ts';
 import { mkEvent, mkPerson, mkPrompt, mkThread, mockRelay, resetDb, setOffline } from './testing.ts';
 
@@ -32,10 +33,27 @@ describe('weaveDue', () => {
 		expect(weaveDue({ notesSinceWeave: 2, lastWeaveAt: old }, NOW)).toBe(false);
 		expect(weaveDue({ notesSinceWeave: 3 }, NOW)).toBe(true);
 	});
-	it('waits 6 hours after a failed weave', () => {
-		const failed = new Date(NOW.getTime() - 5 * 3600_000).toISOString();
-		expect(weaveDue({ notesSinceWeave: 50, weaveFailedAt: failed }, NOW)).toBe(false);
-		expect(weaveDue({ notesSinceWeave: 50, weaveFailedAt: failed }, new Date(NOW.getTime() + 3600_000 + 1))).toBe(true);
+	it('waits until weaveRetryAt', () => {
+		const at = new Date(NOW.getTime() + 60_000).toISOString();
+		expect(weaveDue({ notesSinceWeave: 50, weaveRetryAt: at }, NOW)).toBe(false);
+		expect(weaveDue({ notesSinceWeave: 50, weaveRetryAt: at }, new Date(NOW.getTime() + 60_001))).toBe(true);
+	});
+	it('gives an older install stuck on a failure time only a short wait', () => {
+		const failed = new Date(NOW.getTime() - 4 * 60_000).toISOString();
+		expect(weaveDue({ notesSinceWeave: 3, weaveFailedAt: failed }, NOW)).toBe(false);
+		expect(weaveDue({ notesSinceWeave: 3, weaveFailedAt: failed }, new Date(NOW.getTime() + 60_001))).toBe(true);
+	});
+	it('backs off briefly when busy, and long only for repeated model failures', () => {
+		const busy = new RelayError('rate_limited');
+		expect(weaveBackoffMs(busy, {}).wait).toBe(60_000);
+		expect(weaveBackoffMs(busy, { weaveBusy: 1 }).wait).toBe(120_000);
+		expect(weaveBackoffMs(busy, { weaveBusy: 2 }).wait).toBe(300_000);
+		expect(weaveBackoffMs(busy, { weaveBusy: 9 }).wait).toBe(300_000);
+		expect(weaveBackoffMs(new RelayError('timeout'), {}).busy).toBe(true);
+		expect(weaveBackoffMs(new RelayError('offline'), {}).busy).toBe(true);
+		const bad = new RelayError('invalid_output');
+		expect(weaveBackoffMs(bad, {})).toEqual({ wait: 5 * 60_000, busy: false });
+		expect(weaveBackoffMs(bad, { weaveFails: 1 })).toEqual({ wait: 6 * 3600_000, busy: false });
 	});
 });
 
@@ -125,19 +143,58 @@ describe('runWeave', () => {
 		expect((await db.people.get('k'))!.circle).toBe('suggested');
 	});
 
-	it('does not run again after a failure until 6 hours have passed', async () => {
+	it('retries a rate-limited first weave after a minute, by itself, and builds the circle', async () => {
+		vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+		vi.setSystemTime(NOW);
+		let limited = true;
+		const seen: boolean[] = [];
+		const off = onWeaveBuilding((b) => seen.push(b));
+		const fn = vi.fn(async (url: string, init?: RequestInit) => {
+			const body = JSON.parse(String(init!.body));
+			if (limited) return new Response(JSON.stringify({ ok: false, error: 'rate_limited' }), { status: 429 });
+			return new Response(JSON.stringify({ ok: true, output: { people: [wp({ name: 'Leo', suggest_circle: true })], threads: [] }, task: body.task }), { status: 200 });
+		});
+		vi.stubGlobal('fetch', fn);
+		await db.fragments.add({ id: 'n', text: 'x', createdAt: NOW.toISOString(), source: 'typed', status: 'done', tries: 0 });
+		await db.settings.put({ ...defaultSettings(), notesSinceWeave: 3 });
+		await expect(runWeave()).rejects.toThrow();
+		const s1 = (await db.settings.get('me'))!;
+		expect(s1.weaveRetryAt).toBe(new Date(NOW.getTime() + 60_000).toISOString());
+		expect(s1.weaveBusy).toBe(1);
+		expect(s1.weaveFailedAt).toBeUndefined();
+		expect(seen.at(-1)).toBe(true); // still "Building your circle…" while the retry waits
+		await runWeave();
+		expect(fn).toHaveBeenCalledTimes(1); // not before the minute is up
+		limited = false;
+		await vi.advanceTimersByTimeAsync(61_000);
+		await vi.waitFor(async () => expect((await db.people.toArray()).map((p) => p.name)).toEqual(['Leo']));
+		expect(fn).toHaveBeenCalledTimes(2);
+		const s2 = (await db.settings.get('me'))!;
+		expect(s2).toMatchObject({ weaveBusy: 0, weaveFails: 0, notesSinceWeave: 0 });
+		expect(s2.weaveRetryAt).toBeUndefined();
+		expect(seen.at(-1)).toBe(false);
+		off();
+	});
+
+	it('waits 5 minutes after one model failure, then 6 hours after the next', async () => {
 		const relay = mockRelay(() => {
 			throw new Error('bad output');
 		});
 		await db.fragments.add({ id: 'n', text: 'x', createdAt: NOW.toISOString(), source: 'typed', status: 'done', tries: 0 });
 		await db.settings.put({ ...defaultSettings(), notesSinceWeave: 12 });
 		await expect(runWeave()).rejects.toThrow();
-		expect((await db.settings.get('me'))!.weaveFailedAt).toBe(NOW.toISOString());
-		await runWeave();
+		const s1 = (await db.settings.get('me'))!;
+		expect(s1.weaveFailedAt).toBe(NOW.toISOString());
+		expect(s1.weaveRetryAt).toBe(new Date(NOW.getTime() + 5 * 60_000).toISOString());
 		await runWeave();
 		expect(relay.tasks()).toEqual(['weave']);
-		vi.setSystemTime(NOW.getTime() + 6 * 3600_000 + 1);
+		vi.setSystemTime(NOW.getTime() + 5 * 60_000 + 1);
 		await expect(runWeave()).rejects.toThrow();
+		expect(relay.tasks()).toEqual(['weave', 'weave']);
+		const s2 = (await db.settings.get('me'))!;
+		expect(Date.parse(s2.weaveRetryAt!) - Date.now()).toBe(6 * 3600_000);
+		vi.setSystemTime(NOW.getTime() + 3 * 3600_000);
+		await runWeave();
 		expect(relay.tasks()).toEqual(['weave', 'weave']);
 	});
 

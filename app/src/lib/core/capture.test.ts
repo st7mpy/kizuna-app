@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExtractOutput } from '@kizuna/shared';
 import { db } from '../db.ts';
-import { FAILED_RETRY_MS, noteThought, processPending, requeueFailed, retryFragment, saveFragment } from './capture.ts';
+import { FAILED_RETRY_MS, ONLINE_SETTLE_MS, noteThought, processPending, requeueFailed, retryFragment, saveFragment } from './capture.ts';
 import { matchPerson } from './people.ts';
 import { mkPerson, mockRelay, resetDb, setOffline } from './testing.ts';
 
@@ -256,6 +256,14 @@ describe('saveFragment + processPending', () => {
 		expect(await db.gifts.count()).toBe(1);
 	});
 
+	it('keeps a plain gift hint the model left out', async () => {
+		mockRelay(() => empty({ people: [{ name: 'Mom', relation: 'parent' }, { name: 'Leo', relation: 'sibling' }, { name: 'Dad', relation: 'parent' }] }));
+		await saveFragment("Mom's birthday is next Friday, should call Leo before his exams, Dad wants new running shoes", 'typed');
+		await idle();
+		const dad = (await db.people.toArray()).find((p) => p.name === 'Dad')!;
+		expect(await db.gifts.toArray()).toEqual([expect.objectContaining({ personId: dad.id, what: 'new running shoes' })]);
+	});
+
 	it('a thought noted on a person stays tagged to them', async () => {
 		await db.people.add(mkPerson({ id: 'nani', name: 'Nani', relation: 'family' }));
 		mockRelay(() => empty({ people: [{ name: 'Riya', relation: 'sibling' }] }));
@@ -266,5 +274,37 @@ describe('saveFragment + processPending', () => {
 		expect(saved.status).toBe('done');
 		expect(saved.personIds![0]).toBe('nani');
 		expect(saved.personIds).toHaveLength(2);
+	});
+});
+
+describe('coming back online', () => {
+	it('reads a note typed offline when the online event fires, even if the first fetch still fails', async () => {
+		vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+		vi.setSystemTime(NOW);
+		const win = new EventTarget();
+		vi.stubGlobal('window', win);
+		setOffline(true);
+		let calls = 0;
+		const relay = mockRelay(() => empty());
+		const ok = relay.fn.getMockImplementation()!;
+		relay.fn.mockImplementation(async (url: string, init?: RequestInit) => {
+			calls++;
+			if (calls === 1) throw new TypeError('network still waking up');
+			return ok(url, init);
+		});
+		const f = await saveFragment('typed on the train', 'typed');
+		await idle();
+		expect(relay.fn).not.toHaveBeenCalled();
+		setOffline(false);
+		win.dispatchEvent(new Event('online'));
+		// The first try fails; the second look a few seconds later reads it (not the 2 minute retry).
+		for (let i = 0; i < 60 && (await db.fragments.get(f.id))!.status !== 'done'; i++) {
+			await vi.advanceTimersByTimeAsync(100);
+			await new Promise((r) => (globalThis as unknown as { setImmediate: (f: () => void) => void }).setImmediate(() => r(null)));
+		}
+		expect((await db.fragments.get(f.id))!.status).toBe('done');
+		expect(calls).toBe(2);
+		expect(Date.now() - NOW.getTime()).toBeLessThan(ONLINE_SETTLE_MS + 1000);
+		expect((await db.fragments.get(f.id))!.tries).toBe(0);
 	});
 });

@@ -2,7 +2,7 @@
 import { buildTask, SCHEMAS, TASK_LIMITS, type SchemaTask, type TaskName, type PlanInput, type WindowsOutput } from '@kizuna/shared';
 import type { Env } from './env.ts';
 import { fail, json, readBody } from './http.ts';
-import { edgeAllow, limits } from './ratelimit.ts';
+import { deviceOf, edgeAllow, limits } from './ratelimit.ts';
 import { overBudget, sparkUsd, spend, withinBudget } from './budget.ts';
 import { addUsage, chat, parseModelJson, type Message, type Usage } from './model.ts';
 import { checkWindowsInput, guardWindows, schemaErrors } from './validate.ts';
@@ -34,7 +34,8 @@ export async function handleSpark(req: Request, env: Env): Promise<Response> {
 	}
 
 	const weave = task === 'weave';
-	if (weave && (!limits.weave.allow(req) || !(await edgeAllow(env.RL_WEAVE, req)))) return fail('rate_limited');
+	// Weave is keyed per phone: at a venue everyone shares one IP. The spend ceiling still caps cost.
+	if (weave && (!limits.weave.allow(req) || !(await edgeAllow(env.RL_WEAVE, req, deviceOf(req))))) return fail('rate_limited');
 	if (!(await withinBudget(env, weave))) return overBudget();
 
 	const charge = (usage: Usage) => spend(env, sparkUsd(usage), weave);

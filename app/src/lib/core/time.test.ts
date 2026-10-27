@@ -84,6 +84,13 @@ describe('suggestSlots', () => {
 		expect(relay.calls.filter((c) => c.path === '/api/ical')).toHaveLength(2);
 	});
 
+	it('never shows the word "null" as a note', async () => {
+		mockRelay(() => ({ slots: [slot], note: 'null' }));
+		expect((await suggestSlots()).note).toBeNull();
+		mockRelay(() => ({ slots: [slot], note: ' None ' }));
+		expect((await suggestSlots()).note).toBeNull();
+	});
+
 	it('falls back to local slots when the plan call fails', async () => {
 		mockRelay(() => {
 			throw new Error('model down');
@@ -124,6 +131,16 @@ describe('createInvite', () => {
 		vi.stubGlobal('location', { origin: 'https://kizuna.example' });
 		expect(await createInvite('kabir', [slot])).toBe('https://kizuna.example/p/x1');
 		expect(relay.calls[0].path).toBe('/api/invite');
+	});
+
+	it('leaves out a blank or one-letter name instead of sending "a"', async () => {
+		vi.stubGlobal('location', { origin: 'https://kizuna.example' });
+		for (const myName of ['a', '', '  ']) {
+			await db.settings.put({ ...defaultSettings(), myName });
+			const relay = mockRelay(() => null, () => ({ ok: true, id: 'x1', url: '/p/x1' }));
+			await createInvite('kabir', [slot]);
+			expect(relay.calls[0].body).toMatchObject({ fromName: '', title: 'Catch up' });
+		}
 	});
 });
 

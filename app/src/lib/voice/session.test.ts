@@ -216,6 +216,20 @@ describe('listener: fallback to record-then-transcribe', () => {
 		expect(body.size).toBe(44 + 48000);
 	});
 
+	it('falls back quietly when the relay reports an upstream code before any words', async () => {
+		const t = setup();
+		const listener = await createListener(t.h, t.deps);
+		const ws = t.sockets[0];
+		ws.open();
+		t.speak(300);
+		ws.say({ type: 'error', error: 'upstream_unauthorized' });
+		ws.say({ type: 'closed' });
+		expect(t.modes.at(-1)).toBe('recording');
+		t.speak(700);
+		await expect(listener.stop()).resolves.toBe('from file');
+		expect(t.h.onError).not.toHaveBeenCalled();
+	});
+
 	it('falls back on socket error before open', async () => {
 		const t = setup();
 		const listener = await createListener(t.h, t.deps);

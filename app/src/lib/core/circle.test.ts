@@ -13,6 +13,7 @@ import {
 	linkMember,
 	newCircleLink,
 	pickShareWindows,
+	forgetPublished,
 	publishMyEntry,
 	refreshCircle,
 	setSharing
@@ -64,6 +65,7 @@ beforeEach(async () => {
 	vi.setSystemTime(NOW);
 	setOffline(false);
 	await resetDb();
+	forgetPublished();
 	await updateSettings({ myName: 'Aarav Mehta', relayUrl: 'https://kizuna.test' });
 });
 afterEach(() => {
@@ -261,6 +263,34 @@ describe('the circle', () => {
 		expect(link.startsWith('https://wa.me/?text=')).toBe(true);
 		await refreshCircle();
 		expect(await db.members.get('sample-00001')).toBeTruthy();
+	});
+
+	it('re-saves my entry only when it changed, at most once per 30 s', async () => {
+		vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+		vi.setSystemTime(NOW);
+		const relay = fakeRelay();
+		await createCircle(); // one PUT, forced
+		const puts = () => relay.calls.filter((c) => c.method === 'PUT').length;
+		expect(puts()).toBe(1);
+		// Same content: app opens, refreshes, minutes pass: no writes.
+		await publishMyEntry();
+		vi.setSystemTime(NOW.getTime() + 5 * 60_000);
+		await publishMyEntry();
+		expect(puts()).toBe(1);
+		// A change is written; a second change inside 30 s waits for the gap, then goes once.
+		await updateSettings({ quietStart: '21:00' });
+		await publishMyEntry();
+		expect(puts()).toBe(2);
+		await updateSettings({ quietStart: '21:30' });
+		await publishMyEntry();
+		await publishMyEntry();
+		expect(puts()).toBe(2);
+		await vi.advanceTimersByTimeAsync(31_000);
+		await vi.waitFor(() => expect(puts()).toBe(3));
+		// An unchanged entry is refreshed after 6 hours.
+		vi.setSystemTime(Date.now() + 6 * 3600_000 + 1);
+		await publishMyEntry();
+		expect(puts()).toBe(4);
 	});
 
 	it('offline does nothing and does not throw', async () => {

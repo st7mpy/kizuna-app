@@ -9,16 +9,59 @@ import { updateSettings } from './settings.ts';
 export const WEAVE_NOTE_DAYS = 60;
 export const WEAVE_NOTE_CAP = 200;
 
-/** After a failed weave, wait this long before trying again (it is the most costly call). */
+/** After model failures in a row, wait this long (it is the most costly call). */
 export const WEAVE_FAIL_WAIT_MS = 6 * 3600_000;
+/** The first model failure gets one quick retry, in case it was a one-off. */
+export const WEAVE_FIRST_FAIL_WAIT_MS = 5 * 60_000;
+/** Busy, slow or unreachable relay (a shared venue IP hits the limit fast): short waits. */
+export const WEAVE_BUSY_WAITS_MS = [60_000, 120_000, 300_000];
 
-/** Due when 10+ notes arrived, or a day has passed and 3+ arrived; never within 6 h of a failure. */
-export function weaveDue(s: Pick<Settings, 'lastWeaveAt' | 'notesSinceWeave' | 'weaveFailedAt'>, now = new Date()): boolean {
-	if (s.weaveFailedAt && now.getTime() - new Date(s.weaveFailedAt).getTime() < WEAVE_FAIL_WAIT_MS) return false;
+type WeaveSettings = Pick<Settings, 'lastWeaveAt' | 'notesSinceWeave' | 'weaveFailedAt' | 'weaveRetryAt'>;
+
+/** Not the note's or the model's fault: try again soon. */
+function isBusy(e: unknown): boolean {
+	return !(e instanceof RelayError) || e.isTransient || e.code === 'http';
+}
+
+/** How long to wait after this failure, given the counts so far (before this failure). */
+export function weaveBackoffMs(e: unknown, s: Pick<Settings, 'weaveFails' | 'weaveBusy'>): { wait: number; busy: boolean } {
+	if (isBusy(e)) {
+		const n = s.weaveBusy ?? 0;
+		return { wait: WEAVE_BUSY_WAITS_MS[Math.min(n, WEAVE_BUSY_WAITS_MS.length - 1)], busy: true };
+	}
+	return { wait: (s.weaveFails ?? 0) >= 1 ? WEAVE_FAIL_WAIT_MS : WEAVE_FIRST_FAIL_WAIT_MS, busy: false };
+}
+
+/** Due when 10+ notes arrived, or a day has passed and 3+ arrived; never while a backoff is running. */
+export function weaveDue(s: WeaveSettings, now = new Date()): boolean {
+	if (s.weaveRetryAt && now.getTime() < Date.parse(s.weaveRetryAt)) return false;
+	// Older installs only stored the failure time: give those a short wait, not 6 h.
+	if (!s.weaveRetryAt && s.weaveFailedAt && now.getTime() - Date.parse(s.weaveFailedAt) < WEAVE_FIRST_FAIL_WAIT_MS) return false;
 	const n = s.notesSinceWeave ?? 0;
 	if (n >= 10) return true;
 	const dayPassed = !s.lastWeaveAt || now.getTime() - new Date(s.lastWeaveAt).getTime() > 24 * 3600_000;
 	return dayPassed && n >= 3;
+}
+
+// "Building your circle…": true while a weave runs or a quick retry is waiting.
+let building = false;
+const listeners = new Set<(b: boolean) => void>();
+function setBuilding(b: boolean) {
+	if (building === b) return;
+	building = b;
+	for (const fn of listeners) fn(b);
+}
+/** Subscribes to whether the circle is being built right now; returns an unsubscribe. */
+export function onWeaveBuilding(fn: (building: boolean) => void): () => void {
+	listeners.add(fn);
+	fn(building);
+	return () => listeners.delete(fn);
+}
+
+let retryTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleRetry(ms: number) {
+	clearTimeout(retryTimer);
+	retryTimer = setTimeout(() => void runWeave().catch(() => {}), ms + 500);
 }
 
 let weaving: Promise<void> | null = null;
@@ -26,6 +69,7 @@ let weaving: Promise<void> | null = null;
 /** Long-context pass. Runs when due (daily or 10+ new notes) unless force. */
 export function runWeave(force = false): Promise<void> {
 	weaving ??= (async () => {
+		let retrying = false;
 		try {
 			const s = await readSettings();
 			if ((!force && !weaveDue(s)) || !isOnline()) return;
@@ -36,6 +80,7 @@ export function runWeave(force = false): Promise<void> {
 				.reverse();
 			if (!notes.length) return;
 			const people = await db.people.toArray();
+			setBuilding(true);
 			let out: WeaveOutput;
 			try {
 				out = await spark('weave', {
@@ -44,13 +89,28 @@ export function runWeave(force = false): Promise<void> {
 					people: people.map((p) => ({ id: p.id, name: p.name, aliases: p.aliases, relation: p.relation, circle: p.circle }))
 				});
 			} catch (e) {
-				// Offline is not a failure; anything else backs off for 6 h.
-				if (!(e instanceof RelayError && e.isConnectivity)) await updateSettings({ weaveFailedAt: new Date().toISOString() });
+				// Offline is not a failure: the online event tries again.
+				if (e instanceof RelayError && e.isConnectivity && !isOnline()) throw e;
+				const cur = await readSettings();
+				const { wait, busy } = weaveBackoffMs(e, cur);
+				const now = Date.now();
+				await updateSettings({
+					weaveRetryAt: new Date(now + wait).toISOString(),
+					...(busy
+						? { weaveBusy: (cur.weaveBusy ?? 0) + 1 }
+						: { weaveFails: (cur.weaveFails ?? 0) + 1, weaveFailedAt: new Date(now).toISOString() })
+				});
+				// Short waits retry by themselves while the app is open.
+				if (wait <= WEAVE_FIRST_FAIL_WAIT_MS) {
+					retrying = true;
+					scheduleRetry(wait);
+				}
 				throw e;
 			}
 			await applyWeave(out);
 		} finally {
 			weaving = null;
+			setBuilding(retrying);
 		}
 	})();
 	return weaving;
@@ -130,6 +190,6 @@ export async function applyWeave(out: WeaveOutput, noteId: (id: string) => strin
 		}
 
 		const s = await readSettings();
-		await db.settings.put({ ...s, lastWeaveAt: now, notesSinceWeave: 0, weaveFailedAt: undefined });
+		await db.settings.put({ ...s, lastWeaveAt: now, notesSinceWeave: 0, weaveFailedAt: undefined, weaveRetryAt: undefined, weaveFails: 0, weaveBusy: 0 });
 	});
 }

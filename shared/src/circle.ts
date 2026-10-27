@@ -147,7 +147,8 @@ export interface WeekendInput {
 export interface WeekendOutput {
 	slot: Slot | null; // null = nothing good this weekend (a valid answer)
 	personIds: string[]; // who is free in that slot (>= 2 people including the user)
-	skipped: { personId: string; why: string; alt: Slot | null }[]; // e.g. Kabir asleep, alt Saturday 20:00
+	// e.g. Kabir asleep, alt Saturday 20:00; tz is set (app side) when they live in another zone
+	skipped: { personId: string; why: string; alt: Slot | null; tz?: string }[];
 	reason: string; // one kind line: "It's Thanksgiving morning."
 	occasion: string | null; // occasion name if the plan is built around one
 	tools_used: string[]; // tool names in call order, for the trace in the UI

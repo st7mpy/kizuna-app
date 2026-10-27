@@ -83,7 +83,11 @@ Promises: something the user means to do for or with someone: "should call Jorda
 
 Threads: the user's own open loops, worth seeing again: an idea, a plan being made, a promise, an errand ("buy a gift for Dad", "book flights for Thanksgiving", "app idea for plants"). Short title in the note's language. Skip small talk.
 
-Gift hints: things someone in the note wants, needs or would like to have ("Dad wants new running shoes", "Maya needs a good desk lamp", "Mom said she'd love a bread maker"). person is the name from your people list; what is the thing itself, 2 to 8 words ("new running shoes"). Never include prices, money, budgets, shops or links, and nothing about health (no medicines, no medical devices). A thing the user wants for themself is not a gift hint. Empty if none.
+Gift hints: things someone in the note wants, needs or would like to have. Look for "wants", "would love", "'d love", "would like", "needs a new", "has been eyeing", "keeps talking about getting", "wish list" and the same in other languages. Check every part of the note: a gift hint is often one clause among several.
+- "Mom's birthday is next Friday, should call Leo before his exams, Dad wants new running shoes" -> gift hint {person: "Dad", what: "new running shoes"} (and Dad is in people).
+- "Maya needs a new desk lamp" -> {person: "Maya", what: "new desk lamp"}. "Mom said she'd love a bread maker" -> {person: "Mom", what: "bread maker"}.
+- Not gift hints: "Jordan wants to meet up" (a plan, not a thing), "Dad needs help with the move", "I want a new phone" (the user themself).
+person is the name from your people list (anyone in a gift hint is also in people); what is the thing itself, 2 to 8 words. Never include prices, money, budgets, shops or links, and nothing about health (no medicines, no medical devices). Empty if none.
 
 sensitive: true if the note mentions health (illness, surgery, appointments with a doctor, injuries, pregnancy complications, mental health), money (loans, debt, salary troubles) or conflict (fights, breakups, someone upset). Otherwise false.
 

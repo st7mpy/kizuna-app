@@ -25,6 +25,7 @@ import {
 	type WeekendPerson,
 	type WeekendToolSlot
 } from '@kizuna/shared';
+import { modelText } from '@kizuna/shared';
 import type { Env } from './env.ts';
 import { addUsage, chat, type Message, type Usage } from './model.ts';
 
@@ -211,8 +212,8 @@ export function toolGetReasons(run: Run, args: any) {
 export function checkFinish(run: Run, args: any): Omit<WeekendOutput, 'tools_used'> | null {
 	const { input } = run;
 	const ids = new Set(input.people.map((p) => p.id));
-	const reason = text(args?.reason, 160);
-	const occasionName = text(args?.occasion, 60);
+	const reason = modelText(args?.reason, 160) ?? '';
+	const occasionName = modelText(args?.occasion, 60) ?? '';
 	const occasion = input.occasions.find((o) => o.name.toLowerCase() === occasionName.toLowerCase())?.name ?? null;
 	const skippedIn: any[] = Array.isArray(args?.skipped) ? args.skipped : [];
 	const altFor = (personId: string, altId: unknown): Slot | null => {

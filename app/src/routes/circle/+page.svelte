@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Person } from '@kizuna/shared';
-	import { updatePerson } from '#lib/core/index.js';
+	import { onDestroy } from 'svelte';
+	import { onWeaveBuilding, updatePerson } from '#lib/core/index.js';
 	import { circlePeople, mapLive, suggestedPeople, type MapView } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { fold, soft } from '#lib/ui/motion.js';
@@ -13,6 +14,8 @@
 	const map = watch<MapView | undefined>(() => mapLive(), undefined);
 	const hueFor = (id: string) => (void map.value, hashHue(id));
 	let note = $state('');
+	let building = $state(false);
+	onDestroy(onWeaveBuilding((b) => (building = b)));
 
 	async function decide(p: Person, keep: boolean) {
 		note = '';
@@ -78,7 +81,12 @@
 				</a>
 			{/each}
 		</div>
-		{#if circle.ready && suggested.ready && !circle.value.length && !suggested.value.length}
+		{#if circle.ready && suggested.ready && !circle.value.length && !suggested.value.length && building}
+			<div class="empty" role="status">
+				<p class="calm">Building your circle…</p>
+				<p class="muted">Kizuna is reading your notes to see who matters. This takes about half a minute.</p>
+			</div>
+		{:else if circle.ready && suggested.ready && !circle.value.length && !suggested.value.length}
 			<div class="empty">
 				<p class="calm">Your circle <em>builds itself</em>.</p>
 				<p class="muted">Talk about your day and Kizuna will notice who matters. You decide who stays.</p>
@@ -192,8 +200,6 @@
 			padding: 14px 14px 18px;
 			border-radius: var(--r-card);
 			background: var(--surface);
-			-webkit-backdrop-filter: var(--blur);
-			backdrop-filter: var(--blur);
 			box-shadow: var(--card-shadow);
 			transition:
 				transform 500ms var(--ease-out),

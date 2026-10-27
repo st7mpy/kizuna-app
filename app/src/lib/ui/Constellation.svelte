@@ -31,6 +31,7 @@
 	// slow breathing glow, and a faint light travels out along the lines when the circle refreshes.
 	import { onMount } from 'svelte';
 	import { hueOf } from './hue.js';
+	import { slowLoop, wave } from './slow.js';
 	import { beam, cityOf, DOT_R, dotLabel, layoutConstellation, shortName } from './constellation.js';
 
 	let {
@@ -85,15 +86,46 @@
 	const introEnd = $derived(litAt(Math.max(0, layout.dots.length - 1)) + 0.6);
 
 	let still = $state(false);
+	// Once the lines have drawn out, the growth masks are dropped: a fully drawn mask covers
+	// every strand, and without it each repaint of the shimmer is far cheaper.
+	let grown = $state(false);
 	let born = 0;
+	let fig: HTMLElement;
+	let svg: SVGSVGElement;
 	onMount(() => {
 		born = performance.now();
 		const mq = matchMedia('(prefers-reduced-motion: reduce)');
 		still = mq.matches;
 		const onMq = () => (still = mq.matches);
 		mq.addEventListener('change', onMq);
-		return () => mq.removeEventListener('change', onMq);
+		const stop = slowLoop(fig, 16, shimmer);
+		const grow = setTimeout(() => (grown = true), still ? 0 : (introEnd + 0.3) * 1000);
+		return () => {
+			stop();
+			clearTimeout(grow);
+			mq.removeEventListener('change', onMq);
+		};
 	});
+
+	// The colours slowly swell out along the lines, a pearly band slides across them, and open
+	// people breathe. These run on a slow clock (16 a second, only while the map is on screen),
+	// set straight on the elements, so the map is not repainted every frame while it sits still.
+	const tri = (t: number, p: number) => 1 - Math.abs(2 * ((t / p) % 1) - 1);
+	function shimmer(t: number) {
+		if (still || !svg) return;
+		for (let k = 0; k < 3; k++) {
+			const g = svg.getElementById(iri(k));
+			// as the old animation: from `reach` (all three) out and back
+			g?.setAttribute('r', String(Math.round(reach * (1 + (0.14 + k * 0.05) * tri(t, 14 + k * 5)) * 10) / 10));
+		}
+		const f = (t / 11) % 1;
+		svg.getElementById(`pearl-${uid}`)?.setAttribute('gradientTransform', `translate(${Math.round(-420 + 840 * f)} ${Math.round(300 - 600 * f)})`);
+		for (const h of svg.querySelectorAll<SVGElement>('.halo.open')) {
+			const w = wave(Math.max(0, t - Number(h.dataset.at ?? 0)), 4.8);
+			h.style.opacity = (0.7 + 0.3 * w).toFixed(3);
+			h.style.transform = `scale(${(0.86 + 0.24 * w).toFixed(3)})`;
+		}
+	}
 	// A refresh during the intro waits for it to finish.
 	const pulseWait = $derived.by(() => {
 		void beat;
@@ -107,13 +139,36 @@
 		const city = cityOf(p.tz);
 		return city ? `${p.localTime} ${city}` : p.localTime;
 	}
+	// The radial gradient stops of the three line colours (dawn, from you outward).
+	const IRI_STOPS = [
+		[0.04, 0.22, 0.5, 0.78, 1],
+		[0.0, 0.3, 0.6, 0.85, 1],
+		[0.08, 0.18, 0.42, 0.7, 0.95]
+	];
+	// A blurred disc as gradient stops (offset, opacity): the ring round a dot (r 14.5 blurred by 2.4,
+	// drawn at r 21.5) and your own aura (r 7 blurred by 2.4, drawn at r 13).
+	const SOFT_RING = [[0, 1], [0.45, 0.977], [0.56, 0.84], [0.674, 0.5], [0.786, 0.16], [0.898, 0.023], [1, 0]] as const;
+	const SOFT_ME = [[0, 0.99], [0.17, 0.977], [0.35, 0.84], [0.54, 0.5], [0.72, 0.16], [0.91, 0.023], [1, 0]] as const;
 	const gid = (id: string) => `g-${uid}-${id.replace(/[^A-Za-z0-9_-]/g, '')}`;
 	const iri = (k: number) => `iri${k}-${uid}`;
 </script>
 
-{#snippet strands(kind: 'bloom' | 'main' | 'sheen')}
+<!-- lines pass behind the labels, never through them: soft-edged holes in a mask (bm-…) -->
+{#snippet hole(x: number, y: number, w: number, h: number, rx: number)}
+	<rect x={x - 2.4} y={y - 2.4} width={w + 4.8} height={h + 4.8} rx={rx + 2.4} fill="#000" opacity="0.25" />
+	<rect x={x - 0.6} y={y - 0.6} width={w + 1.2} height={h + 1.2} rx={rx + 0.6} fill="#000" opacity="0.45" />
+	<rect x={x + 1.4} y={y + 1.4} width={Math.max(0, w - 2.8)} height={Math.max(0, h - 2.8)} rx={Math.max(0, rx - 1.4)} fill="#000" />
+{/snippet}
+{#snippet holes()}
+	{@render hole(layout.cx - 34, layout.cy + 16, 68, 15, 7)}
+	{#each layout.dots as o (o.id)}
+		{@render hole(o.label.x - 2, o.label.y + 3, o.label.w + 4, o.label.h - 4, 6)}
+	{/each}
+{/snippet}
+
+{#snippet strands(kind: 'main' | 'sheen')}
 	{#each layout.dots as d (d.id)}
-		<g mask="url(#m-{gid(d.id)})">
+		<g mask={grown ? undefined : `url(#m-${gid(d.id)})`}>
 			{#each beams.get(d.id)!.strands as s, k (k)}
 				<path d={s.d} fill={kind === 'sheen' ? `url(#pearl-${uid})` : `url(#${iri(s.hue)})`} opacity={s.opacity} />
 			{/each}
@@ -121,20 +176,46 @@
 	{/each}
 {/snippet}
 
-<figure class="map" class:still aria-label="Your Kizuna map">
-	<svg viewBox="0 {layout.top} {layout.width} {layout.bottom - layout.top}" width="100%" role="group" aria-label="People on your map">
+<figure class="map" class:still aria-label="Your Kizuna map" bind:this={fig}>
+	<div class="stage">
+	<!-- The bloom under the lines: blurred once, on a layer of its own that never changes, and faded in
+	     as the lines draw out. Same viewBox as the map, so it sits exactly under it. -->
+	<svg class="glow" viewBox="0 {layout.top} {layout.width} {layout.bottom - layout.top}" aria-hidden="true" focusable="false">
+		<defs>
+			{#each [0, 1, 2] as k (k)}
+				<radialGradient id="b{iri(k)}" gradientUnits="userSpaceOnUse" cx={layout.cx} cy={layout.cy} r={reach * (1 + (0.14 + k * 0.05) / 2)} spreadMethod="reflect">
+					{#each IRI_STOPS[k] as o, j (j)}<stop offset={o} class="c{[4, 3, 2, 1, 5][j]}" />{/each}
+				</radialGradient>
+			{/each}
+			<filter id="bloom-{uid}" x="-20%" y="-20%" width="140%" height="140%">
+				<feGaussianBlur stdDeviation="3" />
+			</filter>
+			<mask id="bm-{uid}" maskUnits="userSpaceOnUse" x={-layout.width} y={layout.top - layout.width} width={layout.width * 3} height={layout.bottom - layout.top + layout.width * 2}>
+				<rect x={-layout.width} y={layout.top - layout.width} width={layout.width * 3} height={layout.bottom - layout.top + layout.width * 2} fill="#fff" />
+				{@render holes()}
+			</mask>
+		</defs>
+		<!-- masked, then blurred: the holes under the labels get soft edges, as before -->
+		<g filter="url(#bloom-{uid})">
+			<g mask="url(#bm-{uid})">
+				{#each layout.dots as d (d.id)}
+					{#each beams.get(d.id)!.strands as s, k (k)}
+						<path d={s.d} fill="url(#b{iri(s.hue)})" opacity={s.opacity} />
+					{/each}
+				{/each}
+			</g>
+		</g>
+	</svg>
+	<svg bind:this={svg} viewBox="0 {layout.top} {layout.width} {layout.bottom - layout.top}" width="100%" role="group" aria-label="People on your map">
 		<defs>
 			<!-- dawn, from you outward: peach and coral near you, lilac, then sky blue out at the dots -->
-			{#each [[0.04, 0.22, 0.5, 0.78, 1], [0.0, 0.3, 0.6, 0.85, 1], [0.08, 0.18, 0.42, 0.7, 0.95]] as st, k (k)}
+			{#each IRI_STOPS as st, k (k)}
 				<radialGradient id={iri(k)} gradientUnits="userSpaceOnUse" cx={layout.cx} cy={layout.cy} r={reach * (k === 2 ? 0.85 : 1)} spreadMethod="reflect">
 					<stop offset={st[0]} class="c4" />
 					<stop offset={st[1]} class="c3" />
 					<stop offset={st[2]} class="c2" />
 					<stop offset={st[3]} class="c1" />
 					<stop offset={st[4]} class="c5" />
-					{#if !still}
-						<animate attributeName="r" values="{reach};{reach * (1.14 + k * 0.05)};{reach}" dur="{14 + k * 5}s" repeatCount="indefinite" />
-					{/if}
 				</radialGradient>
 			{/each}
 			<!-- a pearly band that slides slowly across the lines -->
@@ -142,31 +223,23 @@
 				<stop offset="0.38" stop-color="#fff" stop-opacity="0" />
 				<stop offset="0.5" stop-color="#fff" stop-opacity="0.85" />
 				<stop offset="0.62" stop-color="#fff" stop-opacity="0" />
-				{#if !still}
-					<animateTransform attributeName="gradientTransform" type="translate" values="-420 300; 420 -300" dur="11s" repeatCount="indefinite" />
-				{/if}
 			</linearGradient>
 			<radialGradient id="halo-{uid}">
 				<stop offset="0" class="halo-0" />
 				<stop offset="0.45" class="halo-1" />
 				<stop offset="1" class="halo-2" />
 			</radialGradient>
-			<filter id="bloom-{uid}" x="-20%" y="-20%" width="140%" height="140%">
-				<feGaussianBlur stdDeviation="3" />
-			</filter>
-			<filter id="soft-{uid}" x="-80%" y="-80%" width="260%" height="260%">
-				<feGaussianBlur stdDeviation="2.4" />
-			</filter>
+			<!-- a soft glow, drawn as a gradient (a blur filter here would be redrawn on every frame) -->
+			<radialGradient id="aura-{uid}">
+				{#each SOFT_ME as [o, a] (o)}<stop offset={o} class="aura-stop" stop-opacity={a} />{/each}
+			</radialGradient>
 			{#each layout.dots as d (d.id)}
 				{@const i = order.get(d.id) ?? 0}
-				<mask id="m-{gid(d.id)}" maskUnits="userSpaceOnUse" x="0" y={layout.top} width={layout.width} height={layout.bottom - layout.top}>
-					<path class="grow" d={beams.get(d.id)!.spine} pathLength="1" style="--del:{drawDelay(i)}s; --dur:{DRAW}s" />
-					<!-- lines pass behind the labels, never through them -->
-					<rect x={layout.cx - 34} y={layout.cy + 16} width="68" height="15" rx="7" fill="#000" filter="url(#soft-{uid})" />
-					{#each layout.dots as o (o.id)}
-						<rect x={o.label.x - 2} y={o.label.y + 3} width={o.label.w + 4} height={o.label.h - 4} rx="6" fill="#000" filter="url(#soft-{uid})" />
-					{/each}
-				</mask>
+				{#if !grown}
+					<mask id="m-{gid(d.id)}" maskUnits="userSpaceOnUse" x="0" y={layout.top} width={layout.width} height={layout.bottom - layout.top}>
+						<path class="grow" d={beams.get(d.id)!.spine} pathLength="1" style="--del:{drawDelay(i)}s; --dur:{DRAW}s" />
+					</mask>
+				{/if}
 				<clipPath id="c-{gid(d.id)}"><circle cx={d.x} cy={d.y} r={DOT_R} /></clipPath>
 			{/each}
 			<!-- open to a call: one warm glow for everyone, the same as the legend -->
@@ -183,6 +256,10 @@
 					<stop offset="45%" stop-color={hue} stop-opacity="0.95" />
 					<stop offset="100%" stop-color={hue} />
 				</radialGradient>
+				<!-- the soft ring of colour round their dot -->
+				<radialGradient id="ring-{gid(p.person.id)}">
+					{#each SOFT_RING as [o, a] (o)}<stop offset={o} stop-color={hue} stop-opacity={a} />{/each}
+				</radialGradient>
 			{/each}
 		</defs>
 
@@ -198,9 +275,11 @@
 		{/each}
 
 		<g class="beams" aria-hidden="true">
-			<g class="bloom" filter="url(#bloom-{uid})">{@render strands('bloom')}</g>
-			<g class="main">{@render strands('main')}</g>
-			<g class="sheen">{@render strands('sheen')}</g>
+			<!-- lines pass behind the labels: one mask of soft holes (defined with the bloom) over them all -->
+			<g mask="url(#bm-{uid})">
+				<g class="main">{@render strands('main')}</g>
+				<g class="sheen">{@render strands('sheen')}</g>
+			</g>
 			{#if beat > 0 && !still}
 				{#key beat}
 					{#each layout.dots as d (d.id)}
@@ -213,7 +292,7 @@
 		<!-- you -->
 		<g class="me" aria-label="You, {me.localTime}" role="img">
 			<circle class="halo me-halo" cx={layout.cx} cy={layout.cy} r="20" fill="url(#halo-{uid})" />
-			<circle class="aura" cx={layout.cx} cy={layout.cy} r="7" filter="url(#soft-{uid})" />
+			<circle class="aura" cx={layout.cx} cy={layout.cy} r="13" fill="url(#aura-{uid})" />
 			<circle class="core" cx={layout.cx} cy={layout.cy} r="4.4" />
 			<text x={layout.cx} y={layout.cy + 26} text-anchor="middle" class="me-name"
 				>{me.name || 'You'}<tspan class="me-time num" dx="7">{me.localTime}</tspan></text
@@ -241,7 +320,7 @@
 				<rect class="hit" x={d.label.x} y={d.label.y} width={d.label.w} height={d.label.h} />
 				<g class="node" style="--lit:{litAt(i)}s; --i:{i}">
 					{#if p.glow === 'open'}
-						<circle class="halo open" cx={d.x} cy={d.y} r={DOT_R * 2.6} fill="url(#open-{uid})" />
+						<circle class="halo open" cx={d.x} cy={d.y} r={DOT_R * 2.6} fill="url(#open-{uid})" data-at={litAt(i) + 0.5} />
 					{:else if p.glow === 'maybe'}
 						<circle class="halo maybe" cx={d.x} cy={d.y} r={DOT_R * 2} fill="url(#open-{uid})" />
 					{/if}
@@ -252,7 +331,7 @@
 							<circle class="answered" cx={d.x} cy={d.y} r={DOT_R * 2.2} fill="url(#halo-{uid})" style="--at:{pulseWait}s" />
 						{/key}
 					{/if}
-					<circle class="glowring" cx={d.x} cy={d.y} r={DOT_R + 2.5} fill={hue} filter="url(#soft-{uid})" />
+					<circle class="glowring" cx={d.x} cy={d.y} r={DOT_R + 9.5} fill="url(#ring-{gid(d.id)})" />
 					<circle class="focus" cx={d.x} cy={d.y} r={DOT_R + 5} />
 					<circle class="dot" class:new={p.unlinked} cx={d.x} cy={d.y} r={DOT_R} fill="url(#orb-{gid(d.id)})" stroke={hue} />
 					{#if p.daylight < 0.98}
@@ -306,6 +385,7 @@
 			</a>
 		{/each}
 	</svg>
+	</div>
 </figure>
 
 <style>
@@ -344,9 +424,28 @@
 		--c-shade: #10121c;
 		--c-shade-a: 0.6;
 	}
+	.stage {
+		position: relative;
+	}
 	svg {
+		position: relative;
 		display: block;
 		overflow: visible;
+	}
+	svg.glow {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		opacity: var(--c-bloom);
+		will-change: opacity;
+		animation: bloom-in 1s ease-out 0.55s backwards;
+	}
+	@keyframes bloom-in {
+		from {
+			opacity: 0;
+		}
 	}
 	/* On a wide screen a full, tall map still fits beside the list without scrolling. */
 	@media (min-width: 1100px) {
@@ -416,9 +515,6 @@
 	.beams {
 		pointer-events: none;
 	}
-	.bloom {
-		opacity: var(--c-bloom);
-	}
 	.sheen {
 		opacity: var(--c-sheen);
 		mix-blend-mode: screen;
@@ -470,8 +566,10 @@
 		opacity: 0.85;
 	}
 	.aura {
-		fill: var(--c-halo);
 		opacity: 0.75;
+	}
+	.aura-stop {
+		stop-color: var(--c-halo);
 	}
 	.core {
 		fill: var(--c-core);
@@ -589,23 +687,13 @@
 		transform-origin: center;
 		pointer-events: none;
 	}
-	/* open to a call: a slow breathing glow that starts once they have lit up */
+	/* open to a call: a slow breathing glow that starts once they have lit up (set by shimmer()) */
 	.halo.open {
-		animation: breathe 4.8s ease-in-out calc(var(--lit) + 0.5s) infinite both;
+		opacity: 0.7;
+		transform: scale(0.86);
 	}
 	.halo.maybe {
 		opacity: 0.55;
-	}
-	@keyframes breathe {
-		0%,
-		100% {
-			opacity: 0.7;
-			transform: scale(0.86);
-		}
-		50% {
-			opacity: 1;
-			transform: scale(1.1);
-		}
 	}
 	.mark {
 		pointer-events: none;
@@ -640,7 +728,7 @@
 	.still .node,
 	.still .flare,
 	.still .answered,
-	.still .halo.open {
+	.still .glow {
 		animation: none;
 	}
 	.still .node {
@@ -648,6 +736,7 @@
 	}
 	.still .halo.open {
 		opacity: 0.9;
+		transform: none;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.grow {
@@ -664,8 +753,11 @@
 			display: none;
 		}
 		.halo.open {
-			animation: none;
 			opacity: 0.9;
+			transform: none;
+		}
+		.glow {
+			animation: none;
 		}
 	}
 </style>

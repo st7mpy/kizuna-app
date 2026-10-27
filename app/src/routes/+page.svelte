@@ -6,7 +6,9 @@
 		answerCard,
 		answeredToday,
 		answerLines,
+		closePick,
 		dismissAnswer,
+		picksToday,
 		draftNudge,
 		followUps,
 		markNudged,
@@ -14,6 +16,7 @@
 		todayCards,
 		todayExtras,
 		type AnswerLine,
+		type PickedLine,
 		type TodayExtras,
 		type FollowUp
 	} from '#lib/core/index.js';
@@ -57,6 +60,8 @@
 	// Closing the loop: who answered the family page, and who hasn't yet (a line the user sends).
 	const answers = watch<AnswerLine[]>(() => liveQuery(() => answerLines()), []);
 	const waiting = watch<FollowUp[]>(() => liveQuery(() => followUps()), []);
+	// Someone picked a time on a shared pick-a-time link.
+	const picks = watch<PickedLine[]>(() => liveQuery(() => picksToday()), []);
 	let nudging = $state<string | null>(null);
 
 	let cards: Card[] = $state([]);
@@ -191,8 +196,18 @@
 			/>
 		</section>
 
-		{#if answers.value.length || waiting.value.length}
-			<section class="loop" aria-label="Family call answers" aria-live="polite">
+		{#if answers.value.length || waiting.value.length || picks.value.length}
+			<section class="loop" aria-label="Answers" aria-live="polite">
+				{#each picks.value as p (p.id)}
+					<div class="loopline" out:fold in:soft>
+						<span class="dot" style="--hue:{hueFor(p.personId)}" aria-hidden="true"></span>
+						<p class="said"><strong>{p.name}</strong> picked {p.label}</p>
+						<a class="btn accent nudge" href={p.calendarUrl} target="_blank" rel="noopener noreferrer">Add to calendar</a>
+						<button class="icon-btn bare close" type="button" aria-label="Close: {p.text}" onclick={() => closePick(p.id)}>
+							<Icon name="close" size={18} />
+						</button>
+					</div>
+				{/each}
 				{#each answers.value as a (a.memberId)}
 					<div class="loopline" out:fold in:soft>
 						<span class="dot" style="--hue:{hueFor(a.personId ?? a.memberId)}" aria-hidden="true"></span>
@@ -374,8 +389,6 @@
 		padding: 6px 8px 6px 18px;
 		border-radius: var(--r-card);
 		background: var(--surface);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 	}
 	.loopline {
@@ -425,8 +438,6 @@
 		padding: 20px 20px 10px;
 		border-radius: var(--r-card);
 		background: var(--surface);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 	}
 	.moment.thread {
@@ -519,8 +530,6 @@
 		padding: 18px 16px 18px 22px;
 		border-radius: var(--r-card);
 		background: var(--bg-2);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		box-shadow: inset 0 0 0 1px var(--line);
 		color: var(--text);
 		text-decoration: none;
@@ -553,8 +562,6 @@
 		padding: 18px 20px 16px;
 		border-radius: var(--r-card);
 		background: var(--surface);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 		--map-w: 360px;
 	}

@@ -1,7 +1,10 @@
 <script lang="ts">
 	// The sky every screen sits in, the same as the landing's: dawn in light, dusk in dark,
 	// soft blurred clouds that drift very slowly and, at dusk, a few faint stars.
+	import { onMount } from 'svelte';
 	import { rng } from './strands.js';
+	import { cloud } from './clouds.js';
+	import { slowLoop, wave } from './slow.js';
 
 	// Seeded, so the stars stay put between screens. Fewer lower down, as near a horizon.
 	const r = rng(11);
@@ -12,17 +15,27 @@
 		twinkle: r() < 0.35,
 		d: r() * 7
 	}));
+
+	// The stars sit in one small drawing; the few that twinkle do so on a slow clock.
+	let stars: SVGSVGElement;
+	onMount(() =>
+		slowLoop(stars, 4, (t) => {
+			stars.querySelectorAll<SVGCircleElement>('circle.tw').forEach((c) => {
+				c.style.opacity = `calc(var(--star-o) * ${(1 - 0.75 * wave(t + Number(c.dataset.d), 7)).toFixed(3)})`;
+			});
+		})
+	);
 </script>
 
 <div class="sky" aria-hidden="true">
-	<i class="cloud c1"></i>
-	<i class="cloud c2"></i>
-	<i class="cloud c3"></i>
-	<div class="stars">
+	<i class="cloud c1" use:cloud={{ sigma: 70, dur: 60 }}></i>
+	<i class="cloud c2" use:cloud={{ sigma: 70, dur: 74, reverse: true }}></i>
+	<i class="cloud c3" use:cloud={{ sigma: 70, dur: 86 }}></i>
+	<svg class="stars" bind:this={stars} width="100%" height="100%">
 		{#each specks as s, k (k)}
-			<b class:tw={s.twinkle} style="left:{s.x}%; top:{s.y}%; width:{s.s}px; height:{s.s}px; --d:{s.d}s"></b>
+			<circle class:tw={s.twinkle} cx="{s.x}%" cy="{s.y}%" r={s.s / 2} data-d={s.d} />
 		{/each}
-	</div>
+	</svg>
 </div>
 
 <style>
@@ -34,11 +47,16 @@
 		pointer-events: none;
 		background: var(--app-sky);
 	}
+	/* The box is the ellipse; ::before draws it blurred (see clouds.ts), so no filter is redrawn. */
 	.cloud {
 		position: absolute;
-		border-radius: 50%;
-		filter: blur(70px);
-		animation: drift 60s ease-in-out infinite alternate;
+		will-change: transform;
+	}
+	.cloud::before {
+		content: '';
+		position: absolute;
+		inset: calc(-1 * var(--cloud-m, 182px));
+		background: var(--cloud-bg, radial-gradient(closest-side, var(--cloud-color), transparent));
 	}
 	/* high, cool light top left */
 	.c1 {
@@ -46,7 +64,7 @@
 		height: 30vw;
 		left: -14vw;
 		top: -8vw;
-		background: var(--cloud-1);
+		--cloud-color: var(--cloud-1);
 		opacity: 0.75;
 	}
 	/* a lilac cloud to the right */
@@ -55,10 +73,8 @@
 		height: 26vw;
 		right: -10vw;
 		top: 22vh;
-		background: var(--cloud-2);
+		--cloud-color: var(--cloud-2);
 		opacity: 0.55;
-		animation-duration: 74s;
-		animation-direction: alternate-reverse;
 	}
 	/* the low warm glow, like the light just under the horizon */
 	.c3 {
@@ -66,9 +82,8 @@
 		height: 26vw;
 		left: 8vw;
 		bottom: -12vw;
-		background: var(--cloud-3);
+		--cloud-color: var(--cloud-3);
 		opacity: 0.6;
-		animation-duration: 86s;
 	}
 	.sky {
 		--cloud-1: rgb(255 255 255 / 0.85);
@@ -78,17 +93,12 @@
 	.stars {
 		position: absolute;
 		inset: 0;
+		overflow: visible;
 		opacity: 0.35;
 	}
-	.stars b {
-		position: absolute;
-		border-radius: 50%;
-		background: var(--star);
+	.stars circle {
+		fill: var(--star);
 		opacity: var(--star-o);
-	}
-	.stars b.tw {
-		animation: twinkle 7s ease-in-out infinite;
-		animation-delay: calc(var(--d) * -1);
 	}
 	@media (prefers-color-scheme: dark) {
 		:global(:root:not([data-theme='light'])) .sky {
@@ -107,24 +117,5 @@
 	}
 	:global(:root[data-theme='dark']) .stars {
 		opacity: 1;
-	}
-	@keyframes drift {
-		from {
-			transform: translate3d(-3vw, 0, 0) scale(1);
-		}
-		to {
-			transform: translate3d(4vw, 2vw, 0) scale(1.08);
-		}
-	}
-	@keyframes twinkle {
-		50% {
-			opacity: calc(var(--star-o) * 0.25);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.cloud,
-		.stars b.tw {
-			animation: none;
-		}
 	}
 </style>

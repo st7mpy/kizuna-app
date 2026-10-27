@@ -5,6 +5,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { WebSocketServer, type WebSocket, type RawData } from 'ws';
 import { CANNED_SENTENCE, detectTask, fakeCompletion } from './fake.ts';
+import { fakeAsrSession } from './asr.ts';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const MAX_BODY = 40 * 1024 * 1024;
@@ -68,61 +69,19 @@ const server = createServer(async (req, res) => {
 	}
 });
 
-// ---- realtime ASR: partial words as audio arrives, then a final per turn ----
+// ---- realtime ASR: same protocol as the real upstream (see asr.ts) ----
 const wss = new WebSocketServer({ noServer: true });
-const WORDS = CANNED_SENTENCE.split(' ');
 
 wss.on('connection', (ws: WebSocket) => {
-	let ready = false;
-	let sampleRate = 16000;
-	let bytes = 0;
-	let shown = 0;
-	let silence: ReturnType<typeof setTimeout> | null = null;
-	let finalSent = false;
-
-	const sendFinal = () => {
-		if (finalSent) return;
-		finalSent = true;
-		ws.send(JSON.stringify({ type: 'speechComplete', text: CANNED_SENTENCE, isFinal: true }));
-		log('asr final', `${(bytes / (sampleRate * 2)).toFixed(1)} s audio`);
-	};
-
+	const session = fakeAsrSession(
+		{ send: (t) => ws.readyState === ws.OPEN && ws.send(t), close: (code, reason) => ws.close(code, reason) },
+		{ log }
+	);
 	ws.on('message', (data: RawData, isBinary: boolean) => {
-		if (!isBinary) {
-			let m: any = {};
-			try {
-				m = JSON.parse(data.toString());
-			} catch {}
-			if (!ready) {
-				if (!m.token) {
-					ws.send(JSON.stringify({ type: 'error', message: 'handshake needs a token' }));
-					return ws.close(4001, 'auth');
-				}
-				ready = true;
-				sampleRate = m.sampleRate === 24000 ? 24000 : 16000;
-				ws.send(JSON.stringify({ type: 'session.started' }));
-				log('asr start', sampleRate);
-				return;
-			}
-			if (/stop|end/.test(String(m.type ?? ''))) {
-				if (bytes > 0) sendFinal();
-				setTimeout(() => ws.close(1000, 'done'), 200);
-			}
-			return;
-		}
-		if (!ready) return;
-		bytes += (data as Buffer).length;
-		const seconds = bytes / (sampleRate * 2);
-		const want = Math.min(WORDS.length, Math.floor(seconds * 2.5));
-		if (want > shown && !finalSent) {
-			shown = want;
-			ws.send(JSON.stringify({ type: 'partial', text: WORDS.slice(0, shown).join(' ') }));
-		}
-		if (silence) clearTimeout(silence);
-		// No audio for a while counts as the end of the turn.
-		silence = setTimeout(() => ws.readyState === ws.OPEN && sendFinal(), 2000);
+		if (isBinary) session.binary((data as Buffer).length);
+		else session.text(data.toString());
 	});
-	ws.on('close', () => silence && clearTimeout(silence));
+	ws.on('close', () => session.close());
 });
 
 server.on('upgrade', (req, socket, head) => {

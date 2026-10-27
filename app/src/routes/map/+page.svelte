@@ -322,8 +322,6 @@
 		border-radius: 999px;
 		background: var(--surface);
 		box-shadow: var(--card-shadow);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		color: var(--text);
 		font-size: var(--t-small);
 		font-weight: 500;
@@ -436,8 +434,6 @@
 		border-radius: var(--r-card);
 		background: var(--surface);
 		box-shadow: var(--card-shadow);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 	}
 	.invite .btn {
 		margin-top: 6px;

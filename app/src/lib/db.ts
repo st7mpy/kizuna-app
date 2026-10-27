@@ -173,9 +173,19 @@ export function mapLive(): { subscribe(next: ((v: MapView) => void) | { next: (v
 		subscribe(observer) {
 			const next = typeof observer === 'function' ? observer : (v: MapView) => observer.next(v);
 			let closed = false;
-			const sub = liveQuery(() => buildMapView()).subscribe({ next: (v) => !closed && next(v), error: () => {} });
+			// Only pass on a view that changed: the minute tick usually rebuilds the same map, and
+			// a new object would make the map lay itself out and redraw for nothing.
+			let last = '';
+			const emit = (v: MapView) => {
+				if (closed) return;
+				const sig = JSON.stringify(v);
+				if (sig === last) return;
+				last = sig;
+				next(v);
+			};
+			const sub = liveQuery(() => buildMapView()).subscribe({ next: emit, error: () => {} });
 			const timer = setInterval(() => {
-				void buildMapView().then((v) => !closed && next(v)).catch(() => {});
+				void buildMapView().then(emit).catch(() => {});
 			}, 60_000);
 			return {
 				unsubscribe() {

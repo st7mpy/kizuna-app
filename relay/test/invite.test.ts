@@ -4,7 +4,8 @@ import { route } from '../src/index.ts';
 import { resetAllLimits } from '../src/ratelimit.ts';
 import { INVITE_TTL_S, parseInviteRequest } from '../src/invite.ts';
 import { googleCalendarLink } from '@kizuna/shared';
-import { icsFor } from '../src/invite.ts';
+import { icsFor, senderName, usableName } from '../src/invite.ts';
+import { renderPickPage, renderPickedPage } from '../src/page.ts';
 
 const invite = {
 	fromName: 'Aarav Mehta',
@@ -46,7 +47,7 @@ describe('invites', () => {
 		expect(parseInviteRequest({ ...invite, slots: [] })).toBeNull();
 		expect(parseInviteRequest({ ...invite, slots: [...invite.slots, ...invite.slots] })).toBeNull();
 		expect(parseInviteRequest({ ...invite, timeZone: 'Nowhere/Land' })).toBeNull();
-		expect(parseInviteRequest({ ...invite, fromName: '   ' })).toBeNull();
+		expect(parseInviteRequest({ ...invite, fromName: '   ' })).toMatchObject({ fromName: '' });
 		expect(parseInviteRequest({ ...invite, slots: [{ start: 'x', end: 'y', label: '' }] })).toBeNull();
 		expect(parseInviteRequest({ ...invite, slots: [{ ...invite.slots[0], end: invite.slots[0].start }] })).toBeNull();
 		expect(parseInviteRequest({ ...invite, title: 'a\nb' })!.title).toBe('a b');
@@ -155,5 +156,31 @@ describe('pick page', () => {
 		const ics = icsFor('abc', { ...invite, fromName: 'Aarav', pickedIndex: 0, expiresAt: '' }, 1, Date.parse('2027-01-01T00:00:00Z'));
 		expect(ics).toContain('UID:abc-1@kizuna');
 		expect(ics).toContain('DTSTAMP:20270101T000000Z');
+	});
+});
+
+describe('sender name on the pick-a-time page', () => {
+	const slots = [{ start: '2026-11-07T10:00:00+05:30', end: '2026-11-07T11:00:00+05:30', label: 'Sat 7 Nov, 10:00' }];
+	const stored = (fromName: string, title: string) => ({ fromName, title, slots, timeZone: 'Asia/Kolkata', pickedIndex: 0, expiresAt: '2099-01-01T00:00:00Z' });
+
+	it('drops blank and one-letter names, and fixes the title that used them', () => {
+		expect(parseInviteRequest({ fromName: 'a', title: 'Catch up with a', slots, timeZone: 'Asia/Kolkata' })).toMatchObject({ fromName: '', title: 'Catch up' });
+		expect(parseInviteRequest({ fromName: '', title: 'Catch up with ', slots, timeZone: 'Asia/Kolkata' })).toMatchObject({ fromName: '', title: 'Catch up' });
+		expect(parseInviteRequest({ fromName: '12', title: 'Tea', slots, timeZone: 'Asia/Kolkata' })).toMatchObject({ fromName: '', title: 'Tea' });
+		expect(parseInviteRequest({ fromName: 'Jo Smith', title: 'Catch up with Jo', slots, timeZone: 'Asia/Kolkata' })).toMatchObject({ fromName: 'Jo' });
+		expect(usableName('Ö')).toBe('');
+		expect(senderName('a')).toBe('A friend');
+	});
+
+	it('says "A friend" instead of a stray letter', async () => {
+		const pick = await renderPickPage('abc', { ...stored('a', 'Catch up'), pickedIndex: null }, Date.parse('2026-11-01T00:00:00Z')).text();
+		expect(pick).toContain('A friend wants to catch up.');
+		expect(pick).not.toMatch(/>a wants/);
+		const picked = await renderPickedPage('abc', stored('', 'Catch up')).text();
+		expect(picked).toContain('Your friend will see your pick.');
+		expect(picked).toContain('<title>Catch up');
+		expect(icsFor('abc', stored('a', 'Catch up'), 0)).toContain('Your friend can see your pick.');
+		const named = await renderPickPage('abc', { ...stored('Leo', 'Catch up with Leo'), pickedIndex: null }, Date.parse('2026-11-01T00:00:00Z')).text();
+		expect(named).toContain('Leo wants to catch up.');
 	});
 });

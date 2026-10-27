@@ -1,13 +1,14 @@
 // The app's core API. UI code imports only from here (and from '@kizuna/shared' for types).
 import { processPending, requeueFailed } from './capture.ts';
 import { runWeave } from './weave.ts';
+import { startPickPolling } from './picks.ts';
 import { entrySignature, publishMyEntry, refreshCircle } from './circle.ts';
 import { liveQuery } from 'dexie';
 import { readSettings } from '../db.ts';
 import { refreshStaleSample } from './sample.ts';
 
 export { saveFragment, processPending, retryFragment, noteThought } from './capture.ts';
-export { runWeave } from './weave.ts';
+export { runWeave, onWeaveBuilding } from './weave.ts';
 export { getSettings, updateSettings, setRoom } from './settings.ts';
 export { todayCards, answerCard, answeredToday, todayExtras, type TodayExtras } from './today.ts';
 export {
@@ -53,6 +54,7 @@ export { updatePerson, mergePeople, removePerson, updateThread, markReached } fr
 export { loadSampleLife, loadSample, refreshSampleMembers, SAMPLES, type SampleKey } from './sample.ts';
 export { deleteEverything, exportNotes } from './data.ts';
 export { isOnline } from './relay.ts';
+export { picksToday, closePick, checkInvites, type PickedLine } from './picks.ts';
 
 /** Call once when the app opens: understands notes left from before (and again when back online), then weaves if due. */
 export function startCore(): void {
@@ -65,6 +67,7 @@ export function startCore(): void {
 		.then(() => runWeave())
 		.catch(() => {});
 	startCircleSync();
+	startPickPolling();
 }
 
 let syncing = false;

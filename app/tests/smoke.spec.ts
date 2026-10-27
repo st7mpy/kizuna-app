@@ -151,3 +151,42 @@ test('Poke: a late answer from an earlier opening is ignored', async ({ page }) 
 	await page.waitForTimeout(2_500);
 	await expect(box).toHaveValue('REQ2');
 });
+
+/** What the browser would have to redraw on every frame: blurred things that move, and glass. */
+async function drawCost(page: Page) {
+	return page.evaluate(() => {
+		const els = [...document.querySelectorAll<Element>('*')];
+		const filtered = els.filter((e) => e.hasAttribute('filter') || getComputedStyle(e).filter !== 'none');
+		const moving = (e: Element | null): boolean => {
+			for (let n = e; n; n = n.parentElement) {
+				if (n.getAnimations().some((a) => a.playState === 'running')) return true;
+				if (n.tagName.toLowerCase() === 'svg' && n.classList.contains('glow')) return false; // its own static layer
+			}
+			return false;
+		};
+		return {
+			smil: document.querySelectorAll('animate, animateTransform, animateMotion').length,
+			filteredMoving: filtered.filter(moving).map((e) => e.outerHTML.slice(0, 80)),
+			blurredClouds: [...document.querySelectorAll('.cloud')].filter((e) => getComputedStyle(e).filter !== 'none').length,
+			glass: els.filter((e) => {
+				const s = getComputedStyle(e) as CSSStyleDeclaration & { webkitBackdropFilter?: string };
+				return (s.backdropFilter || s.webkitBackdropFilter || 'none') !== 'none';
+			}).length
+		};
+	});
+}
+
+test('the landing and the map draw without moving blurs or glass on every card', async ({ page }) => {
+	await page.goto('/');
+	await page.waitForTimeout(2500);
+	const landing = await drawCost(page);
+	expect(landing).toEqual({ smil: 0, filteredMoving: [], blurredClouds: 0, glass: landing.glass });
+	expect(landing.glass).toBeLessThanOrEqual(2);
+	await page.getByRole('button', { name: 'Try it with a sample family' }).first().click();
+	await expect(page).toHaveURL(/\/map$/, { timeout: 15_000 });
+	await expect.poll(() => page.locator('a.dotlink').count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(6);
+	await page.waitForTimeout(4000); // after the lines have drawn and the dots lit
+	const map = await drawCost(page);
+	expect(map).toEqual({ smil: 0, filteredMoving: [], blurredClouds: 0, glass: map.glass });
+	expect(map.glass).toBeLessThanOrEqual(2);
+});

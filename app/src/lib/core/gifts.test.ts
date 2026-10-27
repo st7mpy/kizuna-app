@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GiftHint, Occasion } from '@kizuna/shared';
 import { db } from '../db.ts';
-import { draftGiftLine, giftCards, giftCardsFrom, giftTemplate, markGift, planWith, safeIdea } from './gifts.ts';
+import { draftGiftLine, giftCards, giftCardsFrom, giftHintsInText, giftTemplate, markGift, planWith, safeIdea } from './gifts.ts';
 import { mkPerson, mkThread, mockRelay, resetDb, setOffline } from './testing.ts';
 
 const dad = mkPerson({ id: 'dad', name: 'Dad', relation: 'parent', circle: 'in' });
@@ -77,5 +77,22 @@ describe('gift cards', () => {
 	it('done or dropped hides it', async () => {
 		await markGift('g1', 'done');
 		expect(await giftCards()).toEqual([]);
+	});
+});
+
+describe('gift hints the model missed', () => {
+	it('finds "Dad wants new running shoes" among several clauses', () => {
+		const note = "Mom's birthday is next Friday, should call Leo before his exams, Dad wants new running shoes";
+		expect(giftHintsInText(note, ['Mom', 'Leo', 'Dad'])).toEqual([{ person: 'Dad', what: 'new running shoes' }]);
+	});
+	it('reads "would love" and "needs a new", and skips plans, help, money and health', () => {
+		expect(giftHintsInText('Maya needs a new desk lamp and Mom would love a bread maker.', ['Maya', 'Mom'])).toEqual([
+			{ person: 'Maya', what: 'new desk lamp' },
+			{ person: 'Mom', what: 'bread maker' }
+		]);
+		expect(giftHintsInText('Jordan wants to meet up. Dad needs help with the move.', ['Jordan', 'Dad'])).toEqual([]);
+		expect(giftHintsInText('Dad wants a $300 watch', ['Dad'])).toEqual([]);
+		expect(giftHintsInText('Mom needs new knee medicine', ['Mom'])).toEqual([]);
+		expect(giftHintsInText('Grandad wants a kite', ['Dad'])).toEqual([]);
 	});
 });

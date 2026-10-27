@@ -5,13 +5,19 @@ import { metaBase, type Env } from './env.ts';
 import { fail } from './http.ts';
 import { edgeAllow, limits } from './ratelimit.ts';
 import { audioUsd, overBudget, spend, withinBudget } from './budget.ts';
-import { handshakeFrame, mapUpstreamEvent, stopFrame, upstreamUrl } from './asr-upstream.ts';
+import { handshakeFrame, mapUpstreamEvent, readAck, safeCode, stopFrame, upstreamUrl } from './asr-upstream.ts';
 
 export const SESSION_CAP_MS = 10 * 60_000;
 // The client waits up to 3 s after stop, so close a little before that.
 const STOP_GRACE_MS = 2_500;
 const AFTER_FINAL_MS = 700;
 const MAX_PENDING_BYTES = 24_000 * 2 * 5; // about 5 s of audio while upstream connects
+const ACK_TIMEOUT_MS = 8_000;
+
+/** Diagnostics only: codes, close reasons and error-frame messages. Never audio or transcript text. */
+function logAsr(what: string): void {
+	console.error(`asr: ${what}`);
+}
 
 function languagesFrom(list: unknown, query: string | null): string[] {
 	const raw = Array.isArray(list) ? list : (query ?? '').split(',');
@@ -88,34 +94,77 @@ export async function handleAsr(req: Request, env: Env): Promise<Response> {
 	const connect = async (sampleRate: 16000 | 24000, languageBias: string[]) => {
 		let res: Response;
 		try {
-			res = await fetch(upstreamUrl(metaBase(env)), { headers: { upgrade: 'websocket' } });
-		} catch {
+			res = await fetch(upstreamUrl(metaBase(env), `kizuna-${crypto.randomUUID()}`), { headers: { upgrade: 'websocket' } });
+		} catch (e) {
+			logAsr(`connect failed (${e instanceof Error ? e.name : 'unknown'})`);
 			return finish('upstream_unavailable');
 		}
 		const ws = res.webSocket;
-		if (!ws) return finish('upstream_unavailable');
+		if (!ws) {
+			logAsr(`upgrade refused, http ${res.status}`);
+			return finish(`upstream_http_${res.status}`);
+		}
 		ws.accept();
 		trySetArrayBuffer(ws);
 		if (done) return ws.close(1000, 'done');
-		upstream = ws;
-		ws.send(handshakeFrame({ apiKey: env.MODEL_API_KEY ?? '', sampleRate, languageBias }));
-		for (const chunk of pending) {
-			ws.send(chunk);
-			audioBytes += chunk.byteLength;
-		}
-		pending = [];
-		pendingBytes = 0;
-		if (stopping) ws.send(stopFrame());
+		let ready = false;
+		const ackTimer = setTimeout(() => {
+			if (ready || done) return;
+			logAsr('no handshake reply');
+			finish('upstream_no_ack');
+		}, ACK_TIMEOUT_MS);
+		timers.push(ackTimer);
+		// Audio waits for the ack; the server drops audio sent before the session is ready.
+		const onReady = () => {
+			ready = true;
+			clearTimeout(ackTimer);
+			upstream = ws;
+			for (const chunk of pending) {
+				ws.send(chunk);
+				audioBytes += chunk.byteLength;
+			}
+			pending = [];
+			pendingBytes = 0;
+			if (stopping) ws.send(stopFrame());
+		};
 		ws.addEventListener('message', (ev) => {
-			if (typeof ev.data !== 'string') return;
+			if (done || typeof ev.data !== 'string') return;
+			if (!ready) {
+				const ack = readAck(ev.data);
+				if (!ack.ok) {
+					logAsr(`handshake rejected: ${ack.detail}`);
+					return finish(`upstream_${ack.code}`);
+				}
+				onReady();
+				if (ack.sessionId) return;
+			}
 			const m = mapUpstreamEvent(ev.data);
 			if (!m) return;
-			if (m.type === 'error') return finish('asr_error');
+			if (m.type === 'upstream_error') {
+				logAsr(`error frame: ${m.detail}`);
+				return finish(`upstream_${m.code}`);
+			}
 			send(m);
 			if (m.type === 'final' && stopping) timers.push(setTimeout(() => finish(), AFTER_FINAL_MS));
 		});
-		ws.addEventListener('close', () => finish());
-		ws.addEventListener('error', () => finish('asr_error'));
+		ws.addEventListener('close', (ev) => {
+			if (done) return;
+			const code = (ev as CloseEvent).code;
+			const reason = JSON.stringify(String((ev as CloseEvent).reason ?? '').slice(0, 120));
+			if (stopping && code === 1000) return finish();
+			logAsr(`upstream closed ${code} reason=${reason} ready=${ready} stopping=${stopping}`);
+			finish(stopping ? undefined : `upstream_closed_${safeCode(code)}`);
+		});
+		ws.addEventListener('error', () => {
+			if (done) return;
+			logAsr(`socket error ready=${ready}`);
+			finish('upstream_socket_error');
+		});
+		try {
+			ws.send(handshakeFrame({ apiKey: env.MODEL_API_KEY ?? '', sampleRate, languageBias }));
+		} catch {
+			finish('upstream_socket_error');
+		}
 	};
 
 	server.addEventListener('message', (ev) => {

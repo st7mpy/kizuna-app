@@ -5,7 +5,7 @@ import { googleCalendarLink, slotLabel, type Slot } from '@kizuna/shared';
 import type { Env } from './env.ts';
 import { escapeHtml } from './http.ts';
 import { limits } from './ratelimit.ts';
-import { icsFor, ID_RE, loadInvite, savePick, type StoredInvite } from './invite.ts';
+import { icsFor, ID_RE, loadInvite, savePick, senderName, usableName, type StoredInvite } from './invite.ts';
 import { OG_INVITE_IMAGE, ogOrigin, ogTags } from './og.ts';
 
 export function nonce(): string {
@@ -171,7 +171,7 @@ function zoneLine(inv: StoredInvite): string {
 
 /** Link preview for a pick-a-time page: "Pick a time with Alex". */
 export function pickOg(id: string, inv: Pick<StoredInvite, 'fromName'>, origin: string): string {
-	const first = inv.fromName.trim().split(/\s+/)[0] ?? '';
+	const first = usableName(inv.fromName);
 	return ogTags({
 		title: first ? `Pick a time with ${first}` : 'Pick a time',
 		description: 'Tap the time that works for you. Takes ten seconds, nothing to install.',
@@ -181,7 +181,7 @@ export function pickOg(id: string, inv: Pick<StoredInvite, 'fromName'>, origin: 
 }
 
 export function renderPickPage(id: string, inv: StoredInvite, now = Date.now(), origin = ''): Response {
-	const name = escapeHtml(inv.fromName);
+	const name = escapeHtml(senderName(inv.fromName));
 	const items = inv.slots
 		.map((s, i) => {
 			const { day, time } = slotParts(inv, s);
@@ -199,15 +199,16 @@ ${items}
 </ul>
 </form>
 ${zoneLine(inv)}`;
-	return shell(`${inv.fromName} wants to catch up`, body, 200, pickOg(id, inv, origin));
+	return shell(`${senderName(inv.fromName)} wants to catch up`, body, 200, pickOg(id, inv, origin));
 }
 
 export function renderPickedPage(id: string, inv: StoredInvite, origin = ''): Response {
 	const index = inv.pickedIndex ?? 0;
 	const slot = inv.slots[index];
 	const { day, time } = slotParts(inv, slot);
-	const name = escapeHtml(inv.fromName);
-	const gcal = googleCalendarLink(slot, inv.title, `Picked on Kizuna. ${inv.fromName} can see your pick.`);
+	const first = usableName(inv.fromName);
+	const name = escapeHtml(first || 'Your friend');
+	const gcal = googleCalendarLink(slot, inv.title, `Picked on Kizuna. ${first || 'Your friend'} can see your pick.`);
 	const body = `<p class="eyebrow">Picked</p>
 <h1>You're set.</h1>
 <p class="sub">${name} will see your pick.</p>
@@ -222,7 +223,7 @@ ${SEAL}
 </div>
 ${zoneLine(inv)}
 <a class="change" href="/p/${id}?change=1">Pick a different time</a>`;
-	return shell(`Catch up with ${inv.fromName}`, body, 200, pickOg(id, inv, origin));
+	return shell(first ? `Catch up with ${first}` : 'Catch up', body, 200, pickOg(id, inv, origin));
 }
 
 export function renderGonePage(): Response {

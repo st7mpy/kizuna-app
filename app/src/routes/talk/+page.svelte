@@ -2,7 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import { liveQuery } from 'dexie';
 	import { retryFragment, saveFragment } from '#lib/core/index.js';
-	import { startListening, voiceSupported, type Listener } from '#lib/voice/index.js';
+	import { startListening, voiceSupported, type Listener, type VoiceMode } from '#lib/voice/index.js';
 	import { db } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { cap, dayLabel } from '#lib/ui/format.js';
@@ -17,6 +17,8 @@
 	let heard = $state(''); // finished turns while listening
 	let partial = $state(''); // the turn being spoken
 	let level = $state(0);
+	// 'recording': live words are off, so the words come after stop (no error shown for that).
+	let voiceMode = $state<VoiceMode>('connecting');
 	let usedVoice = $state(false);
 	let micOk = $state(voiceSupported());
 	const canTalk = voiceSupported();
@@ -39,8 +41,10 @@
 		heard = '';
 		partial = '';
 		micNote = '';
+		voiceMode = 'connecting';
 		try {
 			listener = await startListening({
+				onMode: (m) => (voiceMode = m),
 				onPartial: (t) => (partial = t),
 				onFinal: (t) => {
 					heard = [heard, t].filter(Boolean).join(' ');
@@ -285,6 +289,10 @@
 			<div class="live" aria-live="polite" aria-label="Live words">
 				{#if live}
 					{heard}{#if partial}<span class="partial"> {partial}</span>{/if}
+				{:else if phase === 'stopping'}
+					<span class="muted">Writing it down…</span>
+				{:else if voiceMode === 'recording'}
+					<span class="muted">Go ahead, take your time. Your words will show here when you stop.</span>
 				{:else}
 					<span class="muted">Go ahead, take your time.</span>
 				{/if}
@@ -357,7 +365,6 @@
 		background:
 			radial-gradient(closest-side at 35% 50%, color-mix(in srgb, var(--dawn-sky) 55%, transparent), transparent),
 			radial-gradient(closest-side at 65% 50%, color-mix(in srgb, var(--dawn-peach) 55%, transparent), transparent);
-		filter: blur(10px);
 		pointer-events: none;
 	}
 	.mic:active {
@@ -413,8 +420,6 @@
 		padding: 18px 20px;
 		border-radius: var(--r-card);
 		background: var(--surface);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 		font-size: 1.375rem;
 		line-height: 1.45;

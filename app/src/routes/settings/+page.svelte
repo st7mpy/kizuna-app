@@ -45,6 +45,14 @@
 		} catch {
 			s = await readSettings();
 		}
+		// A saved calendar link says whether it still reads, not just right after it was typed.
+		const saved = s?.icalUrl?.trim();
+		if (saved && calStatus === null) {
+			const my = ++calSeq;
+			calStatus = 'checking';
+			const r = await checkCalendar(saved);
+			if (my === calSeq) calStatus = r;
+		}
 	});
 
 	let timer: ReturnType<typeof setTimeout> | undefined;
@@ -641,8 +649,6 @@
 		padding: 22px 22px 18px;
 		border-radius: var(--r-card);
 		background: var(--surface);
-		-webkit-backdrop-filter: var(--blur);
-		backdrop-filter: var(--blur);
 		box-shadow: var(--card-shadow);
 	}
 	@media (max-width: 719px) {
