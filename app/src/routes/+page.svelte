@@ -2,7 +2,20 @@
 	import { onMount } from 'svelte';
 	import { liveQuery } from 'dexie';
 	import type { Card, GiftCard as Gift, Person, Room, Settings, WeekendCard as Weekend } from '@kizuna/shared';
-	import { answerCard, setRoom, todayCards, todayExtras } from '#lib/core/index.js';
+	import {
+		answerCard,
+		answerLines,
+		dismissAnswer,
+		draftNudge,
+		followUps,
+		markNudged,
+		setRoom,
+		todayCards,
+		todayExtras,
+		type AnswerLine,
+		type FollowUp
+	} from '#lib/core/index.js';
+	import DraftBox from '#lib/ui/DraftBox.svelte';
 	import { allPeople, db, hasAnyData, settingsLive } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { dayKey, greeting } from '#lib/ui/format.js';
@@ -38,6 +51,11 @@
 			),
 		''
 	);
+
+	// Closing the loop: who answered the family page, and who hasn't yet (a line the user sends).
+	const answers = watch<AnswerLine[]>(() => liveQuery(() => answerLines()), []);
+	const waiting = watch<FollowUp[]>(() => liveQuery(() => followUps()), []);
+	let nudging = $state<string | null>(null);
 
 	let cards: Card[] = $state([]);
 	let weekend = $state<Weekend | null>(null);
@@ -164,6 +182,44 @@
 				onchange={pickRoom}
 			/>
 		</section>
+
+		{#if answers.value.length || waiting.value.length}
+			<section class="loop" aria-label="Family call answers" aria-live="polite">
+				{#each answers.value as a (a.memberId)}
+					<div class="loopline" out:fold in:soft>
+						<span class="dot" style="--hue:{hueFor(a.personId ?? a.memberId)}" aria-hidden="true"></span>
+						<p class="said"><strong>{a.name}</strong> answered: {a.words}</p>
+						<button class="icon-btn bare close" type="button" aria-label="Close: {a.text}" onclick={() => dismissAnswer(a.memberId)}>
+							<Icon name="close" size={18} />
+						</button>
+					</div>
+				{/each}
+				{#each waiting.value as f (f.personId)}
+					<div class="loopline wait" out:fold in:soft>
+						<span class="dot" style="--hue:{hueFor(f.personId)}" aria-hidden="true"></span>
+						<p class="said"><strong>{f.name}</strong> hasn’t answered yet</p>
+						{#if nudging !== f.personId}
+							<button class="btn accent nudge" type="button" onclick={() => (nudging = f.personId)}>Draft a nudge</button>
+						{/if}
+					</div>
+					{#if nudging === f.personId}
+						<div class="nudgebox">
+							<DraftBox
+								label="For {f.name}"
+								phone={f.phone}
+								share={!f.phone}
+								load={() => draftNudge(f.personId)}
+								onopened={() => {
+									nudging = null;
+									markNudged(f.personId).catch(() => {});
+								}}
+								oncancel={() => (nudging = null)}
+							/>
+						</div>
+					{/if}
+				{/each}
+			</section>
+		{/if}
 
 		{#if weekend || gifts.length}
 			<section class="extras" aria-label="This weekend">
@@ -293,6 +349,53 @@
 		flex-direction: column;
 		gap: 14px;
 		margin-top: -4px;
+	}
+	.loop {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		margin-top: -10px;
+		padding: 6px 8px 6px 18px;
+		border-radius: var(--r-card);
+		background: var(--surface);
+		-webkit-backdrop-filter: var(--blur);
+		backdrop-filter: var(--blur);
+		box-shadow: var(--card-shadow);
+	}
+	.loopline {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-height: 52px;
+	}
+	.loopline + .loopline {
+		border-top: 1px solid var(--line);
+	}
+	.loopline .dot {
+		flex: none;
+		width: 10px;
+		height: 10px;
+	}
+	.said {
+		flex: 1;
+		min-width: 0;
+		color: var(--text-2);
+	}
+	.said strong {
+		font-weight: 500;
+		color: var(--text);
+	}
+	.close {
+		flex: none;
+		color: var(--text-3);
+	}
+	.nudge {
+		flex: none;
+		min-height: 44px;
+		padding-right: 10px;
+	}
+	.nudgebox {
+		padding: 0 10px 12px 0;
 	}
 	.moments {
 		display: flex;

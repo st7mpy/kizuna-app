@@ -104,7 +104,9 @@ describe('pick page', () => {
 		expect(html).toContain('Sat 9 Jan');
 		expect(html).toContain('data-start="2027-01-09T10:00:00+05:30"');
 		expect(html).not.toMatch(/<(link|img|iframe)\b/);
-		expect(html).not.toMatch(/https?:\/\/(?!calendar\.google)/);
+		// Absolute URLs only in the link-preview tags, which the page itself never loads.
+		expect(html.replace(/<meta [^>]*>/g, '')).not.toMatch(/https?:\/\/(?!calendar\.google)/);
+		expect(html).toContain('<meta property="og:title" content="Pick a time with &lt;img">');
 	});
 
 	it('the normal greeting reads well', async () => {
@@ -112,6 +114,10 @@ describe('pick page', () => {
 		const html = await (await route(get(`/p/${data.id}`), env)).text();
 		expect(html).toContain('Aarav wants to catch up.');
 		expect(html).toContain(`action="/p/${data.id}"`);
+		expect(html).toContain('<meta property="og:title" content="Pick a time with Aarav">');
+		expect(html).toContain(`<meta property="og:url" content="https://kizuna.test/p/${data.id}">`);
+		expect(html).toContain('<meta property="og:image" content="https://kizuna.test/og-invite.png">');
+		expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
 	});
 
 	it('form post picks and redirects, then shows calendar buttons', async () => {

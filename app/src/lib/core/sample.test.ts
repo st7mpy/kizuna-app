@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db, defaultSettings } from '../db.ts';
 import { exportNotes, deleteEverything, notesMarkdown } from './data.ts';
-import { fetchSampleLife, loadSampleLifeFrom, resolveRel, SAMPLES, type SampleLife } from './sample.ts';
+import { fetchSampleLife, loadSampleLifeFrom, refreshStaleSample, resolveRel, SAMPLE_VERSION, SAMPLES, staleSample, type SampleLife } from './sample.ts';
+import { answerLines, followUps } from './answers.ts';
 import { deviceId } from './relay.ts';
 import { todayCards } from './today.ts';
 import { resetDb, setOffline } from './testing.ts';
@@ -135,6 +136,65 @@ describe('sample life', () => {
 			expect(extras.gifts).toHaveLength(1);
 		});
 	}
+
+	for (const [key, waiting] of [['abroad', 'Dad'], ['usa', 'Grandpa']] as const) {
+		for (const day of [26, 27, 28, 29]) {
+			it(`${key}: shows an answer and a "hasn't answered" line on a weekday (Oct ${day})`, async () => {
+				vi.setSystemTime(new Date(`2026-10-${day}T15:00:00Z`));
+				await loadSampleLifeFrom(await fetchSampleLife(key));
+				expect((await answerLines()).map((l) => l.text)).toEqual(['Grandma answered: Sunday afternoon']);
+				expect((await followUps()).map((f) => f.text)).toEqual([`${waiting} hasn't answered yet`]);
+				// late at night too
+				vi.setSystemTime(new Date(`2026-10-${day}T05:00:00Z`));
+				expect((await followUps()).length).toBe(1);
+			});
+		}
+	}
+
+	it('marks its notes and its version, so a newer sample can replace it', async () => {
+		await loadSampleLifeFrom(await fetchSampleLife('usa'));
+		expect(new Set((await db.fragments.toArray()).map((f) => f.source))).toEqual(new Set(['sample']));
+		expect((await db.settings.get('me'))!.sample).toEqual({ key: 'usa', version: SAMPLE_VERSION });
+	});
+
+	it('knows an outdated sample from the visitor\'s own notes', () => {
+		const sample = [{ source: 'sample' as const }];
+		const base = { myName: 'Alex', notesSinceWeave: 0 };
+		expect(staleSample(undefined, sample)).toBe(false);
+		expect(staleSample({ ...base, sample: { key: 'usa', version: SAMPLE_VERSION } }, sample)).toBe(false);
+		expect(staleSample({ ...base, sample: { key: 'usa', version: SAMPLE_VERSION - 1 } }, sample)).toBe(true);
+		expect(staleSample({ ...base, sample: { key: 'usa', version: SAMPLE_VERSION - 1 } }, [...sample, { source: 'typed' }])).toBe(false);
+		// from before versions: a local sample circle or Aarav's sample, with nothing added
+		const old = Array.from({ length: 40 }, () => ({ source: 'voice' as const }));
+		const circle = { id: 'sample', key: '', memberId: 'sample-me000', share: true, freeToday: true, paused: false };
+		expect(staleSample({ myName: 'Aarav', notesSinceWeave: 0 }, old)).toBe(true);
+		expect(staleSample({ myName: 'Alex', notesSinceWeave: 0, circle }, old)).toBe(true);
+		expect(staleSample({ myName: 'Aarav', notesSinceWeave: 1 }, old)).toBe(false);
+		expect(staleSample({ myName: 'Aarav', notesSinceWeave: 0 }, [...old, ...old])).toBe(false);
+		expect(staleSample({ myName: 'Priya', notesSinceWeave: 0 }, old)).toBe(false);
+		expect(staleSample({ myName: 'Aarav', notesSinceWeave: 0 }, [])).toBe(false);
+	});
+
+	it('quietly replaces the old Aarav sample with the current default one', async () => {
+		await db.settings.put({ ...defaultSettings(), myName: 'Aarav', notesSinceWeave: 0 });
+		await db.fragments.bulkAdd([
+			{ id: 'a', text: 'Mum ka knee appointment Thursday hai', createdAt: NOW.toISOString(), source: 'voice', status: 'done', tries: 0 },
+			{ id: 'b', text: 'Kabir joined a new job', createdAt: NOW.toISOString(), source: 'typed', status: 'done', tries: 0 }
+		]);
+		expect(await refreshStaleSample()).toBe(true);
+		const s = (await db.settings.get('me'))!;
+		expect(s.myName).toBe('Alex');
+		expect(s.sample).toEqual({ key: 'abroad', version: SAMPLE_VERSION });
+		expect(JSON.stringify(await db.fragments.toArray())).not.toMatch(/knee|Kabir|Aarav/);
+		expect(await refreshStaleSample()).toBe(false); // current now
+	});
+
+	it('leaves real notes alone', async () => {
+		await db.settings.put({ ...defaultSettings(), myName: 'Priya' });
+		await db.fragments.add({ id: 'a', text: 'Call Mum on Sunday', createdAt: NOW.toISOString(), source: 'typed', status: 'done', tries: 0 });
+		expect(await refreshStaleSample()).toBe(false);
+		expect(await db.fragments.count()).toBe(1);
+	});
 
 	it('abroad: a busy family in Chicago and New York, Leo a day ahead in Melbourne', async () => {
 		vi.setSystemTime(new Date(2026, 9, 27, 12, 0)); // Tuesday

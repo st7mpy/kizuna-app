@@ -24,6 +24,7 @@ import { buildDraftInput, buildMyLines, likelyLanguage, looksSensitive, template
 import { isOnline, spark } from './relay.ts';
 import { updateSettings } from './settings.ts';
 import { busyTimes } from './time.ts';
+import { personLink } from './answers.ts';
 import { DEFAULT_QUIET_END, DEFAULT_QUIET_START, rangeTouchesQuiet, zonedClock, zonedMinutes } from './zones.ts';
 
 export const WHATSAPP_SCHEDULE_TIP = 'In WhatsApp: Calls, then +, then Schedule call';
@@ -477,7 +478,10 @@ export async function draftForPerson(card: WeekendCard, personId: string): Promi
 	const reason = card.occasion ? `Planning a family call for ${card.occasion}` : 'Planning a family call this weekend';
 	const { input, person } = await buildDraftInput(personId, reason, slot);
 	if (label) input.withTime = `${label} (their time)`;
-	const line = (await sparkLine(input)) ?? personTemplate(person.name, input.language, label);
+	const said = (await sparkLine(input)) ?? personTemplate(person.name, input.language, label);
+	// their own family-page link, so they can tap other times (greets them by name)
+	const own = await personLink(personId).catch(() => null);
+	const line = own ? `${said} ${own}` : said;
 	return { line, link: whatsappLink(line, person.phone) };
 }
 

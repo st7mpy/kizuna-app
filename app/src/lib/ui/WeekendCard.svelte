@@ -126,6 +126,7 @@
 	{#if drafting === 'group'}
 		<DraftBox
 			label="For the family group"
+			share
 			load={() => draftForGroup(c)}
 			tip={WHATSAPP_SCHEDULE_TIP}
 			onopened={() => opened('group')}

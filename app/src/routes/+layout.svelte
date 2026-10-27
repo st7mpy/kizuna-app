@@ -7,6 +7,7 @@
 	import NavBar from '#lib/ui/NavBar.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import Sky from '#lib/ui/Sky.svelte';
+	import Toast from '#lib/ui/Toast.svelte';
 	import { chrome } from '#lib/ui/chrome.svelte.js';
 	import type { LayoutProps } from './$types';
 
@@ -49,6 +50,7 @@
 		{/key}
 	</main>
 	{#if !chrome.bare}<NavBar />{/if}
+	<Toast />
 </div>
 
 <style>

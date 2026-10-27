@@ -3,7 +3,9 @@
 	import { page } from '$app/state';
 	import type { Fragment, GiftHint, KEvent, Person } from '@kizuna/shared';
 	import {
+		invitePersonLine,
 		linkMember,
+		markInvited,
 		mergePeople,
 		noteThought,
 		removePerson,
@@ -30,6 +32,7 @@
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { hueFor } from '#lib/ui/hue.js';
+	import { shareWithToast } from '#lib/ui/toast.svelte.js';
 
 	const id = $derived(page.params.id ?? '');
 	const p = watch<Person | undefined>(() => person(id), undefined);
@@ -46,6 +49,26 @@
 	const unlinked = $derived(members.value.filter((m) => !m.personId));
 	const windowLine = (w: { start: string; end: string }) =>
 		`${whenLocal(w.start)} to ${whenLocal(w.end).split(' ')[1]}`;
+
+	// their own family-page link: greets them by name, so they never type it
+	let asking = $state(false);
+	let askNote = $state('');
+	async function askWeekend() {
+		if (!p.value) return;
+		asking = true;
+		askNote = '';
+		try {
+			const { line, link, phone } = await invitePersonLine(p.value.id);
+			if (phone) window.open(link, '_blank', 'noopener');
+			else if ((await shareWithToast(line, `a chat with ${p.value.name}`)) === 'cancelled') return;
+			await markInvited([p.value.id]);
+			askNote = `Their own link greets ${p.value.name} by name.`;
+		} catch {
+			askNote = 'Couldn’t make the link just now. Try again in a moment.';
+		} finally {
+			asking = false;
+		}
+	}
 
 	// note a thought: stays on this phone
 	let thought = $state('');
@@ -198,6 +221,11 @@
 					<Icon name="clock" size={20} /> Find a time
 				</button>
 			</div>
+			<button class="btn ask" type="button" onclick={askWeekend} disabled={asking}>
+				<Icon name="calendar" size={18} />
+				{asking ? 'Making their link…' : `Ask ${p.value.name} about this weekend`}
+			</button>
+			{#if askNote}<p class="tiny ask-note" role="status">{askNote}</p>{/if}
 		</section>
 
 		<section class="section">
@@ -441,6 +469,13 @@
 	}
 	.acts {
 		gap: 10px;
+	}
+	.ask {
+		align-self: flex-start;
+		margin-top: -8px;
+	}
+	.ask-note {
+		margin-top: -14px;
 	}
 	.date-row {
 		display: grid;

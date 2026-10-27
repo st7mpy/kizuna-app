@@ -9,6 +9,7 @@
 		exportNotes,
 		getSettings,
 		inviteFamilyLine,
+		markInvited,
 		leaveCircle,
 		loadSample,
 		SAMPLES,
@@ -27,6 +28,7 @@
 	import Segmented from '#lib/ui/Segmented.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { shareWithToast } from '#lib/ui/toast.svelte.js';
 
 	let s = $state<Settings | null>(null);
 	let note = $state('');
@@ -115,8 +117,8 @@
 		mapBusy = true;
 		mapNote = '';
 		try {
-			const { link } = await inviteFamilyLine();
-			window.open(link, '_blank', 'noopener');
+			const { line, invitees } = await inviteFamilyLine();
+			if ((await shareWithToast(line)) !== 'cancelled') await markInvited(invitees);
 		} catch {
 			mapNote = 'Couldn’t make the link just now.';
 		} finally {

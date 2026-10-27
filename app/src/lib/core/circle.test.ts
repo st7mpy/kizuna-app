@@ -18,9 +18,10 @@ import {
 	setSharing
 } from './circle.ts';
 import { getSettings, updateSettings } from './settings.ts';
-import { inviteFamilyLine } from './invite.ts';
+import { inviteFamilyLine, invitePersonLine } from './invite.ts';
+import { answerLines, dismissAnswer } from './answers.ts';
 import { mkPerson, resetDb, setOffline } from './testing.ts';
-import { addDays, localDay } from './days.ts';
+import { addDays, localDay, setHomeZone } from './days.ts';
 
 const TZ = 'Asia/Kolkata';
 const NOW = new Date('2026-10-26T04:30:00Z'); // Mon 10:00 in Delhi
@@ -166,6 +167,58 @@ describe('the circle', () => {
 		await refreshCircle();
 		expect((await db.members.get('strangerMem1'))!.personId).toBe('riya');
 		expect((await getSettings()).circle!.lastSyncAt).toBe(NOW.toISOString());
+	});
+
+	it('refresh stores answeredAt for a new or changed family-page answer, and Today says so', async () => {
+		const relay = fakeRelay();
+		await db.people.add(mkPerson({ id: 'mum', name: 'Mum', relation: 'parent', aliases: ['mum'], circle: 'in' }));
+		const c = await createCircle();
+		const put = async (memberId: string, e: CircleEntry) => relay.store.get(c.id)!.set(memberId, await sealEntry(c.key, c.id, memberId, e));
+		const sunday = [{ start: '2026-11-01T14:00:00+05:30', end: '2026-11-01T17:00:00+05:30' }];
+		const answered = new Date(NOW.getTime() - 3600_000).toISOString();
+		await put('mumMember001', entry({ name: 'Mum', windows: sunday, updatedAt: answered }));
+		await put('appMember001', entry({ name: 'Riya', via: 'app', windows: sunday }));
+		await refreshCircle();
+		setHomeZone(TZ); // read the answer in Delhi time
+		const mum = (await db.members.get('mumMember001'))!;
+		expect(mum.answeredAt).toBe(answered);
+		expect(mum.answerSeen).toBe(false);
+		expect((await db.members.get('appMember001'))!.answeredAt).toBeUndefined(); // the app shares on its own; not an answer
+		expect((await answerLines()).map((l) => l.text)).toEqual(['Mum answered: Sunday afternoon']);
+
+		// Closed: stays closed while nothing changes.
+		await dismissAnswer('mumMember001');
+		await refreshCircle();
+		expect(await answerLines()).toEqual([]);
+		expect((await db.members.get('mumMember001'))!.answeredAt).toBe(answered);
+
+		// A changed answer comes back, with its own time (never later than now).
+		vi.setSystemTime(new Date(NOW.getTime() + 600_000));
+		await put('mumMember001', entry({ name: 'Mum', windows: [], notThisWeekend: true, updatedAt: new Date(NOW.getTime() + 3600_000).toISOString() }));
+		await refreshCircle();
+		const again = (await db.members.get('mumMember001'))!;
+		expect(again.answeredAt).toBe(new Date(NOW.getTime() + 600_000).toISOString());
+		expect((await answerLines()).map((l) => l.text)).toEqual(['Mum answered: not this weekend']);
+		setHomeZone(null);
+	});
+
+	it('the group invite names the family; a person invite carries their name for the page', async () => {
+		fakeRelay();
+		await db.people.bulkAdd([
+			mkPerson({ id: 'mum', name: 'Mum', relation: 'parent', circle: 'in', phone: '919800000002' }),
+			mkPerson({ id: 'kabir', name: 'Kabir', relation: 'friend', circle: 'in' }),
+			mkPerson({ id: 'nani', name: 'Nani', relation: 'family', circle: 'suggested' })
+		]);
+		const group = await inviteFamilyLine();
+		expect(group.invitees).toEqual(['mum']);
+		expect(group.line).toMatch(/#k=[A-Za-z0-9_-]{43}&from=Aarav$/);
+		const one = await invitePersonLine('mum');
+		const c = (await getSettings()).circle!;
+		expect(one.line).toBe(`Hi Mum, family call this weekend? Tap the times that work for you, no app needed: https://kizuna.test/c/${c.id}#k=${c.key}&from=Aarav&for=Mum`);
+		expect(one.link.startsWith('https://wa.me/919800000002?text=')).toBe(true);
+		expect(one.phone).toBe('919800000002');
+		// the same circle, not a new one
+		expect(group.line).toContain(`/c/${c.id}#`);
 	});
 
 	it('pause deletes my entry; leave deletes it and forgets the circle', async () => {

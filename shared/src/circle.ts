@@ -73,10 +73,14 @@ export interface CircleState {
 	members: ({ memberId: string } & Sealed)[];
 }
 
-/** Family-page link: `${origin}/c/${id}#k=${keyB64url}` (plus optional `&from=<first name>`). */
-export function circleLink(origin: string, id: string, key: string, fromName?: string): string {
+/**
+ * Family-page link: `${origin}/c/${id}#k=${keyB64url}`, plus optional `&from=<first name>` and, for a
+ * link made for one person, `&for=<their name>` (the page greets them and fills in their name).
+ */
+export function circleLink(origin: string, id: string, key: string, fromName?: string, forName?: string): string {
 	const from = fromName ? `&from=${encodeURIComponent(fromName.slice(0, 40))}` : '';
-	return `${origin.replace(/\/$/, '')}/c/${id}#k=${key}${from}`;
+	const to = forName?.trim() ? `&for=${encodeURIComponent(forName.trim().slice(0, 40))}` : '';
+	return `${origin.replace(/\/$/, '')}/c/${id}#k=${key}${from}${to}`;
 }
 
 // ---------- occasions ----------

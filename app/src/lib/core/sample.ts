@@ -1,7 +1,7 @@
 // "Try it with a sample family": three weeks of fictional notes, already understood,
 // written through the same paths as live capture so every screen has something real.
 // Two families: a busy working family with one child studying abroad, and a big family across the USA.
-import type { CircleEntry, CircleStatus, ExtractOutput, Fragment, Source, WeaveOutput } from '@kizuna/shared';
+import type { CircleEntry, CircleStatus, ExtractOutput, Fragment, Settings, Source, WeaveOutput } from '@kizuna/shared';
 import { resolveRelDay, zonedIso, zonedToUtc } from '@kizuna/shared';
 import { db, defaultSettings, newId, readSettings, type MemberRow } from '../db.ts';
 import { SAMPLE_CIRCLE_ID } from './circle.ts';
@@ -44,7 +44,14 @@ export interface SampleLife {
 	suggest?: Record<string, string>;
 	/** Optional: circle members as if they had replied, for the map (written on the phone only). */
 	members?: SampleMember[];
+	/** Optional: people asked about this weekend who haven't answered yet (their entry is from before the ask). */
+	waiting?: string[];
 }
+
+/** Goes up whenever the samples change, so a visitor with an older sample gets the current one. */
+export const SAMPLE_VERSION = 2;
+/** The two oldest samples: 40 and 41 notes, written before samples carried a version. */
+const OLD_SAMPLE_MAX_NOTES = 41;
 
 export interface SampleMember {
 	name: string;
@@ -86,7 +93,15 @@ export function sampleMembers(list: SampleMember[], now: Date): Omit<MemberRow, 
 			via: m.via ?? 'app',
 			updatedAt: at
 		};
-		return { memberId: `sample-${String(i).padStart(5, '0')}`, entry, fetchedAt: at, ...(m.reply ? { reply: m.reply } : {}) };
+		// A family-page answer came in a little while ago, so Today can say so.
+		const answeredAt = m.via === 'page' ? new Date(now.getTime() - 2 * 3600_000).toISOString() : undefined;
+		return {
+			memberId: `sample-${String(i).padStart(5, '0')}`,
+			entry: answeredAt ? { ...entry, updatedAt: answeredAt } : entry,
+			fetchedAt: at,
+			...(m.reply ? { reply: m.reply } : {}),
+			...(answeredAt ? { answeredAt, answerSeen: false } : {})
+		};
 	});
 }
 
@@ -129,7 +144,8 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 	const order = data.notes.map((n, i) => ({ n, i })).sort((a, b) => b.n.daysAgo - a.n.daysAgo || a.n.time.localeCompare(b.n.time));
 	for (const { n, i } of order) {
 		const createdAt = dayToDate(addDays(today, -n.daysAgo), n.time || '09:00').toISOString();
-		const f: Fragment = { id: newId(), text: n.text, createdAt, source: n.source ?? 'sample', status: 'new', tries: 0 };
+		// Marked as sample notes, so a newer sample can replace them while the visitor has added nothing.
+		const f: Fragment = { id: newId(), text: n.text, createdAt, source: 'sample', status: 'new', tries: 0 };
 		fragIds[i] = f.id;
 		await db.fragments.add(f);
 		await applyExtract(f, resolveExtract(n.extract, today), { trustDates: true });
@@ -160,8 +176,18 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 		for (const p of people) await db.people.put(p);
 		// The map: members as if they had replied (no network), linked to their people.
 		const now = new Date();
+		const waiting = new Set((data.waiting ?? []).map((n) => matchPerson(people, n)?.id).filter((id): id is string => !!id));
+		const asked = new Date(now.getTime() - 2 * 86_400_000).toISOString();
+		const before = new Date(now.getTime() - 3 * 86_400_000).toISOString();
 		for (const m of sampleMembers(data.members ?? [], now)) {
-			await db.members.put({ ...m, personId: matchPerson(people, m.entry.name)?.id ?? null, linkedBy: 'auto' });
+			const personId = matchPerson(people, m.entry.name)?.id ?? null;
+			// Their windows came from the app last week; nothing new since they were asked.
+			const entry = personId && waiting.has(personId) ? { ...m.entry, updatedAt: before } : m.entry;
+			await db.members.put({ ...m, entry, personId, linkedBy: 'auto' });
+		}
+		// Everyone was asked about this weekend two days ago; the waiting ones haven't answered yet.
+		if (data.members?.length) {
+			for (const p of people) if (p.circle === 'in') await db.people.update(p.id, { invitedAt: asked });
 		}
 		await db.settings.put({
 			...defaultSettings(),
@@ -171,6 +197,7 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 			...(data.homeTz ? { homeTz: data.homeTz } : {}),
 			lastWeaveAt: new Date().toISOString(),
 			notesSinceWeave: 0,
+			sample: { key: data.id ?? 'abroad', version: SAMPLE_VERSION },
 			// A local circle so the map glows without a server; sample life also shows the weekend card any day.
 			...(data.members?.length
 				? { circle: { id: SAMPLE_CIRCLE_ID, key: '', memberId: 'sample-me000', share: true, freeToday: true, paused: false }, forceWeekend: true }
@@ -182,6 +209,30 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 /** Loads one sample family's three weeks of notes (already understood), replacing what is on the phone. */
 export async function loadSample(key: SampleKey = 'abroad'): Promise<void> {
 	await loadSampleLifeFrom(await fetchSampleLife(key));
+}
+
+/**
+ * Pure: true when the phone holds an older sample (or one from before samples had a version) and the
+ * visitor added nothing of their own, so the current sample can quietly replace it.
+ */
+export function staleSample(
+	s: Pick<Settings, 'sample' | 'circle' | 'myName' | 'notesSinceWeave'> | undefined,
+	fragments: Pick<Fragment, 'source'>[]
+): boolean {
+	if (!s || !fragments.length) return false;
+	if (s.sample) return s.sample.version < SAMPLE_VERSION && fragments.every((f) => f.source === 'sample');
+	// Before versions: the sample set up a local circle (or was Aarav's), and no note came after it.
+	const looksSample = s.circle?.id === SAMPLE_CIRCLE_ID || s.myName === 'Aarav';
+	return looksSample && (s.notesSinceWeave ?? 0) === 0 && fragments.length <= OLD_SAMPLE_MAX_NOTES;
+}
+
+/** On startup: replaces an outdated sample with the current one. Leaves anything of the user's alone. */
+export async function refreshStaleSample(): Promise<boolean> {
+	const [s, fragments] = await Promise.all([db.settings.get('me'), db.fragments.toArray()]);
+	if (!staleSample(s, fragments)) return false;
+	const key = (SAMPLES.find((x) => x.key === s?.sample?.key)?.key ?? 'abroad') as SampleKey;
+	await loadSample(key);
+	return true;
 }
 
 /** The default sample family. */

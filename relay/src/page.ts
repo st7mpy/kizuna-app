@@ -6,6 +6,7 @@ import type { Env } from './env.ts';
 import { escapeHtml } from './http.ts';
 import { limits } from './ratelimit.ts';
 import { icsFor, ID_RE, loadInvite, savePick, type StoredInvite } from './invite.ts';
+import { OG_INVITE_IMAGE, ogOrigin, ogTags } from './og.ts';
 
 export function nonce(): string {
 	const b = crypto.getRandomValues(new Uint8Array(16));
@@ -128,7 +129,7 @@ const ARROW = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" strok
 
 const SEAL = `<svg class="seal" width="64" height="64" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="s-dawn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb6e2"/><stop offset=".5" stop-color="#a99fd6"/><stop offset="1" stop-color="#e79c95"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#s-dawn)"/><circle cx="50" cy="50" r="39" fill="none" stroke="#FFFCF6" stroke-width="2.5"/><g transform="rotate(-28 50 50)" fill="none" stroke="#FFFCF6" stroke-width="5.5"><circle cx="41" cy="50" r="13"/><circle cx="59" cy="50" r="13"/></g></svg>`;
 
-function shell(title: string, body: string, status = 200): Response {
+function shell(title: string, body: string, status = 200, head = ''): Response {
 	const n = nonce();
 	const html = `<!doctype html>
 <html lang="en">
@@ -139,7 +140,7 @@ function shell(title: string, body: string, status = 200): Response {
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#F7F3EA" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)">
-<title>${escapeHtml(title)}</title>
+<title>${escapeHtml(title)}</title>${head ? `\n${head}` : ''}
 <style nonce="${n}">${CSS}</style>
 </head>
 <body>
@@ -165,7 +166,18 @@ function zoneLine(inv: StoredInvite): string {
 	return `<p class="tz" id="tz">Times are in ${escapeHtml(inv.timeZone.replace(/_/g, ' '))} time.</p>`;
 }
 
-export function renderPickPage(id: string, inv: StoredInvite, now = Date.now()): Response {
+/** Link preview for a pick-a-time page: "Pick a time with Alex". */
+export function pickOg(id: string, inv: Pick<StoredInvite, 'fromName'>, origin: string): string {
+	const first = inv.fromName.trim().split(/\s+/)[0] ?? '';
+	return ogTags({
+		title: first ? `Pick a time with ${first}` : 'Pick a time',
+		description: 'Tap the time that works for you. Takes ten seconds, nothing to install.',
+		url: `${origin}/p/${id}`,
+		image: `${origin}${OG_INVITE_IMAGE}`
+	});
+}
+
+export function renderPickPage(id: string, inv: StoredInvite, now = Date.now(), origin = ''): Response {
 	const name = escapeHtml(inv.fromName);
 	const items = inv.slots
 		.map((s, i) => {
@@ -184,10 +196,10 @@ ${items}
 </ul>
 </form>
 ${zoneLine(inv)}`;
-	return shell(`${inv.fromName} wants to catch up`, body);
+	return shell(`${inv.fromName} wants to catch up`, body, 200, pickOg(id, inv, origin));
 }
 
-export function renderPickedPage(id: string, inv: StoredInvite): Response {
+export function renderPickedPage(id: string, inv: StoredInvite, origin = ''): Response {
 	const index = inv.pickedIndex ?? 0;
 	const slot = inv.slots[index];
 	const { day, time } = slotParts(inv, slot);
@@ -207,7 +219,7 @@ ${SEAL}
 </div>
 ${zoneLine(inv)}
 <a class="change" href="/p/${id}?change=1">Pick a different time</a>`;
-	return shell(`Catch up with ${inv.fromName}`, body);
+	return shell(`Catch up with ${inv.fromName}`, body, 200, pickOg(id, inv, origin));
 }
 
 export function renderGonePage(): Response {
@@ -248,5 +260,6 @@ export async function handlePage(req: Request, env: Env, id: string, rest: strin
 	const inv = await loadInvite(env, id);
 	if (!inv) return renderGonePage();
 	const change = new URL(req.url).searchParams.has('change');
-	return inv.pickedIndex != null && !change ? renderPickedPage(id, inv) : renderPickPage(id, inv);
+	const origin = ogOrigin(req);
+	return inv.pickedIndex != null && !change ? renderPickedPage(id, inv, origin) : renderPickPage(id, inv, Date.now(), origin);
 }

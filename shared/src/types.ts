@@ -36,6 +36,8 @@ export interface Person {
 	mentions: number;
 	lastMentionedAt?: string; // ISO
 	lastReachedAt?: string; // ISO, when user poked or met them (never shown as a counter)
+	invitedAt?: string; // ISO, when the user last shared the family-page link with them
+	nudgedAt?: string; // ISO, when the user last opened a follow-up line for that invite
 	createdAt: string;
 }
 
@@ -75,7 +77,8 @@ export type ReasonKind =
 	| 'promise' // "should call Kabir"
 	| 'gap' // a long quiet stretch with a circle person
 	| 'thread' // one of the user's own open threads
-	| 'suggest_circle'; // "Keep Kabir in your circle?" (not counted in the weekly cap)
+	| 'suggest_circle' // "Keep Kabir in your circle?" (not counted in the weekly cap)
+	| 'follow_up'; // the user drafted a gentle follow-up to a family-call invite
 
 /** A nudge shown on Today. Kept only to space nudges out; never shown as history. */
 export interface Prompt {
@@ -125,6 +128,8 @@ export interface Settings {
 	};
 	/** Demo: let the weekend card show on any day. */
 	forceWeekend?: boolean;
+	/** Set by "Try with a sample family": which sample and which version of it is on the phone. */
+	sample?: { key: string; version: number };
 	/** The user's answer to this weekend's card (keyed by that weekend's Saturday). */
 	weekendAnswer?: { weekend: string; answer: 'not_now' | 'done' };
 	/** Today's weekend plan, kept so the planner runs once a day unless something changes. */

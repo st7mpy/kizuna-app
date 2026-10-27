@@ -4,6 +4,7 @@
 // The relay only ever sees ciphertext. One self-contained document, inline CSS and JS under a nonce.
 import { CIRCLE_ID_RE } from '@kizuna/shared';
 import { CSS, MARK, nonce } from './page.ts';
+import { FAMILY_OG, OG_INVITE_IMAGE, ogOrigin, ogTags } from './og.ts';
 
 function familyHeaders(n: string): Record<string, string> {
 	return {
@@ -100,42 +101,61 @@ function parsedWindows(out,now){
 }
 `;
 
+/**
+ * Reads the link's fragment: k (the circle key), from (who is planning) and for (who the link was
+ * made for, so the page can greet them and fill in their name). Names are trimmed to 40 characters.
+ */
+export const LINK_JS = `
+function cleanName(s){return String(s||'').replace(/[\\u0000-\\u001f\\u007f<>]/g,'').replace(/\\s+/g,' ').trim().slice(0,40);}
+function linkParams(h){
+  var q=new URLSearchParams(String(h||'').replace(/^#/,''));
+  return {key:q.get('k')||'',from:cleanName(q.get('from')),forName:cleanName(q.get('for'))};
+}
+`;
+
 // The page itself. DOM text is only ever set with textContent.
 const APP_JS = `
 var $=function(id){return document.getElementById(id);};
 var circleId=document.body.getAttribute('data-circle');
 var tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';}catch(_){}
-var hash=new URLSearchParams(location.hash.replace(/^#/,''));
-var key=hash.get('k')||'';
-var from=(hash.get('from')||'').replace(/[\\u0000-\\u001f]/g,'').trim().slice(0,40);
+var link=linkParams(location.hash);
+var key=link.key,from=link.from,forName=link.forName;
 var store={};var storeKey='kizuna:c:'+circleId;
 try{store=JSON.parse(localStorage.getItem(storeKey)||'{}')||{};}catch(_){store={};}
 function save(){try{localStorage.setItem(storeKey,JSON.stringify(store));}catch(_){}}
 var memberId=/^[A-Za-z0-9_-]{12}$/.test(store.memberId||'')?store.memberId:randomId(12);
-var members=[];var picked=[];var pending=null;
+var members=[];var picked=[];var pending=null;var undoTo=null;var chain=Promise.resolve();
 function show(id){['s-ask','s-thanks','s-incomplete','s-ended','s-wait'].forEach(function(s){$(s).hidden=s!==id;});window.scrollTo(0,0);}
 function err(t){$('err').textContent=t||'';}
+function status(t,canUndo){$('saved-text').textContent=t||'';$('undo').hidden=!canUndo;$('saved').hidden=!t;}
 var dayFmt,hmFmt;
 try{dayFmt=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'numeric',month:'short'});hmFmt=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'});}catch(_){}
 function label(w){var s=new Date(w.start),e=new Date(w.end);return dayFmt?dayFmt.format(s)+', '+hmFmt.format(s)+' to '+hmFmt.format(e):w.start;}
+function paint(){document.querySelectorAll('[data-chip]').forEach(function(b){b.setAttribute('aria-pressed',picked.indexOf(b.getAttribute('data-chip'))>=0?'true':'false');});}
 
 async function load(){
   if(!circleId||!(await keyOk(key))){show('s-incomplete');return;}
-  if(from){$('title').textContent=from+' is planning a family call.';}
-  if(store.name)$('name').value=store.name;
+  if(from)$('title').textContent=from+' is planning a family call.';
+  if(forName){$('hi').textContent='Hi '+forName+',';$('hi').hidden=false;}
+  $('name').value=store.name||forName||'';
   var now=new Date();
   document.querySelectorAll('[data-chip]').forEach(function(b){
-    var w=chipWindow(b.getAttribute('data-chip'),now);
+    var c=b.getAttribute('data-chip'),w=chipWindow(c,now);
     var when=b.querySelector('.when');
     if(!w){b.disabled=true;if(when)when.textContent='Passed';return;}
     if(when&&dayFmt)when.textContent=dayFmt.format(w.start);
+    if(store.answered&&Array.isArray(store.picked)&&store.picked.indexOf(c)>=0)picked.push(c);
     b.addEventListener('click',function(){
-      var c=b.getAttribute('data-chip'),i=picked.indexOf(c);
+      undoTo={picked:picked.slice(),nope:!!store.nope,answered:!!store.answered};
+      var i=picked.indexOf(c);
       if(i>=0)picked.splice(i,1);else picked.push(c);
-      b.setAttribute('aria-pressed',i>=0?'false':'true');
-      $('send').disabled=picked.length===0;err('');
+      paint();
+      persist({picked:picked.slice()}).then(function(ok){
+        if(ok)status(picked.length?'Saved. Tap more if other times work.':'Cleared. Nothing is shared.',true);
+      });
     });
   });
+  paint();
   if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&(window.AudioContext||window.webkitAudioContext))$('mic').hidden=false;
   else $('typed').hidden=false;
   try{
@@ -147,24 +167,36 @@ async function load(){
   show('s-ask');
 }
 
-async function submit(windows,notThisWeekend){
+// One answer at a time, in the order tapped. st: {picked} from chips, {windows} from voice or typing,
+// {nope:true} for not this weekend. Nothing picked and no "nope" removes the answer.
+function persist(st){
+  var run=chain.then(function(){return write(st);});
+  chain=run.catch(function(){});
+  return run;
+}
+async function write(st){
   err('');
   var name=$('name').value.replace(/\\s+/g,' ').trim().slice(0,40);
   store.name=name;store.memberId=memberId;save();
-  var entry={v:1,name:name,tz:tz||'UTC',status:null,statusUntil:null,windows:windows.slice(0,3),via:'page',updatedAt:new Date().toISOString()};
-  if(notThisWeekend)entry.notThisWeekend=true;
-  setBusy(true);
+  var windows=st.windows||chipWindows(st.picked||[],new Date());
+  var nope=!!st.nope;
   try{
-    var sealed=await sealEntry(key,circleId,memberId,entry);
-    var r=await fetch('/api/circle/'+encodeURIComponent(circleId)+'/m/'+memberId,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(sealed),referrerPolicy:'no-referrer'});
-    if(r.status===404){show('s-ended');return;}
+    var path='/api/circle/'+encodeURIComponent(circleId)+'/m/'+memberId,r;
+    if(!windows.length&&!nope){
+      r=await fetch(path,{method:'DELETE',referrerPolicy:'no-referrer'});
+    }else{
+      var entry={v:1,name:name,tz:tz||'UTC',status:null,statusUntil:null,windows:windows.slice(0,3),via:'page',updatedAt:new Date().toISOString()};
+      if(nope)entry.notThisWeekend=true;
+      var sealed=await sealEntry(key,circleId,memberId,entry);
+      r=await fetch(path,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(sealed),referrerPolicy:'no-referrer'});
+    }
+    if(r.status===404){show('s-ended');return false;}
     if(!r.ok)throw new Error('save');
-    store.answered=true;save();
-    await thanks(name,notThisWeekend);
-  }catch(_){err('That did not go through. Please try again in a moment.');}
-  finally{setBusy(false);}
+    store.answered=!!(windows.length||nope);store.nope=nope;store.picked=st.picked||[];save();
+    return true;
+  }catch(_){err('That did not go through. Please tap again in a moment.');status('',false);return false;}
 }
-function setBusy(b){['send','nope','sendheard','read','mic'].forEach(function(id){var el=$(id);if(el)el.disabled=b||(id==='send'&&picked.length===0);});}
+function setBusy(b){['nope','sendheard','read','mic'].forEach(function(id){var el=$(id);if(el)el.disabled=b;});}
 
 async function thanks(name,nope){
   $('thanks-title').textContent=name?'Thank you, '+name+'.':'Thank you.';
@@ -177,6 +209,12 @@ async function thanks(name,nope){
   }
   $('others').textContent=names.length?'Also answered: '+names.join(', ')+'.':'';
   show('s-thanks');
+}
+async function finish(st){
+  setBusy(true);
+  var ok=await persist(st);
+  setBusy(false);
+  if(ok){status('',false);await thanks(store.name,!!st.nope);}
 }
 
 async function readReply(text,heard){
@@ -244,20 +282,25 @@ async function stopRec(){
 function resetMic(){$('mic-label').textContent='Speak instead';$('mic').setAttribute('aria-pressed','false');}
 function micFailed(){resetMic();$('typed').hidden=false;err('The microphone did not work. Please type it instead.');}
 
-$('send').addEventListener('click',function(){var now=new Date();submit(chipWindows(picked,now),false);});
-$('nope').addEventListener('click',function(){submit([],true);});
+$('nope').addEventListener('click',function(){undoTo={picked:picked.slice(),nope:!!store.nope,answered:!!store.answered};picked=[];paint();finish({nope:true});});
+$('undo').addEventListener('click',function(){
+  if(!undoTo)return;var to=undoTo;undoTo=null;
+  picked=to.picked.slice();paint();
+  persist(to.answered?{picked:to.picked,nope:to.nope&&!to.picked.length}:{picked:[]}).then(function(ok){if(ok)status('Undone.',false);});
+});
+$('name').addEventListener('change',function(){if(store.answered&&(picked.length||store.nope))persist({picked:picked.slice(),nope:!!store.nope&&!picked.length});});
 $('mic').addEventListener('click',function(){if(rec)stopRec();else startRec();});
 $('typeopen').addEventListener('click',function(){$('typed').hidden=false;$('reply').focus();});
 $('read').addEventListener('click',function(){var t=$('reply').value.trim();if(t)readReply(t,false);});
-$('sendheard').addEventListener('click',function(){if(pending)submit(pending.windows,pending.nope);});
-$('again').addEventListener('click',function(){show('s-ask');});
+$('sendheard').addEventListener('click',function(){if(pending){picked=[];paint();finish(pending.nope?{nope:true}:{windows:pending.windows});}});
+$('again').addEventListener('click',function(){status('',false);show('s-ask');});
 load();
 `;
 
 const FAMILY_CSS = `
 h1{font-size:36px}
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 22px}
-.chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:96px;padding:14px 16px;border-radius:20px;border:0;box-shadow:var(--card);background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--text);font:inherit;font-size:20px;font-weight:500;letter-spacing:-.015em;text-align:left;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
+.chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:108px;padding:14px 16px;border-radius:20px;border:0;box-shadow:var(--card);background:var(--surface);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--text);font:inherit;font-size:20px;font-weight:500;letter-spacing:-.015em;text-align:left;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
 .chip .when{font-size:13px;font-weight:400;color:var(--faint);margin-top:4px}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);box-shadow:0 10px 22px -14px var(--accent)}
 .chip[aria-pressed="true"] .when{color:var(--on-accent);opacity:.85}
@@ -284,6 +327,13 @@ button.btn[disabled]{opacity:.45;cursor:default}
 .times li{padding:8px 0;border-bottom:1px solid var(--line)}
 .note{color:var(--faint);font-size:14px;margin:18px 0 0}
 #again-note{color:var(--muted);font-size:15px;margin:-18px 0 22px}
+.hi{font-size:22px;font-weight:500;letter-spacing:-.02em;margin:0 0 6px}
+.chips{margin-bottom:14px}
+.saved{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;margin:0 0 14px;padding:4px 6px 4px 18px;border-radius:16px;background:var(--accent-soft);color:var(--text);font-size:16px}
+.saved[hidden]{display:none}
+.undo{min-height:48px;padding:0 12px;color:var(--accent)}
+.field.name{margin:22px 0 0}
+button.btn{min-height:64px}
 `;
 
 function body(): string {
@@ -292,8 +342,9 @@ function body(): string {
 	return `<section id="s-wait"><p class="sub">One moment…</p></section>
 <section id="s-ask" hidden>
 <p class="eyebrow">Family call</p>
+<p class="hi" id="hi" hidden></p>
 <h1><span id="title">A family call is being planned.</span></h1>
-<p class="sub">When are you free this weekend?</p>
+<p class="sub">When are you free this weekend? Tap every time that works.</p>
 <p id="again-note" hidden>You answered before. Answering again replaces it.</p>
 <div class="chips" role="group" aria-label="Times this weekend">
 ${chip('sat-am', 'Sat morning')}
@@ -301,11 +352,11 @@ ${chip('sat-pm', 'Sat evening')}
 ${chip('sun-am', 'Sun morning')}
 ${chip('sun-pm', 'Sun evening')}
 </div>
-<label class="field"><span>Your name (optional)</span><input id="name" maxlength="40" autocomplete="given-name" enterkeyhint="done"></label>
+<div class="saved" id="saved" role="status" aria-live="polite" hidden><span id="saved-text"></span><button class="link undo" id="undo" type="button" hidden>Undo</button></div>
 <div class="stack">
-<button class="btn primary" id="send" type="button" disabled>Send</button>
 <button class="btn secondary" id="nope" type="button">Not this weekend</button>
 </div>
+<label class="field name"><span>Your name</span><input id="name" maxlength="40" autocomplete="given-name" enterkeyhint="done"></label>
 <div class="or">or</div>
 <div class="stack">
 <button class="btn secondary mic" id="mic" type="button" aria-pressed="false" hidden><span id="mic-label">Speak instead</span></button>
@@ -345,7 +396,7 @@ ${chip('sun-pm', 'Sun evening')}
 <noscript><p class="sub">Please open this link in a browser with JavaScript on. Your answer is locked on your phone before it is sent.</p></noscript>`;
 }
 
-export function renderFamilyPage(circleId: string): Response {
+export function renderFamilyPage(circleId: string, origin = ''): Response {
 	const n = nonce();
 	// An id that can't be a circle still gets the page, which then says the link is incomplete.
 	const id = CIRCLE_ID_RE.test(circleId) ? circleId : '';
@@ -359,6 +410,7 @@ export function renderFamilyPage(circleId: string): Response {
 <meta name="theme-color" content="#F7F3EA" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)">
 <title>Family call</title>
+${ogTags({ ...FAMILY_OG, url: `${origin}/c/${id}`, image: `${origin}${OG_INVITE_IMAGE}` })}
 <style nonce="${n}">${CSS}${FAMILY_CSS}</style>
 </head>
 <body data-circle="${id}">
@@ -367,7 +419,7 @@ export function renderFamilyPage(circleId: string): Response {
 ${body()}
 <footer>Sent with <b>Kizuna</b>. No app needed.</footer>
 </main>
-<script nonce="${n}">(function(){${SEAL_JS}${TIME_JS}${APP_JS}})();</script>
+<script nonce="${n}">(function(){${SEAL_JS}${TIME_JS}${LINK_JS}${APP_JS}})();</script>
 </body>
 </html>`;
 	return new Response(html, { status: 200, headers: familyHeaders(n) });
@@ -375,5 +427,5 @@ ${body()}
 
 export async function handleFamilyPage(req: Request, circleId: string): Promise<Response> {
 	if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('Method not allowed', { status: 405, headers: { allow: 'GET, HEAD' } });
-	return renderFamilyPage(circleId);
+	return renderFamilyPage(circleId, ogOrigin(req));
 }

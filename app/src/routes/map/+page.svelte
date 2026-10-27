@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { GiftCard as Gift, Person, Settings, WeekendCard as Weekend } from '@kizuna/shared';
-	import { giftCards, inviteFamilyLine, refreshCircle, weekendCard } from '#lib/core/index.js';
-	import { allPeople, mapLive, settingsLive, type MapView } from '#lib/db.js';
+	import { freshAnswerPeople, giftCards, inviteFamilyLine, markInvited, refreshCircle, weekendCard } from '#lib/core/index.js';
+	import { allPeople, circleMembers, mapLive, settingsLive, type MapView, type MemberRow } from '#lib/db.js';
+	import { shareWithToast } from '#lib/ui/toast.svelte.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { occasionChip } from '#lib/ui/mapformat.js';
 	import { fold, soft } from '#lib/ui/motion.js';
@@ -27,6 +28,29 @@
 	// Goes up after each refresh, so a faint light travels along the map's lines.
 	let beat = $state(0);
 	let gifts = $state<Gift[]>([]);
+
+	// Someone answered on the family page since the map was last open: light them up.
+	const members = watch<MemberRow[]>(() => circleMembers(), []);
+	const SEEN = 'kizuna:map-seen';
+	let seenAt: string | null = null;
+	try {
+		seenAt = localStorage.getItem(SEEN);
+	} catch {
+		/* no storage: light everyone who answered */
+	}
+	let lit = $state<string[]>([]);
+	$effect(() => {
+		if (!members.ready) return;
+		const fresh = freshAnswerPeople(members.value, seenAt);
+		if (!fresh.length) return;
+		lit = fresh;
+		seenAt = new Date().toISOString();
+		try {
+			localStorage.setItem(SEEN, seenAt);
+		} catch {
+			/* fine */
+		}
+	});
 
 	async function loadCards() {
 		try {
@@ -56,8 +80,8 @@
 		inviting = true;
 		inviteNote = '';
 		try {
-			const { link } = await inviteFamilyLine();
-			window.open(link, '_blank', 'noopener');
+			const { line, invitees } = await inviteFamilyLine();
+			if ((await shareWithToast(line)) !== 'cancelled') await markInvited(invitees);
 		} catch {
 			inviteNote = 'Couldn’t make the link just now. Try again in a moment.';
 		} finally {
@@ -107,7 +131,7 @@
 
 			{#if view.value}
 				<div class="stage">
-					<Constellation people={view.value.people} me={{ name: 'You', localTime: view.value.me.localTime }} {beat} />
+					<Constellation people={view.value.people} me={{ name: 'You', localTime: view.value.me.localTime }} {beat} {lit} />
 					{#if view.value.people.length}
 						<p class="legend tiny">
 							<span><i class="g" aria-hidden="true"></i> glow: open to a call</span>

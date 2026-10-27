@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newCircleKey, openEntry, randomId, sealEntry, type CircleEntry } from '@kizuna/shared';
 import { route } from '../src/index.ts';
-import { SEAL_JS, TIME_JS, renderFamilyPage } from '../src/family-page.ts';
+import { LINK_JS, SEAL_JS, TIME_JS, renderFamilyPage } from '../src/family-page.ts';
 import { get, makeEnv } from './helpers.ts';
 
 // The page's inline sealing code, run as the browser would run it.
@@ -117,6 +117,13 @@ describe('GET /c/:id', () => {
 		expect(html).toContain(`<style nonce="${n}">`);
 		expect(html).toContain(`data-circle="${id}"`);
 		expect(html).toContain('<meta name="referrer" content="no-referrer">');
+		// A pasted link unfurls as a card; the tags never carry the key.
+		expect(html).toContain('<meta property="og:title" content="Family call this weekend?">');
+		expect(html).toContain('<meta property="og:description" content="Tap the times that work for you. Takes ten seconds, nothing to install.">');
+		expect(html).toContain(`<meta property="og:url" content="https://kizuna.test/c/${id}">`);
+		expect(html).toContain('<meta property="og:image" content="https://kizuna.test/og-invite.png">');
+		expect(html).toContain('<meta property="og:image:width" content="1200">');
+		expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
 		// No outside resources and no inline handlers.
 		expect(html).not.toMatch(/\s(src|href)="https?:/);
 		expect(html).not.toMatch(/\son[a-z]+="/);
@@ -126,7 +133,9 @@ describe('GET /c/:id', () => {
 	it('has the four chips, not this weekend and the mic, in plain English', async () => {
 		const html = await (await route(get(`/c/${id}`), makeEnv())).text();
 		for (const c of ['sat-am', 'sat-pm', 'sun-am', 'sun-pm']) expect(html).toContain(`data-chip="${c}"`);
-		for (const label of ['Sat morning', 'Sun evening', 'Not this weekend', 'Speak instead', 'or type it', 'This link is incomplete', 'Ask for a new one']) expect(html).toContain(label);
+		for (const label of ['Sat morning', 'Sun evening', 'Not this weekend', 'Speak instead', 'or type it', 'This link is incomplete', 'Ask for a new one', 'Undo']) expect(html).toContain(label);
+		// one tap saves: there is no separate send button for the chips
+		expect(html).not.toContain('id="send"');
 		expect(html).not.toMatch(/[\u0900-\u097F]/);
 		expect(html).not.toContain('lang="hi"');
 		expect(html).not.toContain('—');
@@ -160,5 +169,172 @@ describe('GET /c/:id', () => {
 	it('only answers GET and HEAD', async () => {
 		const res = await route(new Request(`https://kizuna.test/c/${id}`, { method: 'POST' }), makeEnv());
 		expect(res.status).toBe(405);
+	});
+});
+
+describe('family page link', () => {
+	const link = new Function(`${LINK_JS}; return { linkParams };`)() as { linkParams: (h: string) => { key: string; from: string; forName: string } };
+
+	it('reads the key, who is planning, and who the link is for', () => {
+		const key = newCircleKey();
+		expect(link.linkParams(`#k=${key}&from=Alex&for=Mom`)).toEqual({ key, from: 'Alex', forName: 'Mom' });
+		expect(link.linkParams(`#k=${key}&for=Aunt%20Carmen`)).toEqual({ key, from: '', forName: 'Aunt Carmen' });
+		expect(link.linkParams(`#k=${key}`)).toEqual({ key, from: '', forName: '' });
+		expect(link.linkParams('')).toEqual({ key: '', from: '', forName: '' });
+	});
+
+	it('cleans names: no control characters or tags, one space, at most 40 characters', () => {
+		const r = link.linkParams(`#k=x&for=${encodeURIComponent('  <b>Grand\u0000ma</b>\n  Rose ')}&from=${'A'.repeat(60)}`);
+		expect(r.forName).toBe('bGrandma/b Rose');
+		expect(r.from).toHaveLength(40);
+	});
+});
+
+// ---------- the page script against a tiny DOM: one tap saves, undo, for=, sealing ----------
+
+class El {
+	textContent = '';
+	hidden = false;
+	disabled = false;
+	value = '';
+	attrs = new Map<string, string>();
+	handlers = new Map<string, (() => void)[]>();
+	children: El[] = [];
+	constructor(public id: string) {}
+	setAttribute(k: string, v: string) {
+		this.attrs.set(k, v);
+	}
+	getAttribute(k: string) {
+		return this.attrs.get(k) ?? null;
+	}
+	addEventListener(t: string, f: () => void) {
+		this.handlers.set(t, [...(this.handlers.get(t) ?? []), f]);
+	}
+	querySelector(_: string) {
+		return this.children[0] ?? null;
+	}
+	click() {
+		for (const f of this.handlers.get('click') ?? []) f();
+	}
+	focus() {}
+	scrollIntoView() {}
+}
+
+async function runPage(hash: string, circleId: string, now: string) {
+	const html = await renderFamilyPage(circleId).text();
+	const src = /<script nonce="[^"]+">([\s\S]*)<\/script>/.exec(html)![1];
+	const els = new Map<string, El>();
+	for (const m of html.matchAll(/id="([\w-]+)"/g)) els.set(m[1], new El(m[1]));
+	const chips = [...html.matchAll(/data-chip="([\w-]+)"/g)].map((m) => {
+		const e = new El(m[1]);
+		e.setAttribute('data-chip', m[1]);
+		e.children.push(new El('when'));
+		return e;
+	});
+	const kv = new Map<string, any>();
+	const requests: { method: string; path: string }[] = [];
+	const fetch = async (url: string, init: any = {}) => {
+		const method = init.method ?? 'GET';
+		requests.push({ method, path: url });
+		const m = /\/m\/([\w-]+)$/.exec(url);
+		if (method === 'PUT') kv.set(m![1], JSON.parse(init.body));
+		if (method === 'DELETE') kv.delete(m![1]);
+		return new Response(JSON.stringify({ ok: true, id: circleId, members: [] }), { status: 200 });
+	};
+	const storage = new Map<string, string>();
+	const fixed = new Date(now);
+	class FakeDate extends Date {
+		constructor(...a: any[]) {
+			super(...((a.length ? a : [fixed.getTime()]) as []));
+		}
+		static now() {
+			return fixed.getTime();
+		}
+	}
+	const env = {
+		document: {
+			body: { getAttribute: () => circleId },
+			getElementById: (id: string) => els.get(id) ?? null,
+			querySelectorAll: () => chips
+		},
+		location: { hash },
+		localStorage: { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => storage.set(k, v) },
+		navigator: {},
+		window: { scrollTo() {} },
+		fetch,
+		Date: FakeDate
+	};
+	const names = Object.keys(env);
+	new Function(...names, src)(...names.map((n) => (env as any)[n]));
+	await new Promise((r) => setTimeout(r, 50));
+	const settle = () => new Promise((r) => setTimeout(r, 50));
+	return { els, chips, kv, requests, storage, settle };
+}
+
+describe('family page answers in one tap', () => {
+	(globalThis as any).process.env.TZ = 'Asia/Kolkata';
+	const circleId = randomId(16);
+	const now = '2026-10-30T18:10:00+05:30';
+
+	it('greets the person the link is for and fills in their name', async () => {
+		const key = newCircleKey();
+		const p = await runPage(`#k=${key}&from=Alex&for=Mom`, circleId, now);
+		expect(p.els.get('s-ask')!.hidden).toBe(false);
+		expect(p.els.get('hi')!.hidden).toBe(false);
+		expect(p.els.get('hi')!.textContent).toBe('Hi Mom,');
+		expect(p.els.get('title')!.textContent).toBe('Alex is planning a family call.');
+		expect(p.els.get('name')!.value).toBe('Mom');
+	});
+
+	it('a tap saves at once, sealed so the app can open it; more taps add; undo goes back', async () => {
+		const key = newCircleKey();
+		const p = await runPage(`#k=${key}&for=Mom`, circleId, now);
+		const sunPm = p.chips.find((c) => c.id === 'sun-pm')!;
+		sunPm.click();
+		await p.settle();
+		expect(sunPm.getAttribute('aria-pressed')).toBe('true');
+		expect(p.els.get('saved-text')!.textContent).toBe('Saved. Tap more if other times work.');
+		expect(p.els.get('undo')!.hidden).toBe(false);
+		const [memberId, sealed] = [...p.kv][0];
+		const entry = await openEntry(key, circleId, memberId, sealed);
+		expect(entry).toMatchObject({ v: 1, name: 'Mom', via: 'page', windows: [{ start: '2026-11-01T17:00:00+05:30', end: '2026-11-01T21:00:00+05:30' }] });
+
+		// a second tap adds a time, the name was changed on the way
+		p.els.get('name')!.value = 'Mum';
+		p.chips.find((c) => c.id === 'sat-am')!.click();
+		await p.settle();
+		const two = await openEntry(key, circleId, memberId, p.kv.get(memberId));
+		expect(two!.name).toBe('Mum');
+		expect(two!.windows).toHaveLength(2);
+
+		// undo: back to just Sunday evening
+		p.els.get('undo')!.click();
+		await p.settle();
+		const back = await openEntry(key, circleId, memberId, p.kv.get(memberId));
+		expect(back!.windows).toEqual(entry!.windows);
+		expect(p.els.get('saved-text')!.textContent).toBe('Undone.');
+	});
+
+	it('undo after the first tap takes the answer away', async () => {
+		const key = newCircleKey();
+		const p = await runPage(`#k=${key}`, circleId, now);
+		p.chips[0].click();
+		await p.settle();
+		expect(p.kv.size).toBe(1);
+		p.els.get('undo')!.click();
+		await p.settle();
+		expect(p.kv.size).toBe(0);
+		expect(p.requests.at(-1)!.method).toBe('DELETE');
+	});
+
+	it('"Not this weekend" saves at once and says thank you', async () => {
+		const key = newCircleKey();
+		const p = await runPage(`#k=${key}&for=Grandpa`, circleId, now);
+		p.els.get('nope')!.click();
+		await p.settle();
+		const [memberId, sealed] = [...p.kv][0];
+		expect(await openEntry(key, circleId, memberId, sealed)).toMatchObject({ name: 'Grandpa', notThisWeekend: true, windows: [] });
+		expect(p.els.get('s-thanks')!.hidden).toBe(false);
+		expect(p.els.get('thanks-title')!.textContent).toBe('Thank you, Grandpa.');
 	});
 });

@@ -2,11 +2,13 @@
 	// A drafted line the user can edit, then send themselves through WhatsApp.
 	import { whatsappLink } from '#lib/core/index.js';
 	import { soft } from './motion.js';
+	import { shareWithToast } from './toast.svelte.js';
 
 	let {
 		load,
 		label = 'Your line',
 		phone,
+		share = false,
 		tip = '',
 		onopened,
 		oncancel
@@ -15,6 +17,8 @@
 		load: () => Promise<{ line: string; link: string }>;
 		label?: string;
 		phone?: string;
+		/** For a group (or no number): the phone's share sheet, else copy and open WhatsApp. */
+		share?: boolean;
 		/** A small one-liner shown after WhatsApp opens. */
 		tip?: string;
 		onopened?: () => void;
@@ -45,11 +49,15 @@
 		return () => (gone = true);
 	});
 
-	function open() {
+	async function open() {
 		const t = text.trim();
 		if (!t) return;
-		const link = t === first.line.trim() && first.link ? first.link : whatsappLink(t, phone);
-		window.open(link, '_blank', 'noopener');
+		if (share) {
+			if ((await shareWithToast(t)) === 'cancelled') return;
+		} else {
+			const link = t === first.line.trim() && first.link ? first.link : whatsappLink(t, phone);
+			window.open(link, '_blank', 'noopener');
+		}
 		opened = true;
 		onopened?.();
 	}

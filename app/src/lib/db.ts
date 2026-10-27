@@ -13,6 +13,10 @@ export interface MemberRow {
 	entry: CircleEntry;
 	fetchedAt: string;
 	reply?: string; // the words they replied with, when known (e.g. a WhatsApp reply)
+	/** When a family-page answer from them was new or changed (set by the circle refresh). */
+	answeredAt?: string;
+	/** The user closed the "answered" line on Today for this answer. */
+	answerSeen?: boolean;
 }
 
 /** A personal occasion heard in notes (birthdays); festivals live in a fixed table. */

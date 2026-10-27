@@ -26,13 +26,18 @@
 	let {
 		people,
 		me,
-		beat = 0
+		beat = 0,
+		lit = []
 	}: {
 		people: DotPerson[];
 		me: { name: string; localTime: string };
 		/** Goes up each time the circle refreshes: sends a faint pulse out along the lines. */
 		beat?: number;
+		/** People who just answered: their dot flares (again whenever the list changes). */
+		lit?: string[];
 	} = $props();
+	const litSet = $derived(new Set(lit));
+	const litKey = $derived(lit.join('|'));
 
 	const shown = $derived(people.slice(0, 8));
 	const byId = $derived(new Map(shown.map((p) => [p.person.id, p])));
@@ -224,6 +229,12 @@
 						<circle class="halo maybe" cx={d.x} cy={d.y} r={DOT_R * 2} fill="url(#{gid(d.id)})" />
 					{/if}
 					<circle class="flare" cx={d.x} cy={d.y} r={DOT_R * 1.6} fill="url(#halo-{uid})" />
+					{#if litSet.has(d.id)}
+						{#key litKey}
+							<!-- they just answered: a brighter flare after the intro, twice -->
+							<circle class="answered" cx={d.x} cy={d.y} r={DOT_R * 2.2} fill="url(#halo-{uid})" style="--at:{pulseWait}s" />
+						{/key}
+					{/if}
 					<circle class="glowring" cx={d.x} cy={d.y} r={DOT_R + 2.5} fill={hue} filter="url(#soft-{uid})" />
 					<circle class="focus" cx={d.x} cy={d.y} r={DOT_R + 5} />
 					<circle class="dot" cx={d.x} cy={d.y} r={DOT_R} fill="url(#orb-{gid(d.id)})" stroke={hue} />
@@ -491,6 +502,13 @@
 			transform: scale(1.7);
 		}
 	}
+	.answered {
+		opacity: 0;
+		transform-box: fill-box;
+		transform-origin: center;
+		pointer-events: none;
+		animation: flare 1.4s ease-out var(--at, 0s) 2 both;
+	}
 	.glowring {
 		opacity: 0.55;
 		pointer-events: none;
@@ -580,6 +598,7 @@
 	}
 	.still .node,
 	.still .flare,
+	.still .answered,
 	.still .halo.open {
 		animation: none;
 	}
@@ -599,6 +618,7 @@
 			opacity: 1;
 		}
 		.flare,
+		.answered,
 		.pulse {
 			display: none;
 		}

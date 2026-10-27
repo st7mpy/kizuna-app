@@ -4,6 +4,7 @@ import { runWeave } from './weave.ts';
 import { entrySignature, publishMyEntry, refreshCircle } from './circle.ts';
 import { liveQuery } from 'dexie';
 import { readSettings } from '../db.ts';
+import { refreshStaleSample } from './sample.ts';
 
 export { saveFragment, processPending, retryFragment, noteThought } from './capture.ts';
 export { runWeave } from './weave.ts';
@@ -32,7 +33,19 @@ export {
 	WHATSAPP_SCHEDULE_TIP
 } from './weekend.ts';
 export { giftCards, draftGiftLine, markGift } from './gifts.ts';
-export { inviteFamilyLine } from './invite.ts';
+export { inviteFamilyLine, invitePersonLine } from './invite.ts';
+export {
+	answerLines,
+	dismissAnswer,
+	followUps,
+	draftNudge,
+	markNudged,
+	markInvited,
+	freshAnswerPeople,
+	type AnswerLine,
+	type FollowUp
+} from './answers.ts';
+export { shareText, shareLine, type ShareResult } from './share.ts';
 export { draftPoke, whatsappLink } from './poke.ts';
 export { suggestSlots, createInvite, googleCalendarLink, icsFile } from './time.ts';
 export { updatePerson, mergePeople, removePerson, updateThread, markReached } from './people.ts';
@@ -43,7 +56,10 @@ export { isOnline } from './relay.ts';
 /** Call once when the app opens: understands notes left from before (and again when back online), then weaves if due. */
 export function startCore(): void {
 	askPersistentStorage();
-	void requeueFailed()
+	// A visitor who only ever looked at an older sample gets the current one, quietly.
+	void refreshStaleSample()
+		.catch(() => false)
+		.then(() => requeueFailed())
 		.then(() => processPending())
 		.then(() => runWeave())
 		.catch(() => {});

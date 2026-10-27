@@ -74,3 +74,18 @@ test('the other sample family loads from the picker', async ({ page }) => {
 	await expect(page.locator('article.weekend .yours').first()).toHaveText('Chicago time');
 	await expect(page.locator('article.weekend .when .num').first()).toHaveText('Sunday 13:30');
 });
+
+test('Today closes the loop: who answered, and who hasn’t yet', async ({ page }) => {
+	await sampleFamily(page);
+	await openToday(page);
+	const loop = page.locator('section.loop');
+	await expect(loop.getByText('Grandma answered: Sunday afternoon')).toBeVisible();
+	await expect(loop.getByText('Dad hasn’t answered yet')).toBeVisible();
+	// a gentle line for the user to send themselves
+	await loop.getByRole('button', { name: 'Draft a nudge' }).click();
+	await expect(loop.locator('textarea')).toHaveValue(/Dad/, { timeout: 15_000 });
+	await expect(loop.getByRole('button', { name: 'Open WhatsApp' })).toBeEnabled();
+	// closing the answered line keeps it closed
+	await loop.getByRole('button', { name: /^Close: Grandma answered/ }).click();
+	await expect(page.getByText('Grandma answered: Sunday afternoon')).toHaveCount(0);
+});

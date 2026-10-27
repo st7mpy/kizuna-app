@@ -20,6 +20,7 @@ import { matchPerson } from './people.ts';
 import { RelayError, isOnline, relayJson } from './relay.ts';
 import { updateSettings } from './settings.ts';
 import { busyTimes } from './time.ts';
+import { answerStamp } from './answers.ts';
 
 export const SAMPLE_CIRCLE_ID = 'sample';
 export const MIN_WINDOW_MINUTES = 45;
@@ -208,7 +209,8 @@ export function refreshCircle(): Promise<void> {
 				if (e instanceof RelayError && /status 404/.test(e.message)) await db.members.filter((m) => !isSampleMember(m)).delete(); // circle gone
 				throw e;
 			}
-			const now = new Date().toISOString();
+			const nowDate = new Date();
+			const now = nowDate.toISOString();
 			const [people, cached] = await Promise.all([db.people.toArray(), db.members.toArray()]);
 			const opened: MemberRow[] = cached.filter(isSampleMember);
 			const prev = new Map(cached.map((m) => [m.memberId, m]));
@@ -219,7 +221,15 @@ export function refreshCircle(): Promise<void> {
 				const old = prev.get(m.memberId);
 				const keep = old?.linkedBy === 'user' || (old?.personId && people.some((p) => p.id === old.personId));
 				const personId = keep ? old!.personId : autoLink(people, entry.name);
-				opened.push({ ...old, memberId: m.memberId, personId, linkedBy: keep ? old!.linkedBy : personId ? 'auto' : undefined, entry, fetchedAt: now });
+				opened.push({
+					...old,
+					memberId: m.memberId,
+					personId,
+					linkedBy: keep ? old!.linkedBy : personId ? 'auto' : undefined,
+					entry,
+					fetchedAt: now,
+					...answerStamp(old, entry, nowDate)
+				});
 			}
 			await db.transaction('rw', db.members, async () => {
 				await db.members.clear();
