@@ -98,18 +98,24 @@ export async function buildDraftInput(personId: string, reason: string, slot?: S
 	};
 }
 
-export async function draftPoke(personId: string, reason: string, slot?: Slot): Promise<string> {
+export interface PokeDraft {
+	line: string;
+	/** False when the model couldn't be reached in time and this is the simple template line. */
+	fromModel: boolean;
+}
+
+export async function draftPoke(personId: string, reason: string, slot?: Slot): Promise<PokeDraft> {
 	const { input, person } = await buildDraftInput(personId, reason, slot);
 	if (isOnline()) {
 		try {
 			const out = await spark('draft', input);
 			const line = out.line?.trim();
-			if (line) return line.slice(0, 200);
+			if (line) return { line: line.slice(0, 200), fromModel: true };
 		} catch {
 			/* use the template */
 		}
 	}
-	return templateLine(person, input.language, slot);
+	return { line: templateLine(person, input.language, slot), fromModel: false };
 }
 
 /** wa.me link with the text; phone optional (without it WhatsApp asks who to send to). */

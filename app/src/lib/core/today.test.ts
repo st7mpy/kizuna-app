@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db, defaultSettings } from '../db.ts';
 import { localDay } from './days.ts';
 import { getSettings, setRoom, updateSettings } from './settings.ts';
-import { answerCard, todayCards } from './today.ts';
+import { answerCard, answeredToday, todayCards } from './today.ts';
 import { mkEvent, mkPerson, mkThread, mockRelay, resetDb, setOffline } from './testing.ts';
 
 const at = (d: number, h = 10, m = 0) => new Date(2026, 9, 26 + d, h, m); // Mon 26 Oct 2026
@@ -105,6 +105,29 @@ describe('todayCards', () => {
 		vi.setSystemTime(at(3, 10));
 		await db.events.add(mkEvent({ what: 'farewell drinks', personIds: ['kabir'], day: localDay(at(4)) }));
 		expect((await todayCards()).map((c) => c.title)).toContain('Kabir');
+	});
+
+	it('room is for the day: after answering every card, a reload brings no new batch', async () => {
+		await seed();
+		await setRoom('some');
+		const first = await todayCards();
+		expect(first).toHaveLength(3);
+		expect(await answeredToday()).toBe(false);
+		for (const c of first) await answerCard(c.promptId, 'not_now');
+		expect(await todayCards()).toEqual([]);
+		expect(await answeredToday()).toBe(true);
+		// tomorrow is a new day
+		vi.setSystemTime(at(1, 10));
+		expect(await answeredToday()).toBe(false);
+		expect((await todayCards()).length).toBeGreaterThan(0);
+	});
+
+	it('the suggest card gives a reason without asking the question twice', async () => {
+		await seed();
+		await setRoom('lots');
+		const meera = (await todayCards()).find((c) => c.kind === 'suggest_circle')!;
+		expect(meera.reason).toBe('New baby, you mention her often.');
+		expect(meera.reason).not.toMatch(/\?/);
 	});
 
 	it('suggest not now moves the person out of the circle', async () => {

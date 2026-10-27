@@ -3,6 +3,7 @@
 	import { whatsappLink } from '#lib/core/index.js';
 	import { soft } from './motion.js';
 	import { shareWithToast } from './toast.svelte.js';
+	import { autogrow } from './autogrow.js';
 
 	let {
 		load,
@@ -13,8 +14,11 @@
 		onopened,
 		oncancel
 	}: {
-		/** Drafts the line; called once when the box appears. */
-		load: () => Promise<{ line: string; link: string }>;
+		/**
+		 * Drafts the line; called once when the box appears. It may hand over a simple line at once
+		 * through `quick`, which shows while the model drafts (and stays if the model is slow).
+		 */
+		load: (quick: (line: string) => void) => Promise<{ line: string; link: string }>;
 		label?: string;
 		phone?: string;
 		/** For a group (or no number): the phone's share sheet, else copy and open WhatsApp. */
@@ -30,18 +34,21 @@
 	let loading = $state(true);
 	let failed = $state(false);
 	let opened = $state(false);
+	let edited = false; // the user's own words are never replaced by a late draft
 
 	$effect(() => {
 		let gone = false;
 		loading = true;
-		load()
+		load((line) => {
+			if (!gone && !edited && !text.trim()) text = line;
+		})
 			.then((d) => {
 				if (gone) return;
 				first = d;
-				text = d.line;
+				if (!edited) text = d.line;
 			})
 			.catch(() => {
-				if (!gone) failed = true;
+				if (!gone && !text.trim()) failed = true;
 			})
 			.finally(() => {
 				if (!gone) loading = false;
@@ -64,14 +71,15 @@
 </script>
 
 <div class="draft" in:soft>
-	<label class="field">
+	<label class="field" class:improving={loading && !!text}>
 		<span>{label}</span>
 		<textarea
 			rows="3"
 			bind:value={text}
+			use:autogrow={text}
+			oninput={() => (edited = true)}
 			aria-busy={loading}
 			placeholder={loading ? 'Finding the words…' : 'Write a line'}
-			disabled={loading && !text}
 		></textarea>
 	</label>
 	{#if failed}<p class="tiny">Couldn’t draft just now. Write your own line, it works the same.</p>{/if}
@@ -94,5 +102,34 @@
 	}
 	.tip {
 		color: var(--text-2);
+	}
+	textarea {
+		resize: none;
+	}
+	/* While a warmer line is on its way: a soft light passes over the words. */
+	.improving textarea {
+		background-image: linear-gradient(
+			100deg,
+			transparent 35%,
+			color-mix(in srgb, var(--accent) 9%, transparent) 50%,
+			transparent 65%
+		);
+		background-size: 300% 100%;
+		background-repeat: no-repeat;
+		animation: sheen 1.8s linear infinite;
+	}
+	@keyframes sheen {
+		from {
+			background-position: 100% 0;
+		}
+		to {
+			background-position: 0 0;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.improving textarea {
+			animation: none;
+			background-position: 50% 0;
+		}
 	}
 </style>

@@ -201,9 +201,10 @@ export async function followUps(now = new Date()): Promise<FollowUp[]> {
 }
 
 /** A gentle line for the user to send to someone who hasn't answered, with their own link when there is one. */
-export async function draftNudge(personId: string): Promise<{ line: string; link: string; phone?: string }> {
+export async function draftNudge(personId: string, quick?: (line: string) => void): Promise<{ line: string; link: string; phone?: string }> {
 	const { input, person } = await buildDraftInput(personId, 'Asked them about a family call this weekend. A gentle, no-pressure check; no hurry.');
 	const own = await personLink(personId);
+	quick?.(nudgeTemplate(person.name, own));
 	let line: string | null = null;
 	if (isOnline()) {
 		try {

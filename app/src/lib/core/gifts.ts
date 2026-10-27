@@ -87,12 +87,13 @@ export function giftTemplate(occasionName: string, idea: string | null, _languag
 }
 
 /** Drafts a line to the sibling (or whoever plans it with you). wa.me with their number if known. */
-export async function draftGiftLine(card: GiftCard): Promise<{ line: string; link: string }> {
+export async function draftGiftLine(card: GiftCard, quick?: (line: string) => void): Promise<{ line: string; link: string }> {
 	const [person, withP] = await Promise.all([db.people.get(card.personId), card.withPersonId ? db.people.get(card.withPersonId) : undefined]);
 	const idea = safeIdea(card.hint.what);
 	const occasionName = card.occasion.name;
 	const about = withP ? await db.fragments.where('personIds').equals(withP.id).toArray() : [];
 	const language = withP ? likelyLanguage(withP, about) : 'en';
+	quick?.(giftTemplate(occasionName, idea, language));
 	let line: string | null = null;
 	if (isOnline() && withP) {
 		try {

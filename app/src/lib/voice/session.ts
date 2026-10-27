@@ -125,7 +125,11 @@ export async function createListener(h: ListenHandlers, deps: VoiceDeps, opts: L
 	} catch (e) {
 		captureOpen = false;
 		await capture.stop().catch(() => {});
-		throw new Error(micMessage(e));
+		// Keep the browser's reason (NotAllowedError…) so the page can tell "mic is off" from "mic failed".
+		const err = new Error(micMessage(e));
+		const name = (e as { name?: string } | null)?.name;
+		if (name) err.name = name;
+		throw err;
 	}
 	languageBias = await biasP;
 	if (finishing) return { stop: finish };

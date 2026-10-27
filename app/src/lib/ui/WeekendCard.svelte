@@ -12,16 +12,20 @@
 	} from '#lib/core/index.js';
 	import { hueFor } from './hue.js';
 	import { skippedLine, traceLine, whenLocal, yourTime } from './mapformat.js';
+	import { cap } from './format.js';
 	import DraftBox from './DraftBox.svelte';
 	import Icon from './Icon.svelte';
 
 	let {
 		card,
 		people,
+		zoneOf,
 		ondismiss
 	}: {
 		card: WeekendCard;
 		people: Map<string, Person>;
+		/** Their time zone, when known (the map knows it), so another time can say what it is for them. */
+		zoneOf?: (personId: string) => string | null | undefined;
 		/** Called after "Not now"; the parent hides the card. */
 		ondismiss?: () => void;
 	} = $props();
@@ -40,6 +44,18 @@
 	// one open draft at a time: 'group' or a person id
 	let drafting = $state<string | null>(null);
 	let calOpen = $state(false);
+
+	/** "Saturday 12:00 your time instead? That's 10:00 for Jordan." Never two bare times side by side. */
+	function altLine(personId: string, start: string): string {
+		const mine = `${whenLocal(start)} ${yourTime()} instead?`;
+		const tz = zoneOf?.(personId);
+		if (!tz) return mine;
+		const theirs = whenLocal(start, tz);
+		if (theirs === whenLocal(start)) return mine;
+		const [day, time] = theirs.split(' ');
+		const sameDay = whenLocal(start).split(' ')[0] === day;
+		return `${mine} That’s ${sameDay ? time : theirs} for ${nameOf(personId)}.`;
+	}
 
 	function opened(kind: string) {
 		if (kind === 'group') answerWeekend('done').catch(() => {});
@@ -108,14 +124,14 @@
 			{free.length === 1 ? 'is' : 'are'} free.
 		</p>
 	{/if}
-	{#if c.reason}<p class="reason">{c.reason}</p>{/if}
+	{#if c.reason}<p class="reason">{cap(c.reason)}</p>{/if}
 
 	{#if c.skipped.length}
 		<ul class="skipped">
 			{#each c.skipped as s (s.personId)}
 				<li>
 					{skippedLine(nameOf(s.personId), s.why)}
-					{#if s.alt}<span class="alt">{whenLocal(s.alt.start)} instead?</span>{/if}
+					{#if s.alt}<span class="alt">{altLine(s.personId, s.alt.start)}</span>{/if}
 				</li>
 			{/each}
 		</ul>
@@ -127,7 +143,7 @@
 		<DraftBox
 			label="For the family group"
 			share
-			load={() => draftForGroup(c)}
+			load={(quick) => draftForGroup(c, quick)}
 			tip={WHATSAPP_SCHEDULE_TIP}
 			onopened={() => opened('group')}
 			oncancel={() => (drafting = null)}
@@ -137,7 +153,7 @@
 		<DraftBox
 			label="For {nameOf(id)}"
 			phone={people.get(id)?.phone}
-			load={() => draftForPerson(c, id)}
+			load={(quick) => draftForPerson(c, id, quick)}
 			tip={WHATSAPP_SCHEDULE_TIP}
 			oncancel={() => (drafting = null)}
 		/>
@@ -152,7 +168,7 @@
 		{#each c.skipped as s (s.personId)}
 			{#if drafting !== s.personId}
 				<button class="btn" type="button" onclick={() => (drafting = s.personId)}>
-					Draft for <em class="inline">{nameOf(s.personId)}</em>
+					<span>Draft for <em class="inline">{nameOf(s.personId)}</em></span>
 				</button>
 			{/if}
 		{/each}

@@ -156,8 +156,16 @@ describe('follow-ups on the phone', () => {
 
 	it('uses a drafted line when it passes the checks, with their own link', async () => {
 		await updateSettings({ circle: { id: 'circle0000000001', key: 'k'.repeat(43), memberId: 'me0000000001', share: true, freeToday: false, paused: false } });
-		const relay = mockRelay(() => ({ line: 'Hey Grandma, any time this weekend good for a family call?', language: 'en' }));
-		const d = await draftNudge('gma');
+		let quickAt = -1;
+		const relay = mockRelay(() => {
+			quickAt = quick.length; // how many simple lines were already handed over when the model was asked
+			return { line: 'Hey Grandma, any time this weekend good for a family call?', language: 'en' };
+		});
+		const quick: string[] = [];
+		const d = await draftNudge('gma', (l) => quick.push(l));
+		// a usable line shows before the model is even asked
+		expect(quickAt).toBe(1);
+		expect(quick[0]).toMatch(/^Hi Grandma, no rush at all\..*\/c\/circle0000000001/);
 		expect(relay.tasks()).toEqual(['draft']);
 		expect(d.line).toBe(`Hey Grandma, any time this weekend good for a family call? https://kizuna.test/c/circle0000000001#k=${'k'.repeat(43)}&from=Alex&for=Grandma`);
 		// a pushy line is replaced by the gentle one

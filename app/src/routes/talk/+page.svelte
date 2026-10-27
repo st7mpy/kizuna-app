@@ -8,6 +8,8 @@
 	import { cap, dayLabel } from '#lib/ui/format.js';
 	import { soft } from '#lib/ui/motion.js';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { autogrow } from '#lib/ui/autogrow.js';
+	import { isOnline } from '#lib/core/index.js';
 
 	type Phase = 'idle' | 'starting' | 'listening' | 'stopping' | 'saving' | 'saved';
 	let phase = $state<Phase>('idle');
@@ -53,11 +55,16 @@
 			usedVoice = true;
 		} catch (e) {
 			phase = 'idle';
-			const denied = (e as DOMException)?.name === 'NotAllowedError';
-			micOk = !denied && voiceSupported();
+			const name = (e as { name?: string } | null)?.name;
+			const denied = name === 'NotAllowedError' || name === 'SecurityError';
+			const noMic = name === 'NotFoundError' || name === 'OverconstrainedError';
+			// No mic, or it's turned off for Kizuna: hide the big button rather than invite more failing taps.
+			micOk = !denied && !noMic && voiceSupported();
 			micNote = denied
-				? 'The mic is off for Kizuna, so type instead. It works just as well.'
-				: 'Couldn’t start the mic just now. Typing works just as well.';
+				? 'The mic is off for Kizuna. You can allow it in your browser settings, or type here instead. It works just as well.'
+				: noMic
+					? 'No microphone found. Typing works just as well.'
+					: 'Couldn’t start the mic just now. Typing works just as well.';
 		}
 	}
 
@@ -217,7 +224,16 @@
 					</p>
 					<p class="tiny">It’s kept safely, just as you said it.</p>
 				{:else if slow}
-					<p class="muted">Saved on your phone. Kizuna will read it properly once you’re online.</p>
+					{#if isOnline()}
+						<p class="retry muted">
+							Saved on your phone. Kizuna will read it in a moment.
+							<button class="btn accent" type="button" onclick={retry} disabled={retrying}>
+								{retrying ? 'Trying…' : 'Try again'}
+							</button>
+						</p>
+					{:else}
+						<p class="muted">Saved on your phone. Kizuna will read it properly once you’re online.</p>
+					{/if}
 				{:else}
 					<p class="muted">Reading it…</p>
 				{/if}
@@ -279,7 +295,8 @@
 				<textarea
 					rows={micOk ? 3 : 6}
 					bind:value={text}
-					placeholder="Mum's appointment is Thursday. Kabir started his new job, should call him."
+					use:autogrow={text}
+					placeholder="Mom's dentist is Thursday. Jordan started a new job, should call him."
 				></textarea>
 			</label>
 		{/if}
@@ -408,6 +425,7 @@
 	}
 	textarea {
 		font-size: var(--t-lead);
+		resize: none;
 	}
 	.center {
 		text-align: center;

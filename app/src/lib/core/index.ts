@@ -9,7 +9,7 @@ import { refreshStaleSample } from './sample.ts';
 export { saveFragment, processPending, retryFragment, noteThought } from './capture.ts';
 export { runWeave } from './weave.ts';
 export { getSettings, updateSettings, setRoom } from './settings.ts';
-export { todayCards, answerCard, todayExtras } from './today.ts';
+export { todayCards, answerCard, answeredToday, todayExtras, type TodayExtras } from './today.ts';
 export {
 	createCircle,
 	circleLink,
@@ -18,6 +18,7 @@ export {
 	publishMyEntry,
 	refreshCircle,
 	linkMember,
+	addMemberAsPerson,
 	leaveCircle,
 	setSharing,
 	SAMPLE_CIRCLE_ID
@@ -45,11 +46,11 @@ export {
 	type AnswerLine,
 	type FollowUp
 } from './answers.ts';
-export { shareText, shareLine, type ShareResult } from './share.ts';
-export { draftPoke, whatsappLink } from './poke.ts';
-export { suggestSlots, createInvite, googleCalendarLink, icsFile } from './time.ts';
+export { shareText, shareLine, browserShareDeps, openBlankTab, hasShareSheet, type ShareResult } from './share.ts';
+export { draftPoke, templateLine, whatsappLink, type PokeDraft } from './poke.ts';
+export { suggestSlots, createInvite, googleCalendarLink, icsFile, checkCalendar, isCalendarLink, clearBusyCache } from './time.ts';
 export { updatePerson, mergePeople, removePerson, updateThread, markReached } from './people.ts';
-export { loadSampleLife, loadSample, SAMPLES, type SampleKey } from './sample.ts';
+export { loadSampleLife, loadSample, refreshSampleMembers, SAMPLES, type SampleKey } from './sample.ts';
 export { deleteEverything, exportNotes } from './data.ts';
 export { isOnline } from './relay.ts';
 

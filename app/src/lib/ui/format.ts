@@ -28,6 +28,13 @@ export function dayLabel(day: string, today: string = dayKey()): string {
 	return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+/** Beside a big date ("9 NOV"): only the day's name, or Today / Tomorrow, so the date isn't said twice. */
+export function weekdayLabel(day: string, today: string = dayKey()): string {
+	const diff = Math.round((parseDay(day).getTime() - parseDay(today).getTime()) / 86400000);
+	if (diff >= -1 && diff <= 1) return dayLabel(day, today);
+	return parseDay(day).toLocaleDateString('en-GB', { weekday: 'long' });
+}
+
 /** When a note was written, as a calm label (no "N days ago"). */
 export function noteDay(iso: string, today: string = dayKey()): string {
 	return dayLabel(dayKey(new Date(iso)), today);

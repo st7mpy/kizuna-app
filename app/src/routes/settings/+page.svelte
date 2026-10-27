@@ -8,7 +8,9 @@
 		deleteEverything,
 		exportNotes,
 		getSettings,
+		checkCalendar,
 		inviteFamilyLine,
+		isCalendarLink,
 		markInvited,
 		leaveCircle,
 		loadSample,
@@ -28,7 +30,9 @@
 	import Segmented from '#lib/ui/Segmented.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
-	import { shareWithToast } from '#lib/ui/toast.svelte.js';
+	import TimeSelect from '#lib/ui/TimeSelect.svelte';
+	import { newWindow, windowProblem } from '#lib/ui/freehours.js';
+	import { shareAfter } from '#lib/ui/toast.svelte.js';
 
 	let s = $state<Settings | null>(null);
 	let note = $state('');
@@ -62,25 +66,74 @@
 
 	// free hours
 	function windowsFor(day: number): { w: Window; i: number }[] {
-		return (s?.freeHours ?? []).map((w, i) => ({ w, i })).filter((x) => x.w.day === day);
+		return (s?.freeHours ?? [])
+			.map((w, i) => ({ w, i }))
+			.filter((x) => x.w.day === day)
+			.sort((a, b) => a.w.start.localeCompare(b.w.start));
 	}
-	function setWindow(i: number, key: 'start' | 'end', v: string) {
+	// A wrong window is not saved; the note says why, next to that day.
+	let winNote = $state<{ day: number; text: string } | null>(null);
+	function setWindow(i: number, key: 'start' | 'end', v: string, el?: HTMLSelectElement) {
 		if (!s || !v) return;
-		s.freeHours[i] = { ...s.freeHours[i], [key]: v };
+		const w = { ...s.freeHours[i], [key]: v };
+		const others = s.freeHours.filter((x, j) => j !== i && x.day === w.day);
+		const problem = windowProblem(w, others);
+		if (problem) {
+			winNote = { day: w.day, text: problem };
+			if (el) el.value = s.freeHours[i][key];
+			return;
+		}
+		winNote = null;
+		s.freeHours[i] = w;
 		save({ freeHours: $state.snapshot(s.freeHours) }, 300);
 	}
+	const roomFor = (day: number) => newWindow(day, windowsFor(day).map((x) => x.w));
 	function addWindow(day: number) {
 		if (!s) return;
-		const last = windowsFor(day).at(-1)?.w;
-		const start = last && minutes(last.end) <= 20 * 60 ? last.end : day === 0 || day === 6 ? '10:00' : '18:30';
-		const end = `${String(Math.min(23, Number(start.slice(0, 2)) + 2)).padStart(2, '0')}:${start.slice(3)}`;
-		s.freeHours = [...s.freeHours, { day, start, end }];
+		const w = roomFor(day);
+		if (!w) return;
+		winNote = null;
+		s.freeHours = [...s.freeHours, { day, ...w }];
 		save({ freeHours: $state.snapshot(s.freeHours) });
 	}
 	function removeWindow(i: number) {
 		if (!s) return;
+		winNote = null;
 		s.freeHours = s.freeHours.filter((_, j) => j !== i);
 		save({ freeHours: $state.snapshot(s.freeHours) });
+	}
+
+	// The calendar link: saved only when it is a link, then read once so the user knows it works.
+	type CalStatus = 'checking' | 'ok' | 'failed' | 'offline' | 'bad';
+	const CAL_WORDS: Record<CalStatus, string> = {
+		checking: 'Checking your calendar…',
+		ok: 'Connected. Kizuna will avoid your busy times.',
+		failed: 'Couldn’t read this calendar. Check it’s the secret iCal address, not the public one.',
+		offline: 'Saved. Kizuna will read it when you’re online.',
+		bad: 'That doesn’t look like a calendar link. It should start with https://'
+	};
+	let calStatus = $state<CalStatus | null>(null);
+	let calTimer: ReturnType<typeof setTimeout> | undefined;
+	let calSeq = 0;
+	function calendarInput(raw: string) {
+		const url = raw.trim();
+		clearTimeout(calTimer);
+		const my = ++calSeq;
+		if (!url) {
+			calStatus = null;
+			save({ icalUrl: undefined }, 600);
+			return;
+		}
+		calTimer = setTimeout(async () => {
+			if (!isCalendarLink(url)) {
+				calStatus = 'bad';
+				return;
+			}
+			save({ icalUrl: url });
+			calStatus = 'checking';
+			const r = await checkCalendar(url);
+			if (my === calSeq) calStatus = r;
+		}, 700);
 	}
 
 	function pickTheme(t: ThemeChoice) {
@@ -117,8 +170,15 @@
 		mapBusy = true;
 		mapNote = '';
 		try {
-			const { line, invitees } = await inviteFamilyLine();
-			if ((await shareWithToast(line)) !== 'cancelled') await markInvited(invitees);
+			// The tab opens before the link is made, so Safari doesn't block it as a popup.
+			let invitees: string[] = [];
+			const r = await shareAfter(async () => {
+				const x = await inviteFamilyLine();
+				invitees = x.invitees;
+				return x.line;
+			});
+			if (r === 'blocked') mapNote = 'Your link is ready. Tap again to send it.';
+			else if (r !== 'cancelled') await markInvited(invitees);
 		} catch {
 			mapNote = 'Couldn’t make the link just now.';
 		} finally {
@@ -253,7 +313,7 @@
 	{/if}
 	<div class="content">
 	{#if s}
-		<section class="block" id="you">
+		<section class="set-block" id="you">
 			<h2>You</h2>
 			<label class="field">
 				<span>Your first name</span>
@@ -267,7 +327,7 @@
 			</label>
 		</section>
 
-		<section class="block" id="free">
+		<section class="set-block" id="free">
 			<h2>When you’re free for people</h2>
 			<p class="note">Kizuna only suggests times inside these hours.</p>
 			<div class="days">
@@ -277,20 +337,16 @@
 						<div class="wins">
 							{#each windowsFor(d) as { w, i } (i)}
 								<div class="win">
-									<input
-										type="time"
-										class="num"
+									<TimeSelect
 										value={w.start}
-										aria-label="{WEEKDAYS[d]} from"
-										onchange={(e) => setWindow(i, 'start', e.currentTarget.value)}
+										label="{WEEKDAYS[d]} from"
+										onchange={(v, el) => setWindow(i, 'start', v, el)}
 									/>
 									<span class="to" aria-hidden="true">–</span>
-									<input
-										type="time"
-										class="num"
+									<TimeSelect
 										value={w.end}
-										aria-label="{WEEKDAYS[d]} until"
-										onchange={(e) => setWindow(i, 'end', e.currentTarget.value)}
+										label="{WEEKDAYS[d]} until"
+										onchange={(v, el) => setWindow(i, 'end', v, el)}
 									/>
 									<button
 										class="icon-btn bare"
@@ -302,7 +358,8 @@
 							{:else}
 								<span class="busy">Not free</span>
 							{/each}
-							<button class="btn add" type="button" onclick={() => addWindow(d)}>
+							{#if winNote?.day === d}<p class="note warn" role="alert">{winNote.text}</p>{/if}
+							<button class="btn add" type="button" onclick={() => addWindow(d)} disabled={!roomFor(d)}>
 								<Icon name="plus" size={16} /> Add time
 							</button>
 						</div>
@@ -311,31 +368,21 @@
 			</div>
 		</section>
 
-		<section class="block" id="quiet">
+		<section class="set-block" id="quiet">
 			<h2>Quiet hours</h2>
 			<div class="row quiet-row">
 				<label class="field grow">
 					<span>No nudges after</span>
-					<input
-						type="time"
-						class="num"
-						value={s.quietStart}
-						onchange={(e) => e.currentTarget.value && save({ quietStart: e.currentTarget.value })}
-					/>
+					<TimeSelect value={s.quietStart} onchange={(v) => v && save({ quietStart: v })} />
 				</label>
 				<label class="field grow">
 					<span>or before</span>
-					<input
-						type="time"
-						class="num"
-						value={s.quietEnd}
-						onchange={(e) => e.currentTarget.value && save({ quietEnd: e.currentTarget.value })}
-					/>
+					<TimeSelect value={s.quietEnd} onchange={(v) => v && save({ quietEnd: v })} />
 				</label>
 			</div>
 		</section>
 
-		<section class="block" id="calendar">
+		<section class="set-block" id="calendar">
 			<h2>Your calendar</h2>
 			<label class="field">
 				<span>Private calendar link (iCal)</span>
@@ -343,16 +390,22 @@
 					type="url"
 					value={s.icalUrl ?? ''}
 					placeholder="https://calendar.google.com/…/basic.ics"
-					oninput={(e) => save({ icalUrl: e.currentTarget.value.trim() || undefined }, 600)}
+					oninput={(e) => calendarInput(e.currentTarget.value)}
+					aria-describedby="cal-status"
 				/>
 			</label>
+			{#if calStatus}
+				<p id="cal-status" class="note cal-status" class:ok={calStatus === 'ok'} class:warn={calStatus !== 'ok' && calStatus !== 'checking'} role="status">
+					{CAL_WORDS[calStatus]}
+				</p>
+			{/if}
 			<p class="note">
 				Optional. In Google Calendar on a computer: Settings, pick your calendar, then “Secret address in
 				iCal format”. Kizuna only reads when you’re busy.
 			</p>
 		</section>
 
-		<section class="block" id="map">
+		<section class="set-block" id="map">
 			<h2>Kizuna map</h2>
 			<div class="notice">
 				<p><strong>Shared, sealed:</strong> your first name, time zone, up to three free windows this week, and “free today” for 12 hours if you turn it on.</p>
@@ -431,7 +484,7 @@
 		{#if note}<p class="note" role="alert">{note}</p>{/if}
 	{/if}
 
-	<section class="block" id="look">
+	<section class="set-block" id="look">
 		<h2>Look</h2>
 		<Segmented
 			label="Theme"
@@ -445,13 +498,13 @@
 		/>
 	</section>
 
-	<section class="block" id="notes">
+	<section class="set-block" id="notes">
 		<h2>Your notes</h2>
 		<ul class="rows actions-list">
 			{#each SAMPLES as x (x.key)}
 				<li>
 					<button class="btn" type="button" onclick={() => askSample(x.key)} disabled={sampling} data-sample={x.key}>
-						{sampling && sampleKey === x.key ? 'Setting up…' : `Sample: ${x.label.toLowerCase()}`}
+						{sampling && sampleKey === x.key ? 'Setting up…' : `Sample: ${x.label}`}
 					</button>
 				</li>
 			{/each}
@@ -469,7 +522,7 @@
 		{#if dataNote}<p class="note" role="alert">{dataNote}</p>{/if}
 	</section>
 
-	<section class="block about">
+	<section class="set-block about" id="about">
 		<h2>About Kizuna</h2>
 		<p>
 			<strong>Your notes stay on this phone.</strong> When Kizuna reads a note or hears you, the words pass
@@ -521,7 +574,7 @@
 		gap: 28px;
 		min-width: 0;
 	}
-	.block {
+	.set-block {
 		scroll-margin-top: 24px;
 	}
 	.about-link {
@@ -536,7 +589,7 @@
 			grid-template-columns: 64px minmax(0, 1fr);
 		}
 		.wins .win {
-			grid-template-columns: 8.5em auto 8.5em auto;
+			grid-template-columns: 7.5em auto 7.5em auto;
 			width: auto;
 		}
 	}
@@ -580,8 +633,8 @@
 			background: var(--bg-2);
 		}
 	}
-	/* Each block is a soft rounded surface. */
-	.block {
+	/* Each section is a soft rounded surface. Not called "block": that is the global full-width button class. */
+	.set-block {
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
@@ -593,11 +646,11 @@
 		box-shadow: var(--card-shadow);
 	}
 	@media (max-width: 719px) {
-		.block {
+		.set-block {
 			padding: 18px 14px 14px;
 		}
 	}
-	.block h2 {
+	.set-block h2 {
 		display: flex;
 		align-items: baseline;
 		gap: 12px;
@@ -620,10 +673,23 @@
 		font-weight: 500;
 		padding-top: 12px;
 	}
+	/* Narrow phones: the day name sits above its times, so the times get the whole width. */
+	@media (max-width: 479px) {
+		.day {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 4px;
+			padding: 10px 0;
+		}
+		.dname {
+			padding-top: 0;
+		}
+	}
 	.wins {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
+		gap: 6px;
+		min-width: 0;
 	}
 	.win {
 		display: grid;
@@ -632,16 +698,17 @@
 		gap: 6px;
 		width: 100%;
 	}
-	.win input {
-		min-width: 0;
-		width: 100%;
+	.win :global(select) {
 		font-size: var(--t-small);
-		font-variant-numeric: tabular-nums;
-		text-align: left;
-		padding: 8px 8px;
+		padding-top: 8px;
+		padding-bottom: 8px;
+		padding-left: 12px;
 	}
-	.win input::-webkit-calendar-picker-indicator {
-		display: none;
+	.warn {
+		color: var(--text);
+	}
+	.cal-status.ok {
+		color: var(--accent-ink);
 	}
 	.to {
 		color: var(--text-3);
@@ -659,8 +726,13 @@
 	.quiet-row {
 		gap: 20px;
 	}
+	.quiet-row .field {
+		flex: 1 1 0;
+		min-width: 0;
+	}
 	.actions-list .btn {
 		justify-content: flex-start;
+		text-align: left;
 		width: 100%;
 		border-radius: 0;
 		min-height: 52px;

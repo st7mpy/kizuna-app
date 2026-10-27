@@ -103,9 +103,12 @@ footer b{font-weight:600;color:var(--text)}
 const JS = `
 (function(){
   try{
-    var tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+    // Some browsers still report old zone names; show the current ones.
+    var OLD={'Asia/Calcutta':'Asia/Kolkata','Asia/Saigon':'Asia/Ho_Chi_Minh','Asia/Katmandu':'Asia/Kathmandu','Asia/Rangoon':'Asia/Yangon','Europe/Kiev':'Europe/Kyiv','America/Buenos_Aires':'America/Argentina/Buenos_Aires'};
+    tz=OLD[tz]||tz;
     var day=new Intl.DateTimeFormat(undefined,{weekday:'long',day:'numeric',month:'long'});
-    var hm=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'});
+    var hm=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
     document.querySelectorAll('[data-start]').forEach(function(el){
       var s=new Date(el.getAttribute('data-start')),e=new Date(el.getAttribute('data-end'));
       if(isNaN(s)||isNaN(e))return;

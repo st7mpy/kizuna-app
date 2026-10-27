@@ -45,6 +45,11 @@ describe('labels', () => {
 		expect(shortName('Mum')).toBe('Mum');
 		expect(shortName('Bartholomewsky')).toBe('Bartholomew…');
 	});
+	it('keeps the name after a kin word', () => {
+		expect(shortName('Aunt Carmen Delacroix')).toBe('Aunt Carmen');
+		expect(shortName('Uncle Bartholomew Smith')).toBe('Uncle Barth…');
+		expect(shortName('Mia Rodriguez-Hernandez')).toBe('Mia');
+	});
 	it('gives longer text a wider box', () => {
 		expect(labelWidth('Wilhelmina', '')).toBeGreaterThan(labelWidth('Mum', ''));
 	});

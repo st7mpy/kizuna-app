@@ -6,12 +6,14 @@
 		createInvite,
 		draftPoke,
 		markReached,
+		templateLine,
 		suggestSlots,
 		whatsappLink
 	} from '#lib/core/index.js';
 	import Sheet from './Sheet.svelte';
 	import Icon from './Icon.svelte';
 	import Seal from './Seal.svelte';
+	import { autogrow } from './autogrow.js';
 
 	let {
 		open = $bindable(false),
@@ -28,50 +30,64 @@
 	} = $props();
 
 	let text = $state('');
-	let loading = $state(false);
+	let improving = $state(false); // the model is drafting a warmer line; the simple one is already there
 	let fallback = $state(false);
+	let edited = false; // once the user types, a late model line never replaces their words
 	let triedAnother = $state(false);
 	let withTime = $state(false);
 	let timeBusy = $state(false);
 	let timeNote = $state('');
 	let sent = $state(false);
 	let inviteSuffix = '';
+	// Each draft request gets a number; an answer for an older one (or a closed sheet) is ignored.
+	let seq = 0;
 
-	const simpleLine = (name: string) => `Hi ${name}, was thinking of you. How are things?`;
+	const withSuffix = (line: string) => line + (withTime ? inviteSuffix : '');
 
-	async function draft() {
+	async function draft(replace = false) {
 		if (!person) return;
-		loading = true;
+		const my = ++seq;
+		const forId = person.id;
+		improving = true;
 		fallback = false;
 		try {
-			const line = await draftPoke(person.id, reason);
-			text = line + (withTime ? inviteSuffix : '');
+			const d = await draftPoke(forId, reason);
+			if (my !== seq || !open || person?.id !== forId) return;
+			if (replace || !edited) {
+				text = withSuffix(d.line);
+				if (replace) edited = false;
+			}
+			fallback = !d.fromModel;
 		} catch {
-			fallback = true;
-			if (!text) text = simpleLine(person.name) + (withTime ? inviteSuffix : '');
+			if (my === seq) fallback = true;
 		} finally {
-			loading = false;
+			if (my === seq) improving = false;
 		}
 	}
 
-	// Fresh draft each time the sheet opens.
+	// Fresh line each time the sheet opens: a simple one at once, a warmer one if the model answers in time.
 	let lastOpen = false;
 	$effect(() => {
 		if (open && !lastOpen) {
-			text = '';
 			triedAnother = false;
 			withTime = false;
 			inviteSuffix = '';
 			timeNote = '';
 			sent = false;
+			edited = false;
+			text = person ? templateLine(person, 'en') : '';
 			draft();
+		}
+		if (!open && lastOpen) {
+			seq++; // anything still on its way belongs to this closed sheet
+			improving = false;
 		}
 		lastOpen = open;
 	});
 
 	async function another() {
 		triedAnother = true;
-		await draft();
+		await draft(true);
 	}
 
 	async function toggleTime() {
@@ -130,22 +146,23 @@
 		</div>
 	{:else}
 		{#if reason}<p class="muted why">{reason}</p>{/if}
-		<label class="field draft">
-			<span>Your line</span>
+		<label class="field draft" class:improving>
+			<span class="lab">Your line{#if improving}<span class="hint" aria-hidden="true">Finding warmer words…</span>{/if}</span>
 			<textarea
 				rows="3"
 				bind:value={text}
-				aria-busy={loading}
-				placeholder={loading ? 'Finding the words…' : 'Say hello'}
-				disabled={loading && !text}
+				use:autogrow={text}
+				oninput={() => (edited = true)}
+				aria-busy={improving}
+				placeholder="Say hello"
 			></textarea>
 		</label>
-		{#if fallback}
+		{#if fallback && !improving}
 			<p class="note">Here’s a simple line to start. Change it however you like.</p>
 		{/if}
 		<div class="row tools">
 			{#if !triedAnother}
-				<button class="btn" type="button" onclick={another} disabled={loading}>
+				<button class="btn" type="button" onclick={another} disabled={improving}>
 					<Icon name="refresh" size={20} /> Try another
 				</button>
 			{/if}
@@ -156,7 +173,7 @@
 			</label>
 		</div>
 		{#if timeNote}<p class="note">{timeNote}</p>{/if}
-		<button class="btn primary block big" type="button" onclick={send} disabled={!text.trim() || loading}>
+		<button class="btn primary block big" type="button" onclick={send} disabled={!text.trim()}>
 			<Icon name="send" size={20} /> Send in WhatsApp
 		</button>
 		<p class="tiny">You send it. Kizuna never messages anyone for you.</p>
@@ -171,7 +188,47 @@
 		font-size: 1.3125rem;
 		line-height: 1.4;
 		letter-spacing: -0.01em;
-		padding: 12px 0 14px;
+		padding: 12px 14px 14px;
+		resize: none;
+	}
+	.lab {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	.hint {
+		font-size: var(--t-label);
+		font-weight: 500;
+		letter-spacing: 0;
+		text-transform: none;
+		color: var(--text-3);
+	}
+	/* While a warmer line is on its way: a soft light passes over the words. */
+	.improving textarea {
+		background-image: linear-gradient(
+			100deg,
+			transparent 35%,
+			color-mix(in srgb, var(--accent) 9%, transparent) 50%,
+			transparent 65%
+		);
+		background-size: 300% 100%;
+		background-repeat: no-repeat;
+		animation: sheen 1.8s linear infinite;
+	}
+	@keyframes sheen {
+		from {
+			background-position: 100% 0;
+		}
+		to {
+			background-position: 0 0;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.improving textarea {
+			animation: none;
+			background-position: 50% 0;
+		}
 	}
 	.tools {
 		justify-content: space-between;

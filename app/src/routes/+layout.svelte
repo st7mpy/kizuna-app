@@ -24,6 +24,7 @@
 </script>
 
 <div class="shell" class:bare={chrome.bare}>
+	<a class="skip" href="#main">Skip to content</a>
 	{#if !chrome.bare}
 		<Sky />
 		<header>
@@ -44,12 +45,13 @@
 			</div>
 		</header>
 	{/if}
-	<main id="main">
+	<!-- Before main, so the rail comes first when moving with the keyboard (it is fixed, so it looks the same). -->
+	{#if !chrome.bare}<NavBar />{/if}
+	<main id="main" tabindex="-1">
 		{#key page.url.pathname}
 			{@render children()}
 		{/key}
 	</main>
-	{#if !chrome.bare}<NavBar />{/if}
 	<Toast />
 </div>
 
@@ -95,6 +97,26 @@
 		font-size: var(--t-small);
 		font-weight: 500;
 		text-decoration: none;
+	}
+	.skip {
+		position: fixed;
+		top: 8px;
+		left: 8px;
+		z-index: 100;
+		padding: 10px 16px;
+		border-radius: 999px;
+		background: var(--surface-solid);
+		color: var(--text);
+		font-weight: 500;
+		text-decoration: none;
+		box-shadow: var(--card-shadow);
+		transform: translateY(-200%);
+	}
+	.skip:focus-visible {
+		transform: none;
+	}
+	main:focus {
+		outline: none;
 	}
 	main {
 		padding-bottom: calc(var(--nav-h) + 32px + var(--safe-b));

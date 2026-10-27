@@ -44,4 +44,9 @@ describe('sharing a line', () => {
 		expect(open).toHaveBeenCalledTimes(1);
 		expect(await shareLine(LINE, { open })).toBe('opened');
 	});
+
+	it('says "blocked" when the browser stopped WhatsApp from opening and nothing was copied', async () => {
+		const r = await shareLine('hi', { open: () => false });
+		expect(r).toBe('blocked');
+	});
 });

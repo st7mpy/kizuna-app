@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db, defaultSettings } from '../db.ts';
 import { exportNotes, deleteEverything, notesMarkdown } from './data.ts';
-import { fetchSampleLife, loadSampleLifeFrom, refreshStaleSample, resolveRel, SAMPLE_VERSION, SAMPLES, staleSample, type SampleLife } from './sample.ts';
+import { fetchSampleLife, loadSampleLifeFrom, refreshSampleMembers, refreshStaleSample, sampleStatuses, resolveRel, SAMPLE_VERSION, SAMPLES, staleSample, type SampleLife } from './sample.ts';
 import { answerLines, followUps } from './answers.ts';
 import { deviceId } from './relay.ts';
 import { todayCards } from './today.ts';
@@ -137,7 +137,7 @@ describe('sample life', () => {
 		});
 	}
 
-	for (const [key, waiting] of [['abroad', 'Dad'], ['usa', 'Grandpa']] as const) {
+	for (const [key, waiting] of [['abroad', 'Jordan'], ['usa', 'Kai']] as const) {
 		for (const day of [26, 27, 28, 29]) {
 			it(`${key}: shows an answer and a "hasn't answered" line on a weekday (Oct ${day})`, async () => {
 				vi.setSystemTime(new Date(`2026-10-${day}T15:00:00Z`));
@@ -197,7 +197,7 @@ describe('sample life', () => {
 	});
 
 	it('abroad: a busy family in Chicago and New York, Leo a day ahead in Melbourne', async () => {
-		vi.setSystemTime(new Date(2026, 9, 27, 12, 0)); // Tuesday
+		vi.setSystemTime(new Date(Date.UTC(2026, 9, 27, 17, 0))); // Tuesday, midday in Chicago (nobody glows at night)
 		await loadSampleLifeFrom(await fetchSampleLife('abroad'));
 		const { buildMapView } = await import('./map.ts');
 		const map = await buildMapView();
@@ -221,6 +221,8 @@ describe('sample life', () => {
 		const leo = card.skipped.find((x) => name(x.personId) === 'Leo')!;
 		expect(leo).toBeTruthy();
 		expect(card.personIds.map(name)).not.toContain('Leo');
+		// Jordan hasn't answered yet (Today says so): the plan doesn't count him free or offer him a time
+		expect([...card.personIds, ...card.skipped.map((x) => x.personId)].map(name)).not.toContain('Jordan');
 		const { giftCards } = await import('./gifts.ts');
 		const [gift] = await giftCards();
 		expect(gift).toMatchObject({ daysLeft: 9 });
@@ -249,6 +251,9 @@ describe('sample life', () => {
 		expect(free.length).toBeGreaterThanOrEqual(5);
 		expect(new Set(free.map((n) => by(n).tz)).size).toBeGreaterThanOrEqual(3);
 		expect(card.skipped.map((x) => name(x.personId))).toContain('Tyler');
+		// Kai hasn't answered yet: not counted as free, and not offered another time either
+		expect(free).not.toContain('Kai');
+		expect(card.skipped.map((x) => name(x.personId))).not.toContain('Kai');
 		const { giftCards } = await import('./gifts.ts');
 		const [gift] = await giftCards();
 		expect(gift).toMatchObject({ daysLeft: 8 });
@@ -280,7 +285,7 @@ describe('sample life', () => {
 					// Sunday early afternoon at home, the same plan from anywhere
 					expect(card.slot.label, `${tz} ${key}`).toMatch(/^Sun 1 Nov, 1[34]:\d\d to /);
 					const skipped = card.skipped.map((x) => name(x.personId)).sort();
-					expect(skipped).toEqual(key === 'abroad' ? ['Jordan', 'Leo'] : ['Tyler']);
+					expect(skipped).toEqual(key === 'abroad' ? ['Leo'] : ['Tyler']);
 					expect(card.skipped.every((x) => x.alt)).toBe(true);
 					expect((await giftCards())[0].daysLeft).toBe(key === 'abroad' ? 9 : 8);
 				}
@@ -311,5 +316,42 @@ describe('sample life', () => {
 		await deleteEverything();
 		for (const t of db.tables) expect(await t.count()).toBe(0);
 		expect(deviceId()).not.toBe(id);
+	});
+
+	it('a sample loaded days ago still glows and still has a weekend to plan', async () => {
+		vi.setSystemTime(new Date(Date.UTC(2026, 9, 27, 17, 0))); // Tuesday, midday in Chicago
+		await loadSampleLifeFrom(await fetchSampleLife('abroad'));
+		const { buildMapView } = await import('./map.ts');
+		const { weekendCard } = await import('./weekend.ts');
+		const glows = async () => (await buildMapView()).people.filter((p) => p.glow === 'open').map((p) => p.person.name);
+		expect(await glows()).toEqual(['Mom']);
+		// three days later, and again eight days later (past that weekend)
+		for (const later of [3, 8]) {
+			vi.setSystemTime(new Date(Date.UTC(2026, 9, 27 + later, 17, 0)));
+			expect(await glows()).toEqual([]); // stale until re-based
+			expect(await refreshSampleMembers()).toBe(true);
+			expect(await glows()).toEqual(['Mom']);
+			expect(await weekendCard()).not.toBeNull();
+			// the one still waiting stays waiting: nothing shared, asked after their last entry
+			const jordan = (await db.members.toArray()).find((m) => m.entry.name === 'Jordan')!;
+			expect(jordan.entry.windows).toEqual([]);
+			const p = (await db.people.toArray()).find((x) => x.name === 'Jordan')!;
+			expect(Date.parse(p.invitedAt!)).toBeGreaterThan(Date.parse(jordan.entry.updatedAt));
+		}
+		expect(await refreshSampleMembers()).toBe(false); // fresh: nothing to do
+	});
+
+	it('nobody glows at four in the morning; someone awake is open instead', () => {
+		const fam = [
+			{ name: 'Mom', tz: 'America/Chicago', status: 'free' as const, windows: [] },
+			{ name: 'Maya', tz: 'America/New_York', status: 'maybe' as const, windows: [] },
+			{ name: 'Leo', tz: 'Australia/Melbourne', status: null, windows: [] }
+		];
+		// 10:00 UTC: 05:00 in Chicago, 06:00 in New York, 21:00 in Melbourne
+		expect(sampleStatuses(fam, new Date('2026-10-27T10:00:00Z'))).toEqual([null, null, 'free']);
+		// midday in Chicago: as written
+		expect(sampleStatuses(fam, new Date('2026-10-27T17:00:00Z'))).toEqual(['free', 'maybe', null]);
+		// a waiting person is never made open
+		expect(sampleStatuses(fam, new Date('2026-10-27T10:00:00Z'), new Set(['Leo']))).toEqual([null, null, null]);
 	});
 });

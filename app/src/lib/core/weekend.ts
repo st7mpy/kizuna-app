@@ -204,15 +204,20 @@ export function checkPlan(out: WeekendOutput, input: WeekendInput, range: Pick<W
 	const fallback = weekendReason(input, s, free);
 	const reason = (out.reason ?? '').trim();
 	const okReason = reason && reason.length <= 140 && !looksSensitive(reason) && !MONEY.test(reason);
+	// An occasion is the clearest reason: keep the planner's words only when they name it.
+	const fits = okReason && (!fallback.occasion || reason.toLowerCase().includes(fallback.occasion.toLowerCase()));
 	return {
 		slot: { start: out.slot.start, end: out.slot.end, label: zonedSlotLabel(s, e, input.timeZone) },
 		personIds: [...new Set(free)],
 		skipped,
-		reason: okReason ? reason : fallback.reason,
+		reason: fits ? capFirst(reason) : fallback.reason,
 		occasion: out.occasion ?? fallback.occasion,
 		tools_used: Array.isArray(out.tools_used) ? out.tools_used.slice(0, 20).map(String) : []
 	};
 }
+
+/** "book the restaurant" -> "Book the restaurant". */
+export const capFirst = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
 
 // ---------- inputs from the db ----------
 
@@ -372,7 +377,7 @@ export function specificWhy(skipped: WeekendOutput['skipped'], input: WeekendInp
 // My windows start at "now" while inside one; round to the hour so the key doesn't change every minute.
 const hourOf = (iso: string) => Math.floor(Date.parse(iso) / 3600_000);
 const cacheKey = (ctx: WeekendContext) =>
-	JSON.stringify([ctx.range.saturday, ctx.input.request, ctx.input.me.windows.map((w) => [hourOf(w.start), w.end]), ctx.input.people.map((p) => [p.id, p.windows]), ctx.input.occasions.map((o) => o.day + o.name), ctx.input.reasons]);
+	JSON.stringify([ctx.range.saturday, ctx.input.request, ctx.input.me.windows.map((w) => [hourOf(w.start), w.end]), ctx.input.people.map((p) => [p.id, p.windows.map((w) => [hourOf(w.start), w.end])]), ctx.input.occasions.map((o) => o.day + o.name), ctx.input.reasons]);
 
 /** This weekend's card, or null. Planned once a day unless the windows or people change. */
 export async function weekendCard(now = new Date()): Promise<WeekendCard | null> {
@@ -443,7 +448,7 @@ export function groupTemplate(card: WeekendCard, _language: Language, tz: string
 }
 
 /** A line for the family group (wa.me without a number, so the user picks the group). */
-export async function draftForGroup(card: WeekendCard): Promise<{ line: string; link: string }> {
+export async function draftForGroup(card: WeekendCard, quick?: (line: string) => void): Promise<{ line: string; link: string }> {
 	const tz = deviceTimeZone();
 	const people = (await db.people.bulkGet(card.personIds)).filter((p): p is Person => !!p);
 	const family = people.some((p) => ['parent', 'sibling', 'family', 'child', 'partner'].includes(p.relation));
@@ -453,6 +458,7 @@ export async function draftForGroup(card: WeekendCard): Promise<{ line: string; 
 		language = likelyLanguage(people[0], about);
 	}
 	const mine = await db.fragments.orderBy('createdAt').reverse().limit(20).toArray();
+	quick?.(groupTemplate(card, language, tz));
 	const fromSpark = await sparkLine({
 			// addressed to everyone, so the line opens like a group message
 			personName: 'everyone',
@@ -469,7 +475,7 @@ export async function draftForGroup(card: WeekendCard): Promise<{ line: string; 
 }
 
 /** A line for someone not free in the main slot, offering their other time, in their own zone and language. */
-export async function draftForPerson(card: WeekendCard, personId: string): Promise<{ line: string; link: string }> {
+export async function draftForPerson(card: WeekendCard, personId: string, quick?: (line: string) => void): Promise<{ line: string; link: string }> {
 	const skip = card.skipped.find((x) => x.personId === personId);
 	const slot = card.personIds.includes(personId) ? card.slot : (skip?.alt ?? undefined);
 	const member = (await db.members.where('personId').equals(personId).toArray())[0];
@@ -478,9 +484,11 @@ export async function draftForPerson(card: WeekendCard, personId: string): Promi
 	const reason = card.occasion ? `Planning a family call for ${card.occasion}` : 'Planning a family call this weekend';
 	const { input, person } = await buildDraftInput(personId, reason, slot);
 	if (label) input.withTime = `${label} (their time)`;
-	const said = (await sparkLine(input)) ?? personTemplate(person.name, input.language, label);
 	// their own family-page link, so they can tap other times (greets them by name)
 	const own = await personLink(personId).catch(() => null);
+	const simple = personTemplate(person.name, input.language, label);
+	quick?.(own ? `${simple} ${own}` : simple);
+	const said = (await sparkLine(input)) ?? simple;
 	const line = own ? `${said} ${own}` : said;
 	return { line, link: whatsappLink(line, person.phone) };
 }

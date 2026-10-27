@@ -57,7 +57,8 @@ export function isOnline(): boolean {
 export const TASK_TIMEOUTS: Record<TaskName, number> = {
 	extract: 25_000,
 	weave: 120_000,
-	draft: 15_000,
+	// A usable line is already on screen; the model line only replaces it if it comes quickly.
+	draft: 8_000,
 	plan: 30_000,
 	rank: 10_000,
 	windows: 15_000,
@@ -74,25 +75,41 @@ export async function relayJson<T>(path: string, init: { method?: string; body?:
 	if (!isOnline()) throw new RelayError('offline');
 	const url = (await baseUrl()) + path;
 	const ctrl = new AbortController();
+	// The timer covers the whole exchange, body included: a stalled body must not hang the caller.
 	const timer = setTimeout(() => ctrl.abort(), init.timeoutMs ?? 20_000);
 	let res: Response;
-	try {
-		res = await fetch(url, {
-			method: init.method ?? (init.body === undefined ? 'GET' : 'POST'),
-			headers: { 'content-type': 'application/json', 'x-kizuna-device': deviceId() },
-			body: init.body === undefined ? undefined : JSON.stringify(init.body),
-			signal: ctrl.signal
-		});
-	} catch (e) {
-		throw ctrl.signal.aborted ? new RelayError('timeout') : new RelayError('offline', String(e));
-	} finally {
-		clearTimeout(timer);
-	}
 	let data: unknown = null;
 	try {
-		data = await res.json();
-	} catch {
-		/* not JSON */
+		try {
+			res = await fetch(url, {
+				method: init.method ?? (init.body === undefined ? 'GET' : 'POST'),
+				headers: { 'content-type': 'application/json', 'x-kizuna-device': deviceId() },
+				body: init.body === undefined ? undefined : JSON.stringify(init.body),
+				signal: ctrl.signal
+			});
+		} catch (e) {
+			throw ctrl.signal.aborted ? new RelayError('timeout') : new RelayError('offline', String(e));
+		}
+		let raw: string;
+		// Some bodies ignore the abort (a stalled stream): stop waiting when the timer fires anyway.
+		const gaveUp = new Promise<never>((_, reject) => {
+			if (ctrl.signal.aborted) reject(new RelayError('timeout'));
+			ctrl.signal.addEventListener('abort', () => reject(new RelayError('timeout')), { once: true });
+		});
+		gaveUp.catch(() => {});
+		try {
+			raw = await Promise.race([res.text(), gaveUp]);
+		} catch (e) {
+			if (e instanceof RelayError) throw e;
+			throw ctrl.signal.aborted ? new RelayError('timeout') : new RelayError('offline', String(e));
+		}
+		try {
+			data = raw ? JSON.parse(raw) : null;
+		} catch {
+			/* not JSON */
+		}
+	} finally {
+		clearTimeout(timer);
 	}
 	if (!res.ok) {
 		const err = (data as { error?: string } | null)?.error;

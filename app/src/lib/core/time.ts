@@ -8,29 +8,82 @@ import { isOnline, relayJson, spark } from './relay.ts';
 
 type Busy = { start: string; end: string };
 const BUSY_TTL = 30 * 60_000;
-let busyCache: { url: string; at: number; busy: Busy[] } | null = null;
+/** A calendar that couldn't be read is not asked again for a few minutes (Today, Find a time, the weekend card). */
+const FAIL_TTL = 5 * 60_000;
+/** The busy lookup is a nice-to-have: free hours alone still give good slots, so never wait long for it. */
+export const ICAL_TIMEOUT = 5_000;
+let busyCache: { url: string; at: number; busy: Busy[]; failed?: boolean } | null = null;
+let inflight: { url: string; p: Promise<Busy[]> } | null = null;
 
 export function clearBusyCache(): void {
 	busyCache = null;
+	inflight = null;
 }
 
-/** Busy times for the next 21 days from the user's private iCal link (cached 30 min). */
+/**
+ * Pure: a link that could be a calendar address (https or webcal, with a host). Many end in .ics, but
+ * iCloud's do not, so whether it really is a calendar is found out by reading it once (checkCalendar).
+ */
+export function isCalendarLink(url: string): boolean {
+	return /^(https?|webcal):\/\/[^\s/?#]+\.[^\s/?#]+(\/\S*)?$/i.test(url.trim());
+}
+
+async function fetchBusy(url: string): Promise<Busy[]> {
+	const now = new Date();
+	const r = await relayJson<IcalResponse>('/api/ical', {
+		body: { url: url.replace(/^webcal:/i, 'https:'), from: now.toISOString(), to: new Date(now.getTime() + 21 * 86_400_000).toISOString() },
+		timeoutMs: ICAL_TIMEOUT
+	});
+	return r.busy ?? [];
+}
+
+/** One lookup at a time per link; the result (or the failure) is remembered. */
+function lookup(url: string): Promise<Busy[]> {
+	if (inflight?.url === url) return inflight.p;
+	const p = fetchBusy(url)
+		.then((busy) => {
+			busyCache = { url, at: Date.now(), busy };
+			return busy;
+		})
+		.catch((e) => {
+			// keep an older good answer if there is one; otherwise remember that it failed
+			if (!(busyCache?.url === url && !busyCache.failed)) busyCache = { url, at: Date.now(), busy: [], failed: true };
+			throw e;
+		})
+		.finally(() => {
+			if (inflight?.p === p) inflight = null;
+		});
+	inflight = { url, p };
+	return p;
+}
+
+/** Busy times for the next 21 days from the user's private iCal link (cached 30 min; a failure for 5). */
 export async function busyTimes(s?: Settings): Promise<Busy[]> {
 	s ??= await readSettings();
 	const url = s.icalUrl?.trim();
 	if (!url) return [];
-	if (busyCache && busyCache.url === url && Date.now() - busyCache.at < BUSY_TTL) return busyCache.busy;
+	if (busyCache && busyCache.url === url) {
+		const age = Date.now() - busyCache.at;
+		if (age < (busyCache.failed ? FAIL_TTL : BUSY_TTL)) return busyCache.busy;
+	}
 	if (!isOnline()) return busyCache?.url === url ? busyCache.busy : [];
-	const now = new Date();
 	try {
-		const r = await relayJson<IcalResponse>('/api/ical', {
-			body: { url, from: now.toISOString(), to: new Date(now.getTime() + 21 * 86_400_000).toISOString() },
-			timeoutMs: 15_000
-		});
-		busyCache = { url, at: Date.now(), busy: r.busy ?? [] };
-		return busyCache.busy;
+		return await lookup(url);
 	} catch {
 		return busyCache?.url === url ? busyCache.busy : [];
+	}
+}
+
+/** Settings: reads the calendar once, so the user knows straight away whether the link works. */
+export async function checkCalendar(url: string): Promise<'ok' | 'failed' | 'offline'> {
+	const u = url.trim();
+	if (!isOnline()) return 'offline';
+	if (inflight?.url !== u && busyCache?.url === u) busyCache = null; // a fresh look
+	try {
+		await lookup(u);
+		return 'ok';
+	} catch {
+		return 'failed';
 	}
 }
 

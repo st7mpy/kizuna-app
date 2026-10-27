@@ -5,7 +5,7 @@ import { db, defaultSettings } from '../db.ts';
 import { isoWithOffset } from './days.ts';
 import { pickSpread } from '@kizuna/shared';
 import { deviceTimeZone } from './days.ts';
-import { clearBusyCache, createInvite, findFreeSlots, googleCalendarLink, icsFile, suggestSlots, utcStamp } from './time.ts';
+import { busyTimes, checkCalendar, clearBusyCache, createInvite, isCalendarLink, findFreeSlots, googleCalendarLink, icsFile, suggestSlots, utcStamp } from './time.ts';
 import { mockRelay, resetDb, setOffline } from './testing.ts';
 
 const NOW = new Date(2026, 9, 26, 10, 0); // Monday
@@ -124,5 +124,64 @@ describe('createInvite', () => {
 		vi.stubGlobal('location', { origin: 'https://kizuna.example' });
 		expect(await createInvite('kabir', [slot])).toBe('https://kizuna.example/p/x1');
 		expect(relay.calls[0].path).toBe('/api/invite');
+	});
+});
+
+describe('the calendar lookup', () => {
+	it('remembers a failure for a few minutes, so Today and Find a time do not each wait again', async () => {
+		await db.settings.put({ ...defaultSettings(), icalUrl: 'https://cal.example/broken.ics' });
+		const relay = mockRelay(
+			() => ({ slots: [] }),
+			() => {
+				throw new Error('500');
+			}
+		);
+		expect(await busyTimes()).toEqual([]);
+		expect(await busyTimes()).toEqual([]);
+		await suggestSlots();
+		expect(relay.calls.filter((c) => c.path === '/api/ical')).toHaveLength(1);
+		vi.setSystemTime(new Date(NOW.getTime() + 6 * 60_000));
+		await busyTimes();
+		expect(relay.calls.filter((c) => c.path === '/api/ical')).toHaveLength(2);
+	});
+
+	it('asks once when several callers want it at the same moment', async () => {
+		await db.settings.put({ ...defaultSettings(), icalUrl: 'https://cal.example/a.ics' });
+		const busy = [{ start: '2026-10-26T13:00:00Z', end: '2026-10-26T14:00:00Z' }];
+		const relay = mockRelay(() => ({}), () => ({ ok: true, busy }));
+		const all = await Promise.all([busyTimes(), busyTimes(), busyTimes()]);
+		expect(all).toEqual([busy, busy, busy]);
+		expect(relay.calls.filter((c) => c.path === '/api/ical')).toHaveLength(1);
+	});
+
+	it('gives up on a calendar that never answers within a few seconds', async () => {
+		vi.useRealTimers();
+		await db.settings.put({ ...defaultSettings(), icalUrl: 'https://cal.example/slow.ics' });
+		vi.stubGlobal(
+			'fetch',
+			vi.fn((_url: string, init?: RequestInit) => new Promise((_, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))))
+		);
+		const t0 = Date.now();
+		expect(await busyTimes()).toEqual([]);
+		expect(Date.now() - t0).toBeLessThan(7_000);
+	}, 10_000);
+
+	it('checks a link for Settings', async () => {
+		mockRelay(() => ({}), (_path, body) => {
+			if (String(body.url).includes('bad')) throw new Error('404');
+			return { ok: true, busy: [] };
+		});
+		expect(await checkCalendar('https://cal.example/good.ics')).toBe('ok');
+		expect(await checkCalendar('https://cal.example/bad.ics')).toBe('failed');
+		setOffline(true);
+		expect(await checkCalendar('https://cal.example/good.ics')).toBe('offline');
+	});
+
+	it('knows what could be a calendar link', () => {
+		expect(isCalendarLink('https://calendar.google.com/calendar/ical/x%40gmail.com/private-abc/basic.ics')).toBe(true);
+		expect(isCalendarLink('webcal://p12-caldav.icloud.com/published/2/abc')).toBe(true);
+		expect(isCalendarLink('not a url')).toBe(false);
+		expect(isCalendarLink('calendar.google.com/basic.ics')).toBe(false);
+		expect(isCalendarLink('https://localhost')).toBe(false);
 	});
 });

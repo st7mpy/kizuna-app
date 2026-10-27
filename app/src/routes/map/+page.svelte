@@ -1,9 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import type { GiftCard as Gift, Person, Settings, WeekendCard as Weekend } from '@kizuna/shared';
-	import { freshAnswerPeople, giftCards, inviteFamilyLine, markInvited, refreshCircle, weekendCard } from '#lib/core/index.js';
+	import {
+		SAMPLE_CIRCLE_ID,
+		addMemberAsPerson,
+		freshAnswerPeople,
+		giftCards,
+		inviteFamilyLine,
+		linkMember,
+		markInvited,
+		refreshCircle,
+		refreshSampleMembers,
+		weekendCard
+	} from '#lib/core/index.js';
 	import { allPeople, circleMembers, mapLive, settingsLive, type MapView, type MemberRow } from '#lib/db.js';
-	import { shareWithToast } from '#lib/ui/toast.svelte.js';
+	import { shareAfter, shareWithToast } from '#lib/ui/toast.svelte.js';
+	import Sheet from '#lib/ui/Sheet.svelte';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { occasionChip } from '#lib/ui/mapformat.js';
 	import { fold, soft } from '#lib/ui/motion.js';
@@ -11,7 +25,7 @@
 	import WeekendCard from '#lib/ui/WeekendCard.svelte';
 	import GiftCard from '#lib/ui/GiftCard.svelte';
 	import MemberList from '#lib/ui/MemberList.svelte';
-	import { hueFor } from '#lib/ui/hue.js';
+	import { hueOf } from '#lib/ui/hue.js';
 	import { initials } from '#lib/ui/mapformat.js';
 
 	const view = watch<MapView | undefined>(() => mapLive(), undefined);
@@ -20,6 +34,8 @@
 	const byId = $derived(new Map(people.value.map((p) => [p.id, p])));
 
 	const hasCircle = $derived(!!settings.value?.circle);
+	const isSample = $derived(settings.value?.circle?.id === SAMPLE_CIRCLE_ID);
+	const ownCircle = $derived(hasCircle && !isSample);
 	const occasions = $derived((view.value?.occasions ?? []).slice(0, 3));
 	const mapPeople = $derived(view.value?.people ?? []);
 	const circleName = $derived(hasCircle ? 'Family circle' : 'Your circle');
@@ -52,6 +68,8 @@
 		}
 	});
 
+	// Until the first look at this weekend is back, a quiet line holds its place.
+	let checking = $state(true);
 	async function loadCards() {
 		try {
 			const [w, g] = await Promise.all([weekendCard(), giftCards()]);
@@ -59,33 +77,90 @@
 			gifts = g;
 		} catch {
 			/* the map still shows */
+		} finally {
+			checking = false;
 		}
 	}
 
-	// Re-fetch the circle when the map opens and every minute while it is open.
+	// Re-fetch the circle when the map opens and every minute while it is open. A sample family's
+	// answers move along with the clock, so it still glows days after it was loaded.
 	onMount(() => {
 		const sync = () =>
-			refreshCircle()
-				.catch(() => {})
-				.finally(() => beat++);
+			Promise.all([refreshCircle().catch(() => {}), refreshSampleMembers().catch(() => false)]).finally(() => beat++);
 		void sync().then(loadCards);
-		void loadCards();
 		const t = setInterval(sync, 60_000);
 		return () => clearInterval(t);
+	});
+
+	// Someone answered on the family page (not the sample's family): the invite card can step back.
+	const replied = $derived(members.value.some((m) => !m.memberId.startsWith('sample-')));
+	// With a circle of my own, the line is ready before the tap, so sharing starts on the tap itself.
+	let ready = $state<{ line: string; invitees: string[] } | null>(null);
+	$effect(() => {
+		if (!ownCircle) {
+			ready = null;
+			return;
+		}
+		const id = settings.value?.circle?.id;
+		void inviteFamilyLine()
+			.then((r) => {
+				if (settings.value?.circle?.id === id) ready = r;
+			})
+			.catch(() => {});
 	});
 
 	let inviting = $state(false);
 	let inviteNote = $state('');
 	async function invite() {
-		inviting = true;
 		inviteNote = '';
+		const now = ready;
+		if (now) {
+			// no await before this: the share sheet or WhatsApp opens on the tap
+			const r = await shareWithToast(now.line);
+			if (r === 'blocked') inviteNote = 'Your browser stopped WhatsApp from opening. Tap again to send it.';
+			else if (r !== 'cancelled') await markInvited(now.invitees).catch(() => {});
+			return;
+		}
+		inviting = true;
 		try {
-			const { line, invitees } = await inviteFamilyLine();
-			if ((await shareWithToast(line)) !== 'cancelled') await markInvited(invitees);
+			let made: { line: string; invitees: string[] } | null = null;
+			const r = await shareAfter(async () => {
+				made = await inviteFamilyLine();
+				return made.line;
+			});
+			if (made) ready = made;
+			if (r === 'blocked') inviteNote = 'Your link is ready. Tap Share the link to send it.';
+			else if (r !== 'cancelled' && made) await markInvited((made as { invitees: string[] }).invitees).catch(() => {});
 		} catch {
 			inviteNote = 'Couldn’t make the link just now. Try again in a moment.';
 		} finally {
 			inviting = false;
+		}
+	}
+
+	// "Who is this?": someone answered on the family page and isn't linked to anyone here.
+	const whoId = $derived(page.url.searchParams.get('who'));
+	const who = $derived(whoId ? members.value.find((m) => m.memberId === whoId) : undefined);
+	const whoOpen = $derived(!!who);
+	const pickable = $derived(people.value.filter((p) => p.circle !== 'out').sort((a, b) => a.name.localeCompare(b.name)));
+	let whoPick = $state('');
+	let whoNote = $state('');
+	let whoBusy = $state(false);
+	const closeWho = () => {
+		whoPick = '';
+		whoNote = '';
+		if (whoId) void goto('/map', { replace: true, reset: false });
+	};
+	async function whoDo(act: () => Promise<unknown>) {
+		whoBusy = true;
+		whoNote = '';
+		try {
+			await act();
+			closeWho();
+		} catch {
+			whoNote = 'Couldn’t save that just now. Try again in a moment.';
+		} finally {
+			whoBusy = false;
 		}
 	}
 </script>
@@ -104,10 +179,10 @@
 				<a class="pill" href="/circle" aria-label="{circleName}, {mapPeople.length} people. Open your circle">
 					<span class="faces" aria-hidden="true">
 						{#each mapPeople.slice(0, 3) as m (m.person.id)}
-							<span class="face" style="--hue:{hueFor(m.person.id)}">{initials(m.person.name).slice(0, 1)}</span>
+							<span class="face" style="--hue:{hueOf(m)}">{initials(m.person.name).slice(0, 1)}</span>
 						{/each}
 					</span>
-					<span>{circleName}&nbsp;<span class="num">· {mapPeople.length}</span></span>
+					<span>{circleName}{#if mapPeople.length}&nbsp;<span class="num">· {mapPeople.length}</span>{/if}</span>
 				</a>
 				{#if occasions.length}
 					<ul class="strip" aria-label="Coming up">
@@ -155,9 +230,12 @@
 			{/if}
 
 			<section class="cards" aria-label="For this weekend" aria-live="polite">
+				{#if checking && !weekend && mapPeople.length}
+					<p class="checking tiny" out:fold>Checking this weekend…</p>
+				{/if}
 				{#if weekend}
 					<div out:fold in:soft>
-						<WeekendCard card={weekend} people={byId} ondismiss={() => (weekend = null)} />
+						<WeekendCard card={weekend} people={byId} zoneOf={(id) => mapPeople.find((m) => m.person.id === id)?.tz} ondismiss={() => (weekend = null)} />
 					</div>
 				{/if}
 				{#each gifts as g (g.hint.id)}
@@ -167,15 +245,22 @@
 				{/each}
 			</section>
 
-			{#if settings.ready && !hasCircle}
-				<section class="invite" in:soft>
-					<p class="calm">Ask the family about <em>this weekend</em>.</p>
-					<p class="muted">
-						One link in the family group. They tap when they’re free, no app needed, and their dots light up here.
-					</p>
-					<button class="btn primary big" type="button" onclick={invite} disabled={inviting}>
-						{inviting ? 'Making the link…' : 'Ask the family about this weekend'}
-					</button>
+			{#if settings.ready && !(ownCircle && replied)}
+				<section class="invite" in:soft aria-label="Family link">
+					{#if ownCircle}
+						<p class="label">Waiting for replies</p>
+						<p class="muted">Your family link is out. When someone taps a time, their dot lights up here.</p>
+						<button class="btn line" type="button" onclick={invite} disabled={inviting}>Share the link again</button>
+					{:else}
+						{#if isSample}<p class="label">This is a sample family</p>{/if}
+						<p class="calm">{isSample ? 'Try it with your own family.' : 'Ask the family about this weekend.'}</p>
+						<p class="muted">
+							One link in the family group. They tap when they’re free, no app needed, and their dots light up here.
+						</p>
+						<button class="btn primary big" type="button" onclick={invite} disabled={inviting}>
+							{inviting ? 'Making the link…' : ready ? 'Share the link' : 'Share the family link'}
+						</button>
+					{/if}
 					{#if inviteNote}<p class="note" role="alert">{inviteNote}</p>{/if}
 				</section>
 			{/if}
@@ -184,6 +269,38 @@
 		</div>
 	</div>
 </div>
+
+<Sheet open={whoOpen} title="Who is" em="{who?.entry.name ?? 'this'}?" onclose={closeWho}>
+	{#if who}
+		<p class="muted">
+			{who.entry.name} answered on the family page{who.reply ? `: “${who.reply}”` : '.'} Link them to someone in your circle so their dot
+			and times show with that person.
+		</p>
+		{#if pickable.length}
+			<div class="row who-pick">
+				<label class="field grow">
+					<span class="sr-only">Who {who.entry.name} is</span>
+					<select bind:value={whoPick}>
+						<option value="">Pick someone…</option>
+						{#each pickable as p (p.id)}
+							<option value={p.id}>{p.name}</option>
+						{/each}
+					</select>
+				</label>
+				<button class="btn line" type="button" disabled={!whoPick || whoBusy} onclick={() => whoDo(() => linkMember(who.memberId, whoPick))}>
+					Link
+				</button>
+			</div>
+		{/if}
+		<button class="btn primary big block" type="button" disabled={whoBusy} onclick={() => whoDo(() => addMemberAsPerson(who.memberId))}>
+			Add {who.entry.name} to your circle
+		</button>
+		<button class="btn quiet block" type="button" disabled={whoBusy} onclick={() => whoDo(() => linkMember(who.memberId, null))}>
+			Not someone I know
+		</button>
+		{#if whoNote}<p class="note" role="alert">{whoNote}</p>{/if}
+	{/if}
+</Sheet>
 
 <style>
 	.head h1 {
@@ -327,5 +444,42 @@
 	}
 	.privacy {
 		text-align: center;
+	}
+	.checking {
+		padding: 6px 4px;
+	}
+	.who-pick {
+		align-items: flex-end;
+		gap: 10px;
+	}
+	select {
+		appearance: auto;
+	}
+	/* A short phone: the heading and chips take less room, so the map isn't cut by the tab bar. */
+	@media (max-width: 719px) and (max-height: 700px) {
+		.head :global(.label) {
+			display: none;
+		}
+		.head h1 {
+			max-width: none;
+			font-size: clamp(1.5rem, 7vw, 1.875rem);
+		}
+		.pillrow {
+			flex-wrap: nowrap;
+			overflow-x: auto;
+			scrollbar-width: none;
+			margin-right: calc(-1 * var(--gutter));
+			padding-right: var(--gutter);
+		}
+		.pillrow::-webkit-scrollbar {
+			display: none;
+		}
+		.pill,
+		.strip .tag {
+			flex: none;
+		}
+		.stage {
+			padding-top: 8px;
+		}
 	}
 </style>

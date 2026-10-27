@@ -30,24 +30,31 @@
 	let picked = $state(0);
 	let loading = $state(false);
 	let failed = $state(false);
+	let shareFailed = $state(false);
 	let sharing = $state(false);
 	let shared = $state(false);
 	let inviteUrl = '';
+	// Each lookup gets a number; an answer for an older one (or a closed sheet) is ignored.
+	let seq = 0;
 
 	async function find(req?: string) {
+		const my = ++seq;
 		loading = true;
 		failed = false;
+		shareFailed = false;
 		inviteUrl = '';
 		try {
 			const r = await suggestSlots(req?.trim() || undefined);
+			if (my !== seq || !open) return;
 			slots = r.slots.slice(0, 2);
 			note = r.note;
 			picked = 0;
 		} catch {
+			if (my !== seq) return;
 			failed = true;
 			slots = [];
 		} finally {
-			loading = false;
+			if (my === seq) loading = false;
 		}
 	}
 
@@ -56,7 +63,13 @@
 		if (open && !lastOpen) {
 			request = '';
 			shared = false;
+			slots = [];
+			note = null;
 			find();
+		}
+		if (!open && lastOpen) {
+			seq++;
+			loading = false;
 		}
 		lastOpen = open;
 	});
@@ -66,6 +79,7 @@
 	async function share() {
 		if (!person || !slots.length) return;
 		sharing = true;
+		shareFailed = false;
 		try {
 			if (!inviteUrl) inviteUrl = await createInvite(person.id, slots);
 			const line = 'Want to catch up? Pick a time that suits you.';
@@ -83,7 +97,7 @@
 			if (promptId) answerCard(promptId, 'time').catch(() => {});
 			onshared?.();
 		} catch {
-			failed = true;
+			shareFailed = true;
 		} finally {
 			sharing = false;
 		}
@@ -158,6 +172,8 @@
 
 	{#if shared}
 		<p class="note" aria-live="polite">Link shared. You’ll see their pick when they open it.</p>
+	{:else if shareFailed}
+		<p class="note" role="alert">Couldn’t make the link just now. Try again.</p>
 	{/if}
 	<button class="btn primary block big" type="button" onclick={share} disabled={!slots.length || sharing}>
 		<Icon name="share" size={20} />

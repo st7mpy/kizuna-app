@@ -11,16 +11,30 @@
 		label: string;
 		onchange: (v: T) => void;
 	} = $props();
+
+	// A radio group: one Tab stop (the picked option, or the first), arrow keys move and pick.
+	const focusIndex = $derived(Math.max(0, options.findIndex((o) => o.value === value)));
+	let group: HTMLDivElement;
+	function onkey(e: KeyboardEvent, i: number) {
+		const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+		const to = e.key === 'Home' ? 0 : e.key === 'End' ? options.length - 1 : step ? (i + step + options.length) % options.length : -1;
+		if (to < 0) return;
+		e.preventDefault();
+		onchange(options[to].value);
+		group?.querySelectorAll<HTMLButtonElement>('button')[to]?.focus();
+	}
 </script>
 
-<div class="seg" role="radiogroup" aria-label={label}>
-	{#each options as o (o.value)}
+<div class="seg" role="radiogroup" aria-label={label} bind:this={group}>
+	{#each options as o, i (o.value)}
 		<button
 			type="button"
 			role="radio"
 			aria-checked={value === o.value}
+			tabindex={i === focusIndex ? 0 : -1}
 			class:on={value === o.value}
 			onclick={() => onchange(o.value)}
+			onkeydown={(e) => onkey(e, i)}
 		>
 			{o.label}
 		</button>

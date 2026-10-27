@@ -6,6 +6,7 @@
 	import { cap, dayLabel, groupThreads } from '#lib/ui/format.js';
 	import { fold } from '#lib/ui/motion.js';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { say } from '#lib/ui/toast.svelte.js';
 
 	const threads = watch<Thread[]>(() => openThreads(), []);
 	const groups = $derived(groupThreads(threads.value));
@@ -15,6 +16,17 @@
 		note = '';
 		try {
 			await updateThread(t.id, { status: 'done' });
+			// One mis-tap shouldn't lose a thread: a moment to take it back.
+			say('Marked done', 6000, {
+				label: 'Undo',
+				run: async () => {
+					try {
+						await updateThread(t.id, { status: 'open' });
+					} catch {
+						note = 'Couldn’t bring that back just now. Try again in a moment.';
+					}
+				}
+			});
 		} catch {
 			note = 'Couldn’t mark that just now. Try again in a moment.';
 		}

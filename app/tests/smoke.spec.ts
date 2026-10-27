@@ -80,12 +80,74 @@ test('Today closes the loop: who answered, and who hasn’t yet', async ({ page 
 	await openToday(page);
 	const loop = page.locator('section.loop');
 	await expect(loop.getByText('Grandma answered: Sunday afternoon')).toBeVisible();
-	await expect(loop.getByText('Dad hasn’t answered yet')).toBeVisible();
+	await expect(loop.getByText('Jordan hasn’t answered yet')).toBeVisible();
 	// a gentle line for the user to send themselves
 	await loop.getByRole('button', { name: 'Draft a nudge' }).click();
-	await expect(loop.locator('textarea')).toHaveValue(/Dad/, { timeout: 15_000 });
+	await expect(loop.locator('textarea')).toHaveValue(/Jordan/, { timeout: 15_000 });
 	await expect(loop.getByRole('button', { name: 'Open WhatsApp' })).toBeEnabled();
 	// closing the answered line keeps it closed
 	await loop.getByRole('button', { name: /^Close: Grandma answered/ }).click();
 	await expect(page.getByText('Grandma answered: Sunday afternoon')).toHaveCount(0);
+});
+
+/** The model answers drafts slowly (or not at all); everything else fails fast. */
+async function slowModel(page: Page, ms: number, line = 'Hey, thinking of you. Catch up soon?') {
+	await page.route('**/api/spark', async (route) => {
+		const body = route.request().postDataJSON() as { task?: string } | null;
+		if (body?.task !== 'draft') return route.fulfill({ status: 502, json: { ok: false, error: 'model_error' } });
+		await new Promise((r) => setTimeout(r, ms));
+		await route.fulfill({ json: { ok: true, output: { line, language: 'en' } } }).catch(() => {});
+	});
+}
+
+test('Poke shows a line to send within a second, even when the model is slow', async ({ page }) => {
+	await slowModel(page, 3_000, 'MODEL: hey, thinking of you');
+	await sampleFamily(page);
+	await openToday(page);
+	const t0 = Date.now();
+	await page.locator('article.moment').getByRole('button', { name: 'Poke' }).first().click();
+	const sheet = page.getByRole('dialog');
+	const box = sheet.locator('textarea');
+	await expect(box).toHaveValue(/^Hi \S+, thinking of you/, { timeout: 1_000 });
+	expect(Date.now() - t0).toBeLessThan(1_500);
+	await expect(box).toBeEditable();
+	await expect(sheet.getByRole('button', { name: /Send in WhatsApp/ })).toBeEnabled();
+	// the text never touches the border
+	const pad = await box.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));
+	expect(pad).toBeGreaterThanOrEqual(12);
+	// the warmer line swaps in when it arrives
+	await expect(box).toHaveValue('MODEL: hey, thinking of you', { timeout: 8_000 });
+});
+
+test('Poke never replaces what the user started typing', async ({ page }) => {
+	await slowModel(page, 2_000, 'MODEL: late line');
+	await sampleFamily(page);
+	await openToday(page);
+	await page.locator('article.moment').getByRole('button', { name: 'Poke' }).first().click();
+	const box = page.getByRole('dialog').locator('textarea');
+	await expect(box).toHaveValue(/^Hi /, { timeout: 1_000 });
+	await box.fill('My own words');
+	await page.waitForTimeout(3_000);
+	await expect(box).toHaveValue('My own words');
+});
+
+test('Poke: a late answer from an earlier opening is ignored', async ({ page }) => {
+	let n = 0;
+	await page.route('**/api/spark', async (route) => {
+		const body = route.request().postDataJSON() as { task?: string } | null;
+		if (body?.task !== 'draft') return route.fulfill({ status: 502, json: { ok: false, error: 'model_error' } });
+		const mine = ++n;
+		await new Promise((r) => setTimeout(r, mine === 1 ? 2_500 : 600));
+		await route.fulfill({ json: { ok: true, output: { line: `REQ${mine}`, language: 'en' } } }).catch(() => {});
+	});
+	await sampleFamily(page);
+	await openToday(page);
+	const poke = page.locator('article.moment').getByRole('button', { name: 'Poke' }).first();
+	await poke.click();
+	await page.keyboard.press('Escape');
+	await poke.click();
+	const box = page.getByRole('dialog').locator('textarea');
+	await expect(box).toHaveValue('REQ2', { timeout: 5_000 });
+	await page.waitForTimeout(2_500);
+	await expect(box).toHaveValue('REQ2');
 });

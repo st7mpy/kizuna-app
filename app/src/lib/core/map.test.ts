@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CircleEntry, Settings } from '@kizuna/shared';
 import { defaultSettings, type MemberRow } from '../db.ts';
-import { glowOf, mapView, type MapInputs } from './map.ts';
+import { assignHues, glowOf, HUE_COUNT, mapView, type MapInputs } from './map.ts';
 import { mkPerson } from './testing.ts';
 import { daylightAt } from './zones.ts';
 
@@ -95,5 +95,51 @@ describe('daylight', () => {
 		expect(daylightAt(23 * 60)).toBe(0);
 		expect(daylightAt(12 * 60 + 30)).toBeGreaterThan(0.95);
 		expect(daylightAt(8 * 60)).toBeLessThan(daylightAt(11 * 60));
+	});
+});
+
+describe('quiet hours', () => {
+	it('nobody is open to a call inside their own quiet hours', () => {
+		const until = new Date(NOW.getTime() + 3600_000).toISOString();
+		// 12:30 UTC is 05:30 in Los Angeles (PDT) and 18:00 in Delhi
+		expect(glowOf(row('a', 'x', { tz: 'America/Los_Angeles', status: 'free', statusUntil: until }), NOW.getTime())).toBeNull();
+		expect(glowOf(row('b', 'x', { tz: 'Asia/Kolkata', status: 'free', statusUntil: until }), NOW.getTime())).toBe('open');
+		// their own quiet hours count, not the default
+		expect(glowOf(row('c', 'x', { tz: 'Asia/Kolkata', status: 'free', statusUntil: until, quietStart: '17:00', quietEnd: '09:00' }), NOW.getTime())).toBeNull();
+	});
+});
+
+describe('answers nobody is linked to', () => {
+	it('shows them on the outer ring with their own name, so the map can ask who they are', () => {
+		const v = mapView(inputs({ members: [...inputs().members, { ...row('m-new', null, { name: 'Grandma Rosalind', tz: 'America/Chicago' }), answeredAt: NOW.toISOString() }] }));
+		const g = v.people.find((p) => p.unlinked)!;
+		expect(g).toMatchObject({ ring: 'outer', memberId: 'm-new', tz: 'America/Chicago', unlinked: true });
+		expect(g.person).toMatchObject({ id: 'member:m-new', name: 'Grandma Rosalind' });
+		expect(v.people).toHaveLength(4);
+	});
+	it('leaves out someone the user said they don\'t know, and makes room among 8', () => {
+		const gone: MemberRow = { ...row('m-x', null, { name: 'Stranger' }), linkedBy: 'user' };
+		expect(mapView(inputs({ members: [gone] })).people.some((p) => p.unlinked)).toBe(false);
+		const many = Array.from({ length: 12 }, (_, i) => mkPerson({ id: `f${i}`, name: `F${i}`, circle: 'in' }));
+		const v = mapView(inputs({ people: many, members: [row('m-new', null, { name: 'Rosalind' })] }));
+		expect(v.people).toHaveLength(8);
+		expect(v.people.at(-1)!.person.name).toBe('Rosalind');
+	});
+});
+
+describe('colours on the map', () => {
+	const fam = ['Mom', 'Dad', 'Maya', 'Leo', 'Grandma', 'Jordan', 'Aunt Carmen', 'Kai'].map((name, i) => ({ id: `id-${Math.random()}`, name, createdAt: `2026-10-0${i + 1}` }));
+	it('gives eight people eight different colours', () => {
+		expect(new Set(assignHues(fam).values()).size).toBe(HUE_COUNT);
+	});
+	it('the same family gets the same colours on every load, whatever the ids', () => {
+		const again = fam.map((p) => ({ ...p, id: `other-${p.name}` }));
+		const a = assignHues(fam);
+		const b = assignHues(again);
+		expect(fam.map((p) => a.get(p.id))).toEqual(again.map((p) => b.get(p.id)));
+	});
+	it('every person on the map view has a colour index', () => {
+		const v = mapView(inputs());
+		expect(new Set(v.people.map((p) => p.hue)).size).toBe(v.people.length);
 	});
 });

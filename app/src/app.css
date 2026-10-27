@@ -481,10 +481,9 @@ a {
 	transform: translateY(-1px);
 }
 .btn.primary:disabled {
-	opacity: 1;
-	background: transparent;
-	color: var(--text-3);
-	box-shadow: inset 0 0 0 1px var(--line-2);
+	/* Still the main action, just resting: the same blue, softer, so it reads as "wait", not broken. */
+	opacity: 0.5;
+	box-shadow: none;
 }
 /* An ink pill: a strong second action, or the main one where blue would shout. */
 .btn.ink {

@@ -44,7 +44,7 @@
 		<DraftBox
 			label="For {sib.name}"
 			phone={sib.phone}
-			load={() => draftGiftLine(card)}
+			load={(quick) => draftGiftLine(card, quick)}
 			oncancel={() => (drafting = false)}
 		/>
 	{/if}
@@ -52,11 +52,11 @@
 	<div class="acts">
 		{#if sib && !drafting}
 			<button class="btn accent" type="button" onclick={() => (drafting = true)}>
-				Plan with <em class="inline">{sib.name}</em>
+				<span>Plan with <em class="inline">{sib.name}</em></span>
 			</button>
 		{/if}
 		<button class="btn" type="button" onclick={() => mark('done')}>Done</button>
-		<button class="btn quiet" type="button" onclick={() => mark('dropped')}>Not this time</button>
+		<button class="btn quiet" type="button" onclick={() => mark('dropped')}>Not now</button>
 	</div>
 </article>
 
@@ -80,10 +80,19 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		column-gap: 22px;
+		column-gap: 16px;
+	}
+	.acts .btn {
+		white-space: nowrap;
 	}
 	.acts .quiet {
 		margin-left: auto;
+	}
+	/* Narrow phones: if "Not now" has to wrap, it starts its row like the others rather than floating alone. */
+	@media (max-width: 379px) {
+		.acts .quiet {
+			margin-left: 0;
+		}
 	}
 	.inline {
 		font-weight: 600;

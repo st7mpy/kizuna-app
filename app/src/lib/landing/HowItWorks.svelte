@@ -62,7 +62,12 @@
 				<span class="rec" class:on={stage === 1}></span>
 				<span class="lbl">{stage === 1 ? 'Listening' : 'Your note'}</span>
 			</div>
-			<p class="said">{typed}<span class="caret" class:hide={stage > 1}></span></p>
+			{#if stage === 0}
+				<!-- before it plays: the note, faint, so the card is never an empty box -->
+				<p class="said ghost">{NOTE}</p>
+			{:else}
+				<p class="said">{typed}<span class="caret" class:hide={stage > 1}></span></p>
+			{/if}
 		</div>
 		<p class="sr-only">Example note: {NOTE}</p>
 	</li>
@@ -222,7 +227,8 @@
 		border-radius: 12px;
 		background: var(--bg-2);
 		font-size: var(--t-small);
-		opacity: 0;
+		/* faint until its turn, so the card reads before the picture plays */
+		opacity: 0.22;
 		transform: translateY(8px);
 		transition:
 			opacity 500ms var(--ease),
@@ -259,8 +265,15 @@
 		opacity: 1;
 		transform: none;
 	}
+	.ghost {
+		opacity: 0.3;
+	}
+	.nudge > .lbl {
+		opacity: 1;
+		transform: none;
+	}
 	.nudge > * {
-		opacity: 0;
+		opacity: 0.22;
 		transform: translateY(8px);
 		transition:
 			opacity 500ms var(--ease),

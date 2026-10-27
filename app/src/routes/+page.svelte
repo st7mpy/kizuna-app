@@ -4,6 +4,7 @@
 	import type { Card, GiftCard as Gift, Person, Room, Settings, WeekendCard as Weekend } from '@kizuna/shared';
 	import {
 		answerCard,
+		answeredToday,
 		answerLines,
 		dismissAnswer,
 		draftNudge,
@@ -13,12 +14,13 @@
 		todayCards,
 		todayExtras,
 		type AnswerLine,
+		type TodayExtras,
 		type FollowUp
 	} from '#lib/core/index.js';
 	import DraftBox from '#lib/ui/DraftBox.svelte';
 	import { allPeople, db, hasAnyData, settingsLive } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
-	import { dayKey, greeting } from '#lib/ui/format.js';
+	import { cap, dayKey, greeting } from '#lib/ui/format.js';
 	import { fold, soft } from '#lib/ui/motion.js';
 	import Segmented from '#lib/ui/Segmented.svelte';
 	import PokeSheet from '#lib/ui/PokeSheet.svelte';
@@ -74,22 +76,27 @@
 	);
 	const byId = $derived(new Map(people.value.map((p) => [p.id, p])));
 
+	let doneToday = $state(false); // the user answered a card today: the empty state says "That's all for now"
+	let loadSeq = 0;
 	async function load() {
-		try {
-			cards = await todayCards();
-			failed = false;
-		} catch {
-			failed = true;
-		} finally {
-			loaded = true;
-		}
-		// The weekend plan and gift ideas sit above the person cards; quiet if they fail.
-		try {
-			const extras = await todayExtras();
+		const my = ++loadSeq;
+		// The weekend plan and gift ideas sit above the person cards; both start at once (one calendar read).
+		const extrasP = todayExtras().catch((): TodayExtras => ({ weekend: null, gifts: [] }));
+		extrasP.then((extras) => {
+			if (my !== loadSeq) return;
 			weekend = extras.weekend;
 			gifts = extras.gifts;
+		});
+		try {
+			const [next, done] = await Promise.all([todayCards(extrasP), answeredToday().catch(() => false)]);
+			if (my !== loadSeq) return;
+			cards = next;
+			doneToday = done;
+			failed = false;
 		} catch {
-			/* nothing extra today */
+			if (my === loadSeq) failed = true;
+		} finally {
+			if (my === loadSeq) loaded = true;
 		}
 	}
 
@@ -122,6 +129,7 @@
 
 	async function answer(card: Card, a: 'not_now' | 'done' | 'keep') {
 		drop(card.promptId);
+		doneToday = true;
 		try {
 			await answerCard(card.promptId, a);
 		} catch {
@@ -208,7 +216,7 @@
 								label="For {f.name}"
 								phone={f.phone}
 								share={!f.phone}
-								load={() => draftNudge(f.personId)}
+								load={(quick) => draftNudge(f.personId, quick)}
 								onopened={() => {
 									nudging = null;
 									markNudged(f.personId).catch(() => {});
@@ -225,7 +233,7 @@
 			<section class="extras" aria-label="This weekend">
 				{#if weekend}
 					<div out:fold in:soft>
-						<WeekendCard card={weekend} people={byId} ondismiss={() => (weekend = null)} />
+						<WeekendCard card={weekend} people={byId} zoneOf={(id) => map.value?.people.find((m) => m.person.id === id)?.tz} ondismiss={() => (weekend = null)} />
 					</div>
 				{/if}
 				{#each gifts as g (g.hint.id)}
@@ -241,7 +249,7 @@
 				<article class="moment" class:thread={card.kind === 'thread'} out:fold in:soft>
 					{#if card.kind === 'suggest_circle'}
 						<p class="label">Someone who comes up a lot</p>
-						<h2 class="who">Keep <em>{card.title}</em> close?</h2>
+						<h2 class="who"><span>Keep <em>{card.title}</em> close?</span></h2>
 						<p class="reason">{card.reason}</p>
 						<div class="actions">
 							<button class="btn accent" type="button" onclick={() => answer(card, 'keep')}>Keep close</button>
@@ -249,7 +257,7 @@
 						</div>
 					{:else if card.kind === 'thread'}
 						<p class="label">Yours</p>
-						<h2 class="what">{card.title}</h2>
+						<h2 class="what">{cap(card.title)}</h2>
 						{#if card.reason}<p class="reason">{card.reason}</p>{/if}
 						<div class="actions">
 							<button class="btn accent" type="button" onclick={() => answer(card, 'done')}>
@@ -276,12 +284,20 @@
 				</article>
 			{/each}
 
+			{#if !loaded}
+				<div class="moment ghost" aria-hidden="true"><span class="bar w40"></span><span class="bar w80"></span><span class="bar w60"></span></div>
+				<div class="moment ghost" aria-hidden="true"><span class="bar w40"></span><span class="bar w80"></span><span class="bar w60"></span></div>
+				<p class="sr-only" role="status">Getting today ready…</p>
+			{/if}
 			{#if loaded && cards.length === 0 && !weekend && !gifts.length}
 				<div class="empty" in:soft>
 					{#if failed}
 						<p class="calm">Today is still <em>waking up</em>.</p>
 						<p class="muted">Your notes are safe. Try again in a moment.</p>
 						<button class="btn line" type="button" onclick={load}>Try again</button>
+					{:else if doneToday}
+						<p class="calm">That’s all for <em>now</em>.</p>
+						<p class="muted">Kizuna will speak up when there’s a good reason.</p>
 					{:else}
 						<p class="calm">Nothing needs you <em>today</em>.</p>
 						<p class="muted">Kizuna will speak up when there’s a good reason.</p>
@@ -292,7 +308,7 @@
 
 		<a href="/threads" class="threads">
 			<span class="t">Your threads</span>
-			<span class="sub"><em>ideas, plans, promises, errands</em></span>
+			<span class="sub">Ideas, plans, promises, errands</span>
 			<span class="icon-btn solid" aria-hidden="true"><Icon name="arrow" size={20} /></span>
 		</a>
 		</div>
@@ -304,7 +320,7 @@
 							<h3>Your map</h3>
 							<a href="/map" class="btn accent small-link">Open the map</a>
 						</div>
-						<Constellation people={map.value.people} me={{ name: 'You', localTime: map.value.me.localTime }} />
+						<Constellation compact people={map.value.people} me={{ name: 'You', localTime: map.value.me.localTime }} />
 					</section>
 				{/if}
 				{#if map.value?.occasions.length}
@@ -451,6 +467,38 @@
 	}
 	.actions .quiet {
 		margin-left: auto;
+	}
+	/* While Today gets ready: two quiet card shapes, so the page never looks empty or broken. */
+	.ghost {
+		gap: 12px;
+		padding-bottom: 22px;
+	}
+	.ghost .bar {
+		display: block;
+		height: 14px;
+		border-radius: 999px;
+		background: var(--sunk);
+		animation: wait 1.6s ease-in-out infinite;
+	}
+	@keyframes wait {
+		50% {
+			opacity: 0.45;
+		}
+	}
+	.ghost .w40 {
+		width: 40%;
+		height: 22px;
+	}
+	.ghost .w80 {
+		width: 80%;
+	}
+	.ghost .w60 {
+		width: 60%;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.ghost .bar {
+			animation: none;
+		}
 	}
 	.empty {
 		display: flex;

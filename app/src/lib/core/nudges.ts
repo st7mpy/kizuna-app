@@ -167,7 +167,8 @@ export function buildCandidates(state: NudgeState): Candidate[] {
 			reason: 'suggest_circle',
 			personId: p.id,
 			title: p.name,
-			reasonText: `${p.why ? stripDot(p.why) + '. ' : ''}Keep ${p.name} in your circle?`,
+			// the heading already asks "Keep them close?", so the reason only says why
+			reasonText: p.why ? `${stripDot(p.why)}.` : `${p.name} comes up a lot in your notes.`,
 			score: 3 + Math.min(2, p.mentions / 5)
 		});
 	}
@@ -215,6 +216,11 @@ export function capUsed(state: Pick<NudgeState, 'now' | 'prompts' | 'settings'>)
 			ago(state.now, p.shownAt) < 7 &&
 			!(quietStart && quietEnd && inQuietHours(new Date(p.shownAt), quietStart, quietEnd))
 	).length;
+}
+
+/** Cards the user already answered today. Room is for the day, so these use it up (no new batch on reload). */
+export function answeredTodayCount(state: Pick<NudgeState, 'prompts' | 'now'>): number {
+	return state.prompts.filter((p) => !!p.answer && isToday(p.answeredAt ?? p.shownAt, state.now)).length;
 }
 
 /** True when there are more candidates than room, so a ranking pass could help. */

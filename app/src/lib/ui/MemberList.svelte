@@ -1,9 +1,9 @@
 <script lang="ts">
 	// The people on the map as a list: a round initial in their colour, the name, one status line.
-	// Under the map on a phone (a sheet with a rounded top), beside it on a wide screen.
-	import type { DotPerson } from './Constellation.svelte';
+	// A rounded card under the map on a phone, beside it on a wide screen.
+	import { dotHref, type DotPerson } from './Constellation.svelte';
 	import { cityOf } from './constellation.js';
-	import { hueFor } from './hue.js';
+	import { hueOf } from './hue.js';
 	import { initials, memberStatus } from './mapformat.js';
 	import Icon from './Icon.svelte';
 
@@ -15,14 +15,13 @@
 </script>
 
 <section class="members" class:compact aria-label={title}>
-	{#if !compact}<div class="grab" aria-hidden="true"></div>{/if}
 	<h2 class="label">{title}</h2>
 	<ul>
 		{#each people as p (p.person.id)}
-			{@const s = memberStatus(p, cityOf)}
+			{@const s = p.unlinked ? { text: 'New answer', tone: 'plain' } : memberStatus(p, cityOf)}
 			<li>
-				<a class="member" href="/circle/{p.person.id}">
-					<span class="avatar" class:open={p.glow === 'open'} style="--hue:{hueFor(p.person.id)}" aria-hidden="true">
+				<a class="member" href={dotHref(p)}>
+					<span class="avatar" class:open={p.glow === 'open'} class:new={p.unlinked} style="--hue:{hueOf(p)}" aria-hidden="true">
 						{initials(p.person.name)}
 					</span>
 					<span class="col">
@@ -36,6 +35,7 @@
 							<span class="num">{s.text}</span>
 						</span>
 					</span>
+					{#if p.unlinked}<span class="who">Who is this?</span>{/if}
 					<Icon name="chevron" size={18} />
 				</a>
 			</li>
@@ -51,18 +51,19 @@
 		background: var(--surface);
 		-webkit-backdrop-filter: var(--blur);
 		backdrop-filter: var(--blur);
-		border-radius: 26px 26px 0 0;
-		box-shadow: 0 -1px 0 var(--line), 0 -18px 40px -30px rgb(60 45 20 / 0.35);
-		/* a sheet that runs edge to edge on a phone */
-		margin: 0 calc(-1 * var(--gutter));
-		padding: 8px var(--gutter) 6px;
+		border-radius: var(--r-card);
+		box-shadow: var(--card-shadow);
+		padding: 14px 18px 6px;
 	}
-	.grab {
-		width: 36px;
-		height: 3px;
-		border-radius: 3px;
-		background: var(--line);
-		margin: 2px auto 12px;
+	.who {
+		flex: none;
+		color: var(--accent);
+		font-size: var(--t-small);
+		font-weight: 500;
+	}
+	.avatar.new {
+		box-shadow: inset 0 0 0 1.5px rgb(20 19 17 / 0.35);
+		background: color-mix(in srgb, var(--hue) 55%, var(--surface-solid));
 	}
 	h2 {
 		padding: 4px 0 6px;
@@ -197,13 +198,7 @@
 	/* Beside the map: a rounded panel, not a sheet. */
 	@media (min-width: 720px) {
 		.members {
-			margin: 0;
-			border-radius: var(--r-card);
-			box-shadow: var(--card-shadow);
 			padding: 18px 20px 8px;
-		}
-		.grab {
-			display: none;
 		}
 	}
 	.compact .name {

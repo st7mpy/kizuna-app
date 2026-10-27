@@ -16,7 +16,7 @@ import {
 } from '@kizuna/shared';
 import { db, readSettings, type MemberRow } from '../db.ts';
 import { deviceTimeZone, localDay } from './days.ts';
-import { matchPerson } from './people.ts';
+import { matchPerson, upsertPerson } from './people.ts';
 import { RelayError, isOnline, relayJson } from './relay.ts';
 import { updateSettings } from './settings.ts';
 import { busyTimes } from './time.ts';
@@ -246,6 +246,22 @@ export function refreshCircle(): Promise<void> {
 /** The user says who a member is (or null: not someone I know). */
 export async function linkMember(memberId: string, personId: string | null): Promise<void> {
 	await db.members.update(memberId, { personId, linkedBy: 'user' });
+}
+
+/**
+ * Someone answered on the family page and isn't anyone here yet: keep them in the circle under
+ * the name they gave, linked to their answer. Returns the person's id.
+ */
+export async function addMemberAsPerson(memberId: string): Promise<string> {
+	return db.transaction('rw', [db.people, db.members], async () => {
+		const m = await db.members.get(memberId);
+		if (!m) throw new Error('member not found');
+		const people = await db.people.toArray();
+		const p = await upsertPerson(people, m.entry.name.trim() || 'Family', 'family', new Date().toISOString());
+		if (p.circle !== 'in') await db.people.update(p.id, { circle: 'in' });
+		await db.members.update(memberId, { personId: p.id, linkedBy: 'user' });
+		return p.id;
+	});
 }
 
 /** Leave: delete my entry, forget the circle and everyone's cached entries. */

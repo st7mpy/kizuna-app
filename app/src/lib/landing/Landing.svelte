@@ -35,8 +35,10 @@
 	});
 
 	// The first sample is the default; the second is one tap away under the main button.
+	let pickedKey = $state<SampleKey>('abroad');
 	async function trySample(key: SampleKey = 'abroad') {
 		if (sampling) return;
+		pickedKey = key;
 		sampling = true;
 		failed = false;
 		try {
@@ -293,7 +295,12 @@
 					{#if returning}
 						<li><button type="button" onclick={openApp}>Open Kizuna</button></li>
 					{:else}
-						{#each SAMPLES as s (s.key)}<li><button type="button" onclick={() => trySample(s.key)}>Sample: {s.label.toLowerCase()}</button></li>{/each}
+						{#each SAMPLES as s (s.key)}<li>
+								<button type="button" onclick={() => trySample(s.key)} disabled={sampling} aria-busy={sampling && pickedKey === s.key}
+									>{sampling && pickedKey === s.key ? 'Setting up the sample family…' : `Sample: ${s.label}`}</button
+								>
+							</li>{/each}
+						{#if failed}<li class="foot-err" role="status">Couldn’t load the sample just now. Try again in a moment.</li>{/if}
 					{/if}
 					<li><button type="button" onclick={startOwn}>Start with your own</button></li>
 				</ul>
@@ -477,6 +484,8 @@
 		margin: 16px 0 0;
 	}
 	.samples span {
+		/* the label on its own line, so the chips never wrap ragged under it */
+		flex-basis: 100%;
 		margin-right: 4px;
 		font-size: var(--t-label);
 		font-weight: 500;
@@ -506,6 +515,10 @@
 	.samples button:hover:not(:disabled) {
 		color: var(--text);
 		box-shadow: inset 0 0 0 1px var(--line-2);
+	}
+	.foot-err {
+		color: var(--text-2);
+		font-size: var(--t-small);
 	}
 	.samples button:disabled {
 		opacity: 0.6;

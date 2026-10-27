@@ -11,6 +11,7 @@ import { applyExtract } from './capture.ts';
 import { matchPerson } from './people.ts';
 import { applyWeave } from './weave.ts';
 import { clearBusyCache } from './time.ts';
+import { quietAt } from './zones.ts';
 
 export interface SampleNote {
 	daysAgo: number;
@@ -49,7 +50,7 @@ export interface SampleLife {
 }
 
 /** Goes up whenever the samples change, so a visitor with an older sample gets the current one. */
-export const SAMPLE_VERSION = 2;
+export const SAMPLE_VERSION = 3;
 /** The two oldest samples: 40 and 41 notes, written before samples carried a version. */
 const OLD_SAMPLE_MAX_NOTES = 41;
 
@@ -68,11 +69,34 @@ const mins = (hhmm: string) => {
 	return h * 60 + (m || 0);
 };
 
-/** Pure: sample members as cached entries, windows on the coming weekend, status good for 12 h. */
-export function sampleMembers(list: SampleMember[], now: Date): Omit<MemberRow, 'personId'>[] {
+const QUIET_START = '22:00';
+const QUIET_END = '08:00';
+
+/**
+ * Pure: who is open or maybe right now. Nobody glows in their own quiet hours; if that leaves
+ * nobody open, the first person who is awake (and answered) is open instead, so the map always
+ * shows what a glow means.
+ */
+export function sampleStatuses(list: SampleMember[], now: Date, waiting: Set<string> = new Set()): (CircleStatus | null)[] {
+	const ms = now.getTime();
+	const awake = list.map((m) => !quietAt(ms, m.tz, QUIET_START, QUIET_END));
+	const out = list.map((m, i) => (awake[i] ? m.status : null));
+	if (!out.includes('free')) {
+		const i = list.findIndex((m, k) => awake[k] && !waiting.has(m.name) && out[k] !== 'maybe');
+		if (i >= 0) out[i] = 'free';
+	}
+	return out;
+}
+
+/**
+ * Pure: sample members as cached entries, windows on the coming weekend, status good for 12 h.
+ * Always relative to `now`, so the sample can be re-based on any later day (refreshSampleMembers).
+ */
+export function sampleMembers(list: SampleMember[], now: Date, waiting: Set<string> = new Set()): Omit<MemberRow, 'personId'>[] {
 	const range = weekendRange(now, true)!;
 	const days = { sat: range.saturday, sun: addDays(range.saturday, 1) };
 	const at = now.toISOString();
+	const statuses = sampleStatuses(list, now, waiting);
 	return list.map((m, i) => {
 		const windows = m.windows
 			.map((w) => {
@@ -85,11 +109,11 @@ export function sampleMembers(list: SampleMember[], now: Date): Omit<MemberRow, 
 			v: 1,
 			name: m.name,
 			tz: m.tz,
-			status: m.status,
-			statusUntil: m.status ? new Date(now.getTime() + 12 * 3600_000).toISOString() : null,
+			status: statuses[i],
+			statusUntil: statuses[i] ? new Date(now.getTime() + 12 * 3600_000).toISOString() : null,
 			windows,
-			quietStart: '22:00',
-			quietEnd: '08:00',
+			quietStart: QUIET_START,
+			quietEnd: QUIET_END,
 			via: m.via ?? 'app',
 			updatedAt: at
 		};
@@ -179,10 +203,14 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 		const waiting = new Set((data.waiting ?? []).map((n) => matchPerson(people, n)?.id).filter((id): id is string => !!id));
 		const asked = new Date(now.getTime() - 2 * 86_400_000).toISOString();
 		const before = new Date(now.getTime() - 3 * 86_400_000).toISOString();
-		for (const m of sampleMembers(data.members ?? [], now)) {
+		for (const m of sampleMembers(data.members ?? [], now, new Set(data.waiting ?? []))) {
 			const personId = matchPerson(people, m.entry.name)?.id ?? null;
-			// Their windows came from the app last week; nothing new since they were asked.
-			const entry = personId && waiting.has(personId) ? { ...m.entry, updatedAt: before } : m.entry;
+			// They haven't answered since they were asked: nothing shared for this weekend yet, so the
+			// weekend plan can't count them as free while Today says they haven't answered.
+			const entry =
+				personId && waiting.has(personId)
+					? { ...m.entry, windows: [], status: null, statusUntil: null, updatedAt: before }
+					: m.entry;
 			await db.members.put({ ...m, entry, personId, linkedBy: 'auto' });
 		}
 		// Everyone was asked about this weekend two days ago; the waiting ones haven't answered yet.
@@ -229,10 +257,63 @@ export function staleSample(
 /** On startup: replaces an outdated sample with the current one. Leaves anything of the user's alone. */
 export async function refreshStaleSample(): Promise<boolean> {
 	const [s, fragments] = await Promise.all([db.settings.get('me'), db.fragments.toArray()]);
-	if (!staleSample(s, fragments)) return false;
+	if (!staleSample(s, fragments)) {
+		await refreshSampleMembers().catch(() => false);
+		return false;
+	}
 	const key = (SAMPLES.find((x) => x.key === s?.sample?.key)?.key ?? 'abroad') as SampleKey;
 	await loadSample(key);
 	return true;
+}
+
+const REBASE_MS = 20 * 60_000;
+let rebasing: Promise<boolean> | null = null;
+
+/**
+ * The sample's family answers are written relative to the moment it was loaded. On a later visit
+ * (or a tab left open) this re-bases them on now: who is open, and their windows on the coming
+ * weekend, so a sample loaded days ago still glows and still has a weekend to plan.
+ * Keeps links to people and what Today already showed. Does nothing outside the sample.
+ */
+export function refreshSampleMembers(now = new Date()): Promise<boolean> {
+	rebasing ??= (async () => {
+		try {
+			const s = await db.settings.get('me');
+			if (s?.circle?.id !== SAMPLE_CIRCLE_ID) return false;
+			const rows = (await db.members.toArray()).filter((m) => m.memberId.startsWith('sample-'));
+			if (!rows.length) return false;
+			const ms = now.getTime();
+			if (rows.every((r) => ms - Date.parse(r.fetchedAt) < REBASE_MS && Date.parse(r.fetchedAt) <= ms)) return false;
+			const data = await fetchSampleLife((SAMPLES.find((x) => x.key === s.sample?.key)?.key ?? 'abroad') as SampleKey);
+			const old = new Map(rows.map((r) => [r.memberId, r]));
+			// Waiting: their entry is from before they were asked (written a day or more before it was fetched).
+			const isWaiting = (r: MemberRow) => Date.parse(r.fetchedAt) - Date.parse(r.entry.updatedAt) > 86_400_000;
+			const waiting = new Set(rows.filter(isWaiting).map((r) => r.entry.name));
+			const fresh = sampleMembers(data.members ?? [], now, waiting);
+			const asked = new Date(ms - 2 * 86_400_000).toISOString();
+			const before = new Date(ms - 3 * 86_400_000).toISOString();
+			await db.transaction('rw', [db.members, db.people], async () => {
+				for (const m of fresh) {
+					const o = old.get(m.memberId);
+					if (!o) continue; // the visitor unlinked or it went away: leave it
+					const entry = waiting.has(m.entry.name) ? { ...m.entry, windows: [], status: null, statusUntil: null, updatedAt: before } : m.entry;
+					await db.members.put({
+						...o,
+						entry,
+						fetchedAt: m.fetchedAt,
+						...(o.answeredAt ? {} : m.answeredAt ? { answeredAt: m.answeredAt, answerSeen: false } : {})
+					});
+				}
+				// "Asked two days ago" moves along too, so the waiting ones still read as waiting.
+				const people = await db.people.toArray();
+				for (const p of people) if (p.circle === 'in' && p.invitedAt) await db.people.update(p.id, { invitedAt: asked });
+			});
+			return true;
+		} finally {
+			rebasing = null;
+		}
+	})();
+	return rebasing;
 }
 
 /** The default sample family. */

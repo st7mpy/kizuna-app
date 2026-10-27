@@ -90,8 +90,8 @@ describe('draftPoke', () => {
 			expect(task).toBe('draft');
 			return { line: "Hi Mom, how are you doing? Call Thursday evening?", language: 'mixed' };
 		});
-		const line = await draftPoke('mom', 'Knee appointment on Thursday.', slot);
-		expect(line).toBe('Hi Mom, how are you doing? Call Thursday evening?');
+		const draft = await draftPoke('mom', 'Knee appointment on Thursday.', slot);
+		expect(draft).toEqual({ line: 'Hi Mom, how are you doing? Call Thursday evening?', fromModel: true });
 		const input = relay.calls[0].body.input;
 		expect(input).toMatchObject({ personName: 'Mom', relation: 'parent', language: 'mixed', withTime: slot.label });
 		expect(JSON.stringify(input)).not.toMatch(/knee/i);
@@ -100,12 +100,12 @@ describe('draftPoke', () => {
 
 	it('falls back to a template offline or on failure', async () => {
 		setOffline(true);
-		expect(await draftPoke('mom', 'thinking of her')).toBe('Hi Mom, thinking of you. How are things?');
+		expect(await draftPoke('mom', 'thinking of her')).toEqual({ line: 'Hi Mom, thinking of you. How are things?', fromModel: false });
 		setOffline(false);
 		mockRelay(() => {
 			throw new Error('down');
 		});
-		expect(await draftPoke('mom', 'x', slot)).toBe('Hi Mom, thinking of you. Free for a chat Thursday evening?');
+		expect(await draftPoke('mom', 'x', slot)).toEqual({ line: 'Hi Mom, thinking of you. Free for a chat Thursday evening?', fromModel: false });
 	});
 
 	it('marks a person reached when the user sends', async () => {

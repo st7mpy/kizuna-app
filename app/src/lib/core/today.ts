@@ -4,7 +4,7 @@ import { db, newId, readSettings } from '../db.ts';
 import { deviceTimeZone, inQuietHours, localDay } from './days.ts';
 import { giftCards } from './gifts.ts';
 import { weekendCard } from './weekend.ts';
-import { buildCandidates, eligibleCount, planToday, ROOM_CARDS, slotRange, withSlot, type Candidate, type NudgeState } from './nudges.ts';
+import { answeredTodayCount, buildCandidates, eligibleCount, planToday, ROOM_CARDS, slotRange, withSlot, type Candidate, type NudgeState } from './nudges.ts';
 import { isOnline, spark } from './relay.ts';
 import { roomToday } from './settings.ts';
 import { busyTimes, findFreeSlots } from './time.ts';
@@ -39,11 +39,12 @@ export async function loadNudgeState(now = new Date()): Promise<NudgeState> {
 }
 
 /** The weekend card (first) and gift cards, which come before person cards and count toward the room. */
-export async function todayExtras(now = new Date()): Promise<{ weekend: WeekendCard | null; gifts: GiftCard[] }> {
+export type TodayExtras = { weekend: WeekendCard | null; gifts: GiftCard[] };
+
+export async function todayExtras(now = new Date()): Promise<TodayExtras> {
 	const s = await readSettings();
 	const n = ROOM_CARDS[roomToday(s, now)];
-	const weekend = await weekendCard(now).catch(() => null);
-	const gifts = await giftCards(now).catch(() => [] as GiftCard[]);
+	const [weekend, gifts] = await Promise.all([weekendCard(now).catch(() => null), giftCards(now).catch(() => [] as GiftCard[])]);
 	return { weekend, gifts: gifts.slice(0, Math.max(0, n - (weekend ? 1 : 0))) };
 }
 
@@ -53,13 +54,18 @@ function actionsFor(c: Candidate): Card['actions'] {
 	return ['done', 'not_now'];
 }
 
-/** Cards for Today: 1, 3 or 5 by room level; empty is fine. */
-export async function todayCards(): Promise<Card[]> {
-	const now = new Date();
-	const state = await loadNudgeState(now);
+/**
+ * Cards for Today: 1, 3 or 5 by room level; empty is fine. Pass the extras when the page already asked
+ * for them, so both run at once and the calendar is read only once.
+ */
+export async function todayCards(extrasP?: Promise<TodayExtras>, now = new Date()): Promise<Card[]> {
+	const [state, extras] = await Promise.all([
+		loadNudgeState(now),
+		extrasP ?? todayExtras(now).catch((): TodayExtras => ({ weekend: null, gifts: [] }))
+	]);
 	const cands = buildCandidates(state);
-	const extras = await todayExtras(now);
-	const room = Math.max(0, ROOM_CARDS[state.room] - (extras.weekend ? 1 : 0) - extras.gifts.length);
+	// Room is for the whole day: cards already answered today count, so a reload doesn't bring a new batch.
+	const room = Math.max(0, ROOM_CARDS[state.room] - (extras.weekend ? 1 : 0) - extras.gifts.length - answeredTodayCount(state));
 	// someone with a gift card already has their moment on Today
 	const giftPeople = new Set(extras.gifts.map((g) => g.personId));
 	const shown = cands.filter((c) => !(c.kind === 'person' && c.personId && giftPeople.has(c.personId)));
@@ -100,6 +106,13 @@ export async function todayCards(): Promise<Card[]> {
 	}
 	if (fresh.length) await db.prompts.bulkAdd(fresh);
 	return cards;
+}
+
+/** True when the user has answered a card today (Today then says "That's all for now"). */
+export async function answeredToday(now = new Date()): Promise<boolean> {
+	const since = new Date(now.getTime() - 2 * DAY).toISOString();
+	const prompts = await db.prompts.where('shownAt').aboveOrEqual(since).toArray();
+	return answeredTodayCount({ prompts, now }) > 0;
 }
 
 export async function answerCard(promptId: string, answer: 'poke' | 'time' | 'not_now' | 'done' | 'keep'): Promise<void> {

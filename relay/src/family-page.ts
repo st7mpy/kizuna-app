@@ -124,12 +124,13 @@ var store={};var storeKey='kizuna:c:'+circleId;
 try{store=JSON.parse(localStorage.getItem(storeKey)||'{}')||{};}catch(_){store={};}
 function save(){try{localStorage.setItem(storeKey,JSON.stringify(store));}catch(_){}}
 var memberId=/^[A-Za-z0-9_-]{12}$/.test(store.memberId||'')?store.memberId:randomId(12);
-var members=[];var picked=[];var pending=null;var undoTo=null;var chain=Promise.resolve();
+var errAt=null;var members=[];var picked=[];var pending=null;var undoTo=null;var chain=Promise.resolve();
 function show(id){['s-ask','s-thanks','s-incomplete','s-ended','s-wait'].forEach(function(s){$(s).hidden=s!==id;});window.scrollTo(0,0);}
-function err(t){$('err').textContent=t||'';}
+// The error sits right under what was tapped (the Send stack, or the typed reply), never below the fold.
+function err(t,under){var el=$('err');var at=$(under||'nopestack');if(t&&at&&at.parentNode&&at.nextSibling!==el)at.parentNode.insertBefore(el,at.nextSibling);el.textContent=t||'';el.hidden=!t;if(t&&el.scrollIntoView){try{el.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(_){}}}
 function status(t,canUndo){$('saved-text').textContent=t||'';$('undo').hidden=!canUndo;$('saved').hidden=!t;}
 var dayFmt,hmFmt;
-try{dayFmt=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'numeric',month:'short'});hmFmt=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'});}catch(_){}
+try{dayFmt=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'numeric',month:'short'});hmFmt=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});}catch(_){}
 function label(w){var s=new Date(w.start),e=new Date(w.end);return dayFmt?dayFmt.format(s)+', '+hmFmt.format(s)+' to '+hmFmt.format(e):w.start;}
 function paint(){document.querySelectorAll('[data-chip]').forEach(function(b){b.setAttribute('aria-pressed',picked.indexOf(b.getAttribute('data-chip'))>=0?'true':'false');});}
 
@@ -146,7 +147,7 @@ async function load(){
     if(when&&dayFmt)when.textContent=dayFmt.format(w.start);
     if(store.answered&&Array.isArray(store.picked)&&store.picked.indexOf(c)>=0)picked.push(c);
     b.addEventListener('click',function(){
-      undoTo={picked:picked.slice(),nope:!!store.nope,answered:!!store.answered};
+      errAt=null;undoTo={picked:picked.slice(),nope:!!store.nope,answered:!!store.answered};
       var i=picked.indexOf(c);
       if(i>=0)picked.splice(i,1);else picked.push(c);
       paint();
@@ -194,7 +195,7 @@ async function write(st){
     if(!r.ok)throw new Error('save');
     store.answered=!!(windows.length||nope);store.nope=nope;store.picked=st.picked||[];save();
     return true;
-  }catch(_){err('That did not go through. Please tap again in a moment.');status('',false);return false;}
+  }catch(_){err('That did not go through. Please tap again in a moment.',errAt);status('',false);return false;}
 }
 function setBusy(b){['nope','sendheard','read','mic'].forEach(function(id){var el=$(id);if(el)el.disabled=b;});}
 
@@ -205,7 +206,11 @@ async function thanks(name,nope){
   for(var i=0;i<members.length;i++){
     var m=members[i];if(m.memberId===memberId)continue;
     var e=await openEntry(key,circleId,m.memberId,m);
-    if(e&&e.name&&names.indexOf(e.name)<0)names.push(String(e.name).slice(0,40));
+    if(!e)continue;
+    // The organiser's own entry comes from the app; it may carry no real name ("Me"): use theirs from the link, or leave it out.
+    var nm=String(e.name||'').trim().slice(0,40);
+    if(e.via==='app'&&(!nm||/^me$/i.test(nm)))nm=from||'';
+    if(nm&&names.indexOf(nm)<0)names.push(nm);
   }
   $('others').textContent=names.length?'Also answered: '+names.join(', ')+'.':'';
   show('s-thanks');
@@ -219,20 +224,22 @@ async function finish(st){
 
 async function readReply(text,heard){
   err('');$('heard').hidden=true;
+  setBusy(true);$('micstatus').textContent='Reading that…';
   try{
     var r=await fetch('/api/spark',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({task:'windows',input:{reply:text.slice(0,500),now:isoLocal(new Date()),timeZone:tz||'UTC'}}),referrerPolicy:'no-referrer'});
     var j=await r.json();
     if(!j||!j.ok)throw new Error('spark');
     var ws=parsedWindows(j.output,new Date());
     var nope=!!(j.output&&j.output.not_this_weekend)&&ws.length===0;
-    if(!ws.length&&!nope){err('We could not find a time in that. Please tap the times above, or type it.');$('typed').hidden=false;return;}
+    if(!ws.length&&!nope){$('typed').hidden=false;err('We could not find a time in that. Please tap the times above, or type it.','typed');return;}
     pending={windows:ws,nope:nope};
     $('heardtext').textContent=heard?'"'+text+'"':'';
     var ul=$('heardlist');ul.textContent='';
     if(nope){var li=document.createElement('li');li.textContent='Not this weekend';ul.appendChild(li);}
     ws.forEach(function(w){var li=document.createElement('li');li.textContent=label(w);ul.appendChild(li);});
     $('heard').hidden=false;$('heard').scrollIntoView({behavior:'smooth',block:'center'});
-  }catch(_){err('Sorry, that did not work. Please tap the times above, or type it.');$('typed').hidden=false;}
+  }catch(_){$('typed').hidden=false;err('Sorry, that did not work. Please tap the times above, or type it.','typed');}
+  finally{setBusy(false);$('micstatus').textContent='';}
 }
 
 // Voice: record PCM through Web Audio, make a 16 kHz mono 16-bit WAV, transcribe, then read it.
@@ -280,9 +287,9 @@ async function stopRec(){
   }catch(_){$('micstatus').textContent='';micFailed();}
 }
 function resetMic(){$('mic-label').textContent='Speak instead';$('mic').setAttribute('aria-pressed','false');}
-function micFailed(){resetMic();$('typed').hidden=false;err('The microphone did not work. Please type it instead.');}
+function micFailed(){resetMic();$('typed').hidden=false;err('The microphone did not work. Please type it instead.','typed');}
 
-$('nope').addEventListener('click',function(){undoTo={picked:picked.slice(),nope:!!store.nope,answered:!!store.answered};picked=[];paint();finish({nope:true});});
+$('nope').addEventListener('click',function(){errAt=null;undoTo={picked:picked.slice(),nope:!!store.nope,answered:!!store.answered};picked=[];paint();finish({nope:true});});
 $('undo').addEventListener('click',function(){
   if(!undoTo)return;var to=undoTo;undoTo=null;
   picked=to.picked.slice();paint();
@@ -292,8 +299,8 @@ $('name').addEventListener('change',function(){if(store.answered&&(picked.length
 $('mic').addEventListener('click',function(){if(rec)stopRec();else startRec();});
 $('typeopen').addEventListener('click',function(){$('typed').hidden=false;$('reply').focus();});
 $('read').addEventListener('click',function(){var t=$('reply').value.trim();if(t)readReply(t,false);});
-$('sendheard').addEventListener('click',function(){if(pending){picked=[];paint();finish(pending.nope?{nope:true}:{windows:pending.windows});}});
-$('again').addEventListener('click',function(){status('',false);show('s-ask');});
+$('sendheard').addEventListener('click',function(){if(pending){errAt='heard';picked=[];paint();finish(pending.nope?{nope:true}:{windows:pending.windows});}});
+$('again').addEventListener('click',function(){status('',false);$('again-note').hidden=false;show('s-ask');});
 load();
 `;
 
@@ -353,9 +360,10 @@ ${chip('sun-am', 'Sun morning')}
 ${chip('sun-pm', 'Sun evening')}
 </div>
 <div class="saved" id="saved" role="status" aria-live="polite" hidden><span id="saved-text"></span><button class="link undo" id="undo" type="button" hidden>Undo</button></div>
-<div class="stack">
+<div class="stack" id="nopestack">
 <button class="btn secondary" id="nope" type="button">Not this weekend</button>
 </div>
+<p class="err" id="err" role="alert" hidden></p>
 <label class="field name"><span>Your name</span><input id="name" maxlength="40" autocomplete="given-name" enterkeyhint="done"></label>
 <div class="or">or</div>
 <div class="stack">
@@ -373,7 +381,6 @@ ${chip('sun-pm', 'Sun evening')}
 <ul class="times" id="heardlist"></ul>
 <button class="btn primary" id="sendheard" type="button">Yes, send</button>
 </div>
-<p class="err" id="err" role="alert"></p>
 <p class="note">Only your family circle can read your answer. Times only, never your location.</p>
 </section>
 <section id="s-thanks" hidden>

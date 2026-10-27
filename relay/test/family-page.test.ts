@@ -220,7 +220,16 @@ class El {
 	scrollIntoView() {}
 }
 
-async function runPage(hash: string, circleId: string, now: string) {
+interface PageOpts {
+	/** Sealed members the circle already has (GET /api/circle/:id). */
+	members?: any[];
+	/** PUT answers fail with this status. */
+	putStatus?: number;
+	/** Answers /api/spark (a promise the test can hold). */
+	spark?: () => Promise<Response>;
+}
+
+async function runPage(hash: string, circleId: string, now: string, opts: PageOpts = {}) {
 	const html = await renderFamilyPage(circleId).text();
 	const src = /<script nonce="[^"]+">([\s\S]*)<\/script>/.exec(html)![1];
 	const els = new Map<string, El>();
@@ -237,9 +246,11 @@ async function runPage(hash: string, circleId: string, now: string) {
 		const method = init.method ?? 'GET';
 		requests.push({ method, path: url });
 		const m = /\/m\/([\w-]+)$/.exec(url);
+		if (url.startsWith('/api/spark') && opts.spark) return opts.spark();
+		if (method === 'PUT' && opts.putStatus) return new Response('{}', { status: opts.putStatus });
 		if (method === 'PUT') kv.set(m![1], JSON.parse(init.body));
 		if (method === 'DELETE') kv.delete(m![1]);
-		return new Response(JSON.stringify({ ok: true, id: circleId, members: [] }), { status: 200 });
+		return new Response(JSON.stringify({ ok: true, id: circleId, members: opts.members ?? [] }), { status: 200 });
 	};
 	const storage = new Map<string, string>();
 	const fixed = new Date(now);
@@ -336,5 +347,65 @@ describe('family page answers in one tap', () => {
 		expect(await openEntry(key, circleId, memberId, sealed)).toMatchObject({ name: 'Grandpa', notThisWeekend: true, windows: [] });
 		expect(p.els.get('s-thanks')!.hidden).toBe(false);
 		expect(p.els.get('thanks-title')!.textContent).toBe('Thank you, Grandpa.');
+	});
+});
+
+describe('family page: who else answered, errors and waiting', () => {
+	(globalThis as any).process.env.TZ = 'Asia/Kolkata';
+	const circleId = randomId(16);
+	const now = '2026-10-30T18:10:00+05:30';
+	const sealedAs = async (key: string, name: string, via: 'app' | 'page') => {
+		const memberId = randomId(12);
+		return { memberId, ...(await sealEntry(key, circleId, memberId, { ...entry, name, via })) };
+	};
+
+	it('never lists the organiser as "Me": their name from the link, or nothing', async () => {
+		const key = newCircleKey();
+		const members = [await sealedAs(key, 'Me', 'app'), await sealedAs(key, 'Grandpa', 'page')];
+		const p = await runPage(`#k=${key}&from=Alex`, circleId, now, { members });
+		p.els.get('nope')!.click();
+		await p.settle();
+		expect(p.els.get('others')!.textContent).toBe('Also answered: Alex, Grandpa.');
+		const q = await runPage(`#k=${key}`, circleId, now, { members });
+		q.els.get('nope')!.click();
+		await q.settle();
+		expect(q.els.get('others')!.textContent).toBe('Also answered: Grandpa.');
+	});
+
+	it('a failed send says so right away', async () => {
+		const key = newCircleKey();
+		const p = await runPage(`#k=${key}`, circleId, now, { putStatus: 500 });
+		p.els.get('nope')!.click();
+		await p.settle();
+		expect(p.els.get('err')!.hidden).toBe(false);
+		expect(p.els.get('err')!.textContent).toMatch(/did not go through/);
+		expect(p.els.get('s-thanks')!.hidden).toBe(true);
+	});
+
+	it('"Use this" waits visibly while the reply is read, and can\'t be sent twice', async () => {
+		const key = newCircleKey();
+		let answer!: (r: Response) => void;
+		const p = await runPage(`#k=${key}`, circleId, now, { spark: () => new Promise((r) => (answer = r)) });
+		p.els.get('reply')!.value = 'Sunday afternoon works';
+		p.els.get('read')!.click();
+		await p.settle();
+		expect(p.els.get('read')!.disabled).toBe(true);
+		expect(p.els.get('micstatus')!.textContent).toBe('Reading that…');
+		answer(new Response(JSON.stringify({ ok: false }), { status: 500 }));
+		await p.settle();
+		expect(p.els.get('read')!.disabled).toBe(false);
+		expect(p.els.get('micstatus')!.textContent).toBe('');
+		expect(p.els.get('err')!.textContent).toMatch(/did not work/);
+	});
+
+	it('"Change my answer" says it replaces the earlier one', async () => {
+		const key = newCircleKey();
+		const p = await runPage(`#k=${key}`, circleId, now);
+		p.els.get('again-note')!.hidden = true; // as in the page, before any answer
+		p.els.get('nope')!.click();
+		await p.settle();
+		p.els.get('again')!.click();
+		expect(p.els.get('s-ask')!.hidden).toBe(false);
+		expect(p.els.get('again-note')!.hidden).toBe(false);
 	});
 });

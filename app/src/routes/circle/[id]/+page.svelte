@@ -26,7 +26,7 @@
 	import { cityOf } from '#lib/ui/constellation.js';
 	import { occasionChip, whenLocal, yourTime } from '#lib/ui/mapformat.js';
 	import { watch } from '#lib/ui/live.svelte.js';
-	import { dayKey, dayLabel, noteDay, snippet } from '#lib/ui/format.js';
+	import { dayKey, noteDay, snippet, weekdayLabel } from '#lib/ui/format.js';
 	import PokeSheet from '#lib/ui/PokeSheet.svelte';
 	import TimeSheet from '#lib/ui/TimeSheet.svelte';
 	import Sheet from '#lib/ui/Sheet.svelte';
@@ -173,15 +173,19 @@
 	let mergeOpen = $state(false);
 	let removeOpen = $state(false);
 	let busy = $state(false);
+	let sheetNote = $state('');
 	const mergeName = $derived(others.find((o) => o.id === mergeId)?.name ?? '');
 
 	async function doMerge() {
 		if (!p.value || !mergeId) return;
 		busy = true;
+		sheetNote = '';
 		try {
 			await mergePeople(p.value.id, mergeId);
 			mergeOpen = false;
 			mergeId = '';
+		} catch {
+			sheetNote = 'Couldn’t merge just now. Try again in a moment.';
 		} finally {
 			busy = false;
 		}
@@ -189,10 +193,13 @@
 	async function doRemove() {
 		if (!p.value) return;
 		busy = true;
+		sheetNote = '';
 		try {
 			await removePerson(p.value.id);
 			removeOpen = false;
 			goto('/circle');
+		} catch {
+			sheetNote = 'Couldn’t remove just now. Try again in a moment.';
 		} finally {
 			busy = false;
 		}
@@ -210,7 +217,7 @@
 		<section class="intro">
 			<div class="window portrait" style="--hue:{hueFor(p.value.id)}">
 				<p class="label">{RELATION[p.value.relation] ?? 'In your circle'}</p>
-				<h1><em>{p.value.name}</em></h1>
+				<h1 class:long={p.value.name.length > 14}><em>{p.value.name}</em></h1>
 			</div>
 			{#if p.value.summary}<p class="summary">{p.value.summary}</p>{/if}
 			<div class="row acts">
@@ -305,7 +312,7 @@
 								<span class="m">{monthOf(e.day ?? today)}</span>
 							</span>
 							<span class="what">
-								<span class="label">{dayLabel(e.day ?? today, today)}{e.time ? `, ${e.time}` : ''}</span>
+								<span class="label">{weekdayLabel(e.day ?? today, today)}{e.time ? `, ${e.time}` : ''}</span>
 								<span>{e.what}</span>
 							</span>
 						</li>
@@ -415,13 +422,15 @@
 		<PokeSheet bind:open={pokeOpen} person={p.value} reason={p.value.summary ?? ''} />
 		<TimeSheet bind:open={timeOpen} person={p.value} />
 
-		<Sheet bind:open={mergeOpen} title="Merge {mergeName} into" em="{p.value.name}?">
+		<Sheet bind:open={mergeOpen} onclose={() => (sheetNote = '')} title="Merge {mergeName} into" em="{p.value.name}?">
 			<p class="muted">Notes, dates and names for {mergeName} will move to {p.value.name}.</p>
+			{#if sheetNote}<p class="note" role="alert">{sheetNote}</p>{/if}
 			<button class="btn primary big block" type="button" onclick={doMerge} disabled={busy}>Merge</button>
 			<button class="btn line big block" type="button" onclick={() => (mergeOpen = false)}>Cancel</button>
 		</Sheet>
-		<Sheet bind:open={removeOpen} title="Remove" em="{p.value.name}?">
+		<Sheet bind:open={removeOpen} onclose={() => (sheetNote = '')} title="Remove" em="{p.value.name}?">
 			<p class="muted">Your notes stay. Kizuna just stops keeping track of {p.value.name}.</p>
+			{#if sheetNote}<p class="note" role="alert">{sheetNote}</p>{/if}
 			<button class="btn primary big block" type="button" onclick={doRemove} disabled={busy}>Remove</button>
 			<button class="btn line big block" type="button" onclick={() => (removeOpen = false)}>Keep</button>
 		</Sheet>
@@ -454,10 +463,16 @@
 		z-index: 1;
 		color: rgb(20 19 17 / 0.66);
 	}
+	.portrait h1.long {
+		font-size: clamp(1.75rem, 8vw, 2.5rem);
+	}
 	.portrait h1 {
 		position: relative;
 		z-index: 1;
-		font-size: 3.5rem;
+		/* long names wrap inside the card instead of running off its edge */
+		font-size: clamp(2rem, 11vw, 3.5rem);
+		overflow-wrap: anywhere;
+		hyphens: auto;
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: -0.045em;

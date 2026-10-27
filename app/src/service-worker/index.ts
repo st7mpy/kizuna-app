@@ -1,4 +1,4 @@
-// Keeps the app shell on the phone so Kizuna opens offline. Never caches /api or /p.
+// Keeps the app shell on the phone so Kizuna opens offline. Never touches /api, /p or /c (server pages).
 import { immutable, assets, prerendered } from '$app/manifest';
 import { version } from '$app/env';
 
@@ -11,7 +11,8 @@ const SHELL = [
 	...prerendered.map((f) => abs(f.path)),
 	'/200.html'
 ];
-const NEVER = (path: string) => path.startsWith('/api/') || path === '/api' || path.startsWith('/p/') || path === '/p';
+/** Server-only paths: the API, pick-a-time pages and family pages. Never answered from the app shell. */
+const NEVER = (path: string) => /^\/(api|p|c)(\/|$)/.test(path);
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(

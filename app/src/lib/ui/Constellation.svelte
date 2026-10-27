@@ -10,6 +10,16 @@
 		occasion: { name: string; kind: string } | null;
 		hasGift: boolean;
 		hasNotes: boolean;
+		/** The map's colour for them (no repeats); falls back to one from the id. */
+		hue?: number;
+		/** Answered on the family page but not linked to anyone yet: the dot asks "Who is this?". */
+		unlinked?: boolean;
+		memberId?: string | null;
+	}
+
+	/** Where a dot (or a list row) goes: the person, or "Who is this?" for an unlinked answer. */
+	export function dotHref(p: Pick<DotPerson, 'person' | 'unlinked' | 'memberId'>): string {
+		return p.unlinked && p.memberId ? `/map?who=${encodeURIComponent(p.memberId)}` : `/circle/${p.person.id}`;
 	}
 </script>
 
@@ -20,15 +30,18 @@
 	// On load the lines draw out from you, then each dot lights up in turn; open people keep a
 	// slow breathing glow, and a faint light travels out along the lines when the circle refreshes.
 	import { onMount } from 'svelte';
-	import { hueFor } from './hue.js';
+	import { hueOf } from './hue.js';
 	import { beam, cityOf, DOT_R, dotLabel, layoutConstellation, shortName } from './constellation.js';
 
 	let {
 		people,
 		me,
 		beat = 0,
-		lit = []
+		lit = [],
+		compact = false
 	}: {
+		/** A small map (Today's side panel): names only, no times under them, so labels stay clear. */
+		compact?: boolean;
 		people: DotPerson[];
 		me: { name: string; localTime: string };
 		/** Goes up each time the circle refreshes: sends a faint pulse out along the lines. */
@@ -47,7 +60,7 @@
 				id: p.person.id,
 				ring: p.ring,
 				name: shortName(p.person.name),
-				sub: sub(p)
+				sub: compact ? '' : sub(p)
 			}))
 		)
 	);
@@ -61,6 +74,7 @@
 				.map((d, i) => [d.id, i])
 		)
 	);
+	const tabOrder = $derived([...layout.dots].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
 	const reach = $derived(Math.max(60, ...layout.dots.map((d) => Math.hypot(d.x - layout.cx, d.y - layout.cy))) + 14);
 	const uid = $props.id();
 
@@ -88,6 +102,7 @@
 	});
 
 	function sub(p: DotPerson): string {
+		if (p.unlinked) return 'Who is this?';
 		if (!p.localTime) return '';
 		const city = cityOf(p.tz);
 		return city ? `${p.localTime} ${city}` : p.localTime;
@@ -154,13 +169,14 @@
 				</mask>
 				<clipPath id="c-{gid(d.id)}"><circle cx={d.x} cy={d.y} r={DOT_R} /></clipPath>
 			{/each}
+			<!-- open to a call: one warm glow for everyone, the same as the legend -->
+			<radialGradient id="open-{uid}">
+				<stop offset="0%" class="open-0" />
+				<stop offset="55%" class="open-1" />
+				<stop offset="100%" class="open-2" />
+			</radialGradient>
 			{#each shown as p (p.person.id)}
-				{@const hue = hueFor(p.person.id)}
-				<radialGradient id={gid(p.person.id)}>
-					<stop offset="0%" stop-color={hue} stop-opacity="0.8" />
-					<stop offset="55%" stop-color={hue} stop-opacity="0.28" />
-					<stop offset="100%" stop-color={hue} stop-opacity="0" />
-				</radialGradient>
+				{@const hue = hueOf(p)}
 				<!-- a lit orb: pale at the centre, the person's colour at the rim -->
 				<radialGradient id="orb-{gid(p.person.id)}" cx="0.42" cy="0.38" r="0.7">
 					<stop offset="0%" stop-color="#fffdf8" />
@@ -204,15 +220,16 @@
 			>
 		</g>
 
-		{#each layout.dots as d (d.id)}
+		<!-- in light-up order (clockwise from the top), so the keyboard moves round the map the same way -->
+		{#each tabOrder as d (d.id)}
 			{@const p = byId.get(d.id)!}
-			{@const hue = hueFor(d.id)}
+			{@const hue = hueOf(p)}
 			{@const i = order.get(d.id) ?? 0}
 			<a
-				href="/circle/{d.id}"
+				href={dotHref(p)}
 				class="dotlink"
 				aria-label={dotLabel({
-					name: p.person.name,
+					name: p.unlinked ? `${p.person.name}, answered on the family page. Who is this?` : p.person.name,
 					localTime: p.localTime,
 					tz: p.tz,
 					glow: p.glow,
@@ -224,9 +241,9 @@
 				<rect class="hit" x={d.label.x} y={d.label.y} width={d.label.w} height={d.label.h} />
 				<g class="node" style="--lit:{litAt(i)}s; --i:{i}">
 					{#if p.glow === 'open'}
-						<circle class="halo open" cx={d.x} cy={d.y} r={DOT_R * 2.6} fill="url(#{gid(d.id)})" />
+						<circle class="halo open" cx={d.x} cy={d.y} r={DOT_R * 2.6} fill="url(#open-{uid})" />
 					{:else if p.glow === 'maybe'}
-						<circle class="halo maybe" cx={d.x} cy={d.y} r={DOT_R * 2} fill="url(#{gid(d.id)})" />
+						<circle class="halo maybe" cx={d.x} cy={d.y} r={DOT_R * 2} fill="url(#open-{uid})" />
 					{/if}
 					<circle class="flare" cx={d.x} cy={d.y} r={DOT_R * 1.6} fill="url(#halo-{uid})" />
 					{#if litSet.has(d.id)}
@@ -237,7 +254,7 @@
 					{/if}
 					<circle class="glowring" cx={d.x} cy={d.y} r={DOT_R + 2.5} fill={hue} filter="url(#soft-{uid})" />
 					<circle class="focus" cx={d.x} cy={d.y} r={DOT_R + 5} />
-					<circle class="dot" cx={d.x} cy={d.y} r={DOT_R} fill="url(#orb-{gid(d.id)})" stroke={hue} />
+					<circle class="dot" class:new={p.unlinked} cx={d.x} cy={d.y} r={DOT_R} fill="url(#orb-{gid(d.id)})" stroke={hue} />
 					{#if p.daylight < 0.98}
 						<!-- night falls across the dot like a moon phase -->
 						<circle
@@ -282,8 +299,8 @@
 					{/if}
 
 					<text x={d.tx} y={d.label.y + 17} text-anchor={d.anchor} class="name">{shortName(p.person.name)}</text>
-					{#if sub(p)}
-						<text x={d.tx} y={d.label.y + 32} text-anchor={d.anchor} class="sub num">{sub(p)}</text>
+					{#if !compact && sub(p)}
+						<text x={d.tx} y={d.label.y + 32} text-anchor={d.anchor} class="sub num" class:ask={p.unlinked}>{sub(p)}</text>
 					{/if}
 				</g>
 			</a>
@@ -300,7 +317,9 @@
 		--c-core: #ffffff;
 		--c-core-ring: #9a8fd8;
 		--c-pulse: #ffffff;
-		--c-shade: var(--bg);
+		/* night on a pale dawn: a cool dusk blue, so it reads as night and not as a paler dot */
+		--c-shade: #6f7aa6;
+		--c-shade-a: 0.5;
 		margin: 0 auto;
 		width: 100%;
 		max-width: var(--map-w, 430px);
@@ -313,6 +332,7 @@
 			--c-core: #f6f3fb;
 			--c-core-ring: #e6e1f0;
 			--c-shade: #10121c;
+			--c-shade-a: 0.6;
 		}
 	}
 	:global(:root[data-theme='dark']) .map {
@@ -322,6 +342,7 @@
 		--c-core: #f6f3fb;
 		--c-core-ring: #e6e1f0;
 		--c-shade: #10121c;
+		--c-shade-a: 0.6;
 	}
 	svg {
 		display: block;
@@ -347,6 +368,26 @@
 	}
 	.c5 {
 		stop-color: var(--iri-5);
+	}
+	.open-0 {
+		stop-color: #ecc489;
+		stop-opacity: 0.85;
+	}
+	.open-1 {
+		stop-color: #ecc489;
+		stop-opacity: 0.32;
+	}
+	.open-2 {
+		stop-color: #ecc489;
+		stop-opacity: 0;
+	}
+	.sub.ask {
+		fill: var(--accent);
+		letter-spacing: 0.04em;
+	}
+	.dot.new {
+		stroke-dasharray: 3 2.4;
+		stroke-width: 1.4;
 	}
 	.halo-0 {
 		stop-color: var(--c-halo);
@@ -519,7 +560,7 @@
 	}
 	.shade {
 		fill: var(--c-shade);
-		fill-opacity: 0.6;
+		fill-opacity: var(--c-shade-a);
 		pointer-events: none;
 	}
 	.night {

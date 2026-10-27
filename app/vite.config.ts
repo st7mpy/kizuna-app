@@ -10,7 +10,10 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter({ fallback: '200.html' })
+			adapter: adapter({ fallback: '200.html' }),
+			// Absolute asset paths: the host serves index.html for deep links like /circle/<id>,
+			// and relative ./_app paths would then resolve under /circle/ and load nothing.
+			paths: { relative: false }
 		})
 	],
 	// In dev the relay (wrangler dev) serves the API and pick-a-time pages.

@@ -68,12 +68,24 @@ export function labelWidth(name: string, sub: string): number {
 
 /** Names longer than this get an ellipsis; the full name stays in the aria-label. */
 export function shortName(name: string, max = 12): string {
-	const t = name.trim();
-	if ([...t].length <= max) return t;
-	const first = t.split(/\s+/)[0];
-	if ([...first].length <= max) return first;
-	return [...t].slice(0, max - 1).join('') + '…';
+	const t = name.trim().replace(/\s+/g, ' ');
+	const len = (x: string) => [...x].length;
+	if (len(t) <= max) return t;
+	const words = t.split(' ');
+	const cut = (x: string) => [...x].slice(0, max - 1).join('').trimEnd() + '…';
+	// "Aunt Carmen Delacroix" -> "Aunt Carmen", never just "Aunt".
+	if (KIN.has(words[0].toLowerCase().replace(/[.,]$/, '')) && words.length > 1) {
+		const two = `${words[0]} ${words[1]}`;
+		return len(two) <= max ? two : cut(two);
+	}
+	if (len(words[0]) <= max) return words[0];
+	return cut(t);
 }
+const KIN = new Set([
+	'aunt', 'auntie', 'aunty', 'uncle', 'grandma', 'grandpa', 'granny', 'grandad', 'granddad',
+	'nana', 'nani', 'nanu', 'dada', 'dadi', 'cousin', 'brother', 'sister', 'mom', 'mum', 'dad', 'great', 'little', 'big',
+	'baby', 'dr', 'mr', 'mrs', 'ms', 'miss', 'sir'
+]);
 
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const inside = (a: Box, W: number, H: number) => a.x >= EDGE && a.y >= EDGE && a.x + a.w <= W - EDGE && a.y + a.h <= H - EDGE;

@@ -1,14 +1,17 @@
 <script lang="ts">
 	import type { Person } from '@kizuna/shared';
 	import { updatePerson } from '#lib/core/index.js';
-	import { circlePeople, suggestedPeople } from '#lib/db.js';
+	import { circlePeople, mapLive, suggestedPeople, type MapView } from '#lib/db.js';
 	import { watch } from '#lib/ui/live.svelte.js';
 	import { fold, soft } from '#lib/ui/motion.js';
 	import Icon from '#lib/ui/Icon.svelte';
-	import { hueFor } from '#lib/ui/hue.js';
+	import { hueFor as hashHue } from '#lib/ui/hue.js';
 
 	const circle = watch<Person[]>(() => circlePeople(), []);
 	const suggested = watch<Person[]>(() => suggestedPeople(), []);
+	// The map gives each person their own colour; reading it here keeps the list in the same colours.
+	const map = watch<MapView | undefined>(() => mapLive(), undefined);
+	const hueFor = (id: string) => (void map.value, hashHue(id));
 	let note = $state('');
 
 	async function decide(p: Person, keep: boolean) {
