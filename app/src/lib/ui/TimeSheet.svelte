@@ -81,7 +81,7 @@
 		sharing = true;
 		shareFailed = false;
 		try {
-			if (!inviteUrl) inviteUrl = await createInvite(person.id, slots);
+			if (!inviteUrl) inviteUrl = await createInvite(person.id, slots, person.name);
 			const line = 'Want to catch up? Pick a time that suits you.';
 			let done = false;
 			if (navigator.share) {

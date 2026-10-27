@@ -21,6 +21,22 @@ afterEach(() => {
 });
 
 describe('pick-a-time picks on Today', () => {
+	it('remembers a link shared with a suggested person who is not saved yet', async () => {
+		await db.settings.put(defaultSettings());
+		mockRelay(
+			() => null,
+			(path) => {
+				if (path === '/api/invite') return { ok: true, id: 'inv9', url: '/p/inv9' };
+				throw new Error('unexpected ' + path);
+			}
+		);
+		vi.stubGlobal('location', { origin: 'https://kizuna.example' });
+		await createInvite('suggested-leo', [sat, sun], 'Leo');
+		const s = await db.settings.get('me');
+		expect(s!.pickInvites).toHaveLength(1);
+		expect(s!.pickInvites![0]).toMatchObject({ id: 'inv9', personName: 'Leo', title: 'Catch up' });
+	});
+
 	it('remembers a shared link, sees the pick, and shows "Leo picked …" with a calendar link', async () => {
 		await db.settings.put({ ...defaultSettings(), myName: 'Sid' });
 		await db.people.add(mkPerson({ id: 'leo', name: 'Leo' }));

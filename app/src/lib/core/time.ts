@@ -136,20 +136,23 @@ export async function suggestSlots(request = ''): Promise<{ slots: Slot[]; note:
 	return { slots, note: slots.length ? null : 'No free hours in the next two weeks. You can change them in Settings.' };
 }
 
-/** Creates a pick-a-time page and returns its URL. */
-export async function createInvite(personId: string, slots: Slot[]): Promise<string> {
+/** Creates a pick-a-time page and returns its URL. personName covers a suggested person not saved yet. */
+export async function createInvite(personId: string, slots: Slot[], personName?: string): Promise<string> {
 	const s = await readSettings();
 	// The page shows only the sender's first name; personId is kept here so the pick can show on Today.
 	// A blank or one-letter name is left out; the page then says "A friend".
 	const first = (s.myName || '').trim().split(/\s+/)[0] ?? '';
 	const myName = first.length >= 2 && /\p{L}/u.test(first) ? first : '';
+	// Plain copies: slots may come from UI state, which IndexedDB can't store as is.
+	const picked: Slot[] = slots.slice(0, 3).map((x) => ({ start: x.start, end: x.end, label: x.label }));
+	const title = myName ? `Catch up with ${myName}` : 'Catch up';
 	const r = await relayJson<InviteResponse>('/api/invite', {
-		body: { fromName: myName, title: myName ? `Catch up with ${myName}` : 'Catch up', slots: slots.slice(0, 3), timeZone: deviceTimeZone() },
+		body: { fromName: myName, title, slots: picked, timeZone: deviceTimeZone() },
 		timeoutMs: 15_000
 	});
-	const person = await db.people.get(personId);
-	if (person && r.id)
-		await recordInvite({ id: r.id, personId, personName: person.name, title: myName ? `Catch up with ${myName}` : 'Catch up', slots: slots.slice(0, 3) }).catch(() => {});
+	const name = (await db.people.get(personId))?.name ?? personName?.trim() ?? '';
+	if (r.id && name)
+		await recordInvite({ id: r.id, personId, personName: name, title, slots: picked }).catch((e) => console.warn('kizuna: could not remember the invite', e));
 	if (/^https?:\/\//.test(r.url)) return r.url;
 	const base = s.relayUrl?.replace(/\/+$/, '') || (typeof location !== 'undefined' ? location.origin : '');
 	return base + (r.url.startsWith('/') ? r.url : `/${r.url}`);

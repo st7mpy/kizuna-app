@@ -102,7 +102,7 @@
 			try {
 				const { slots } = await suggestSlots();
 				if (!slots.length) throw new Error('no slots');
-				const url = await createInvite(person.id, slots);
+				const url = await createInvite(person.id, slots, person.name);
 				inviteSuffix = `\n\nPick a time that suits you: ${url}`;
 			} catch {
 				withTime = false;
