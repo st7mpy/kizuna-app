@@ -7,6 +7,7 @@ import type {
 	Language,
 	Occasion,
 	Person,
+	PlanStep,
 	Settings,
 	Slot,
 	WeekendCard,
@@ -329,28 +330,42 @@ export async function weekendContext(now: Date, request = ''): Promise<WeekendCo
 	return { input, range, settings: s };
 }
 
-/** Plans with the Spark weekend task, checked in code; the phone's own plan when offline or unusable. */
-async function plan(ctx: WeekendContext): Promise<WeekendCard | null> {
-	const { input, range } = ctx;
-	if (!hasReason(input)) return null;
-	let local: WeekendOutput | null = null;
-	try {
-		local = checkPlan(bestWeekendSlot(input), input, range);
-		if (local) local = { ...local, ...weekendReason(input, Date.parse(local.slot!.start), local.personIds) };
-	} catch {
-		/* use the phone's own plan below */
-	}
-	if (!local) local = localWeekendPlan(input); // also covers Friday evening
-	if (!local.slot) return null; // nothing good this weekend: say nothing
-	let out: WeekendOutput = local;
-	if (isOnline()) {
-		try {
-			const checked = checkPlan(await spark('weekend', input), input, range);
-			if (checked) out = checked;
-		} catch {
-			/* the phone's plan is fine */
+const STEP_ORDER = ['get_windows', 'get_occasions', 'get_local_time', 'get_reasons', 'finish'];
+
+/** Pure: "How Kizuna planned this", one plain line per step, from the planner's input and answer. */
+export function planSteps(input: WeekendInput, out: WeekendOutput, tools: string[] = out.tools_used): PlanStep[] {
+	const used = tools.length ? [...new Set(tools)] : STEP_ORDER;
+	const order = [...used.filter((t) => t !== 'finish'), 'finish'].filter((t) => STEP_ORDER.includes(t));
+	const today = zonedDay(Date.parse(input.now), input.timeZone);
+	const names = new Map(input.people.map((p) => [p.id, p.name.split(/\s+/)[0]]));
+	const list = (ids: string[]) => {
+		const n = ids.map((id) => names.get(id)).filter((x): x is string => !!x);
+		return n.length <= 1 ? (n[0] ?? '') : `${n.slice(0, -1).join(', ')} and ${n.at(-1)}`;
+	};
+	const steps: PlanStep[] = [];
+	for (const tool of order) {
+		if (tool === 'get_windows') {
+			const sharing = input.people.filter((p) => p.windows.length).length;
+			steps.push({ tool, line: `Looked at when you and ${input.people.length} ${input.people.length === 1 ? 'person' : 'people'} are free this weekend (${sharing} shared times).` });
+		} else if (tool === 'get_occasions') {
+			const soon = input.occasions.filter((o) => dayDiff(today, o.day) >= 0 && dayDiff(today, o.day) <= WEEKEND_REASON_DAYS);
+			steps.push({ tool, line: soon.length ? `Checked birthdays and holidays: ${soon.slice(0, 2).map((o) => `${o.name} ${dayPhrase(o.day, today)}`).join(', ')}.` : 'Checked birthdays and holidays: none in the next 10 days.' });
+		} else if (tool === 'get_local_time') {
+			const away = [...new Set(input.people.filter((p) => p.timeZone !== input.timeZone).map((p) => city(p.timeZone)))];
+			steps.push({ tool, line: away.length ? `Checked the clock where people live (${away.slice(0, 3).join(', ')}) so nobody is asked during their night.` : 'Checked everyone’s quiet hours so nobody is asked during their night.' });
+		} else if (tool === 'get_reasons') {
+			const who = [...new Set(input.reasons.map((r) => r.personId))];
+			steps.push({ tool, line: input.reasons.length ? `Read why to call from your notes, about ${list(who)} (private details left out).` : 'Looked for reasons to call in your notes.' });
+		} else if (tool === 'finish' && out.slot) {
+			const free = list(out.personIds);
+			const missed = out.skipped.length ? `, with a different time for ${list(out.skipped.map((x) => x.personId))}` : '';
+			steps.push({ tool, line: `Picked ${zonedSlotLabel(Date.parse(out.slot.start), Date.parse(out.slot.end), input.timeZone)} when ${free} ${out.personIds.length === 1 ? 'is' : 'are'} free${missed}.` });
 		}
 	}
+	return steps;
+}
+
+function toCard(out: WeekendOutput, input: WeekendInput, by: 'spark' | 'phone'): WeekendCard {
 	return {
 		kind: 'weekend',
 		slot: out.slot!,
@@ -358,8 +373,44 @@ async function plan(ctx: WeekendContext): Promise<WeekendCard | null> {
 		skipped: specificWhy(out.skipped, input, Date.parse(out.slot!.start)),
 		reason: out.reason,
 		occasion: out.occasion,
-		trace: out.tools_used
+		trace: out.tools_used,
+		steps: planSteps(input, out),
+		by
 	};
+}
+
+/** Pure: the phone's own plan (checked), used offline, while Spark answers, and for sample families. */
+function phonePlan(ctx: WeekendContext): WeekendOutput | null {
+	const { input, range } = ctx;
+	let local: WeekendOutput | null = null;
+	try {
+		local = checkPlan(bestWeekendSlot(input), input, range);
+		if (local) local = { ...local, ...weekendReason(input, Date.parse(local.slot!.start), local.personIds) };
+	} catch {
+		/* the simpler plan below */
+	}
+	if (!local) local = localWeekendPlan(input); // also covers Friday evening
+	return local.slot ? local : null;
+}
+
+/** Asks Spark for the plan; null when it can't be reached or its answer doesn't check out. */
+async function sparkPlan(ctx: WeekendContext): Promise<WeekendCard | null> {
+	if (!isOnline()) return null;
+	try {
+		const checked = checkPlan(await spark('weekend', ctx.input), ctx.input, ctx.range);
+		return checked ? toCard(checked, ctx.input, 'spark') : null;
+	} catch {
+		return null;
+	}
+}
+
+/** Plans with the Spark weekend task, checked in code; the phone's own plan when offline or unusable. */
+async function plan(ctx: WeekendContext): Promise<WeekendCard | null> {
+	const { input } = ctx;
+	if (!hasReason(input)) return null;
+	const local = phonePlan(ctx);
+	if (!local) return null; // nothing good this weekend: say nothing
+	return (await sparkPlan(ctx)) ?? toCard(local, input, 'phone');
 }
 
 /** Pure: a plain "not free" becomes their local time when they live in another zone ("It's 00:30 in Toronto then."). */
@@ -390,9 +441,35 @@ export async function weekendCard(now = new Date()): Promise<WeekendCard | null>
 	if (!ctx) return null;
 	const key = cacheKey(ctx);
 	if (s.weekendCache?.day === today && s.weekendCache.key === key) return s.weekendCache.card;
+	// Sample family: never wait on the model. The phone's plan shows at once; Spark's plan, when it
+	// comes back, replaces it for the next look (unless something changed in between).
+	if (s.circle?.id === SAMPLE_CIRCLE_ID && !request) {
+		if (!hasReason(ctx.input)) return null;
+		const local = phonePlan(ctx);
+		const card = local ? toCard(local, ctx.input, 'phone') : null;
+		await updateSettings({ weekendCache: { day: today, key, request: '', card } });
+		if (card) void upgradeSample(ctx, today, key);
+		return card;
+	}
 	const card = await plan(ctx);
 	await updateSettings({ weekendCache: { day: today, key, request: ctx.input.request, card } });
 	return card;
+}
+
+const upgrading = new Set<string>();
+async function upgradeSample(ctx: WeekendContext, day: string, key: string): Promise<void> {
+	if (upgrading.has(key)) return;
+	upgrading.add(key);
+	try {
+		const better = await sparkPlan(ctx);
+		if (!better) return;
+		const s = await readSettings();
+		if (s.weekendCache?.day === day && s.weekendCache.key === key && s.weekendCache.card?.by === 'phone') {
+			await updateSettings({ weekendCache: { day, key, request: '', card: better } });
+		}
+	} finally {
+		upgrading.delete(key);
+	}
 }
 
 /** A plain-language change ("not Sunday, Dad has a game"). Returns the new card, or null if nothing fits. */

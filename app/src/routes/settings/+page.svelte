@@ -19,8 +19,11 @@
 		myWindows,
 		newCircleLink,
 		setSharing,
-		updateSettings
+		updateSettings,
+		usefulAnswers,
+		usefulSummary
 	} from '#lib/core/index.js';
+	import { startTour } from '#lib/ui/tour.svelte.js';
 	import { hasAnyData, readSettings, settingsLive } from '#lib/db.js';
 	import type { CircleWindow } from '@kizuna/shared';
 	import { whenLocal } from '#lib/ui/mapformat.js';
@@ -32,7 +35,7 @@
 	import Icon from '#lib/ui/Icon.svelte';
 	import TimeSelect from '#lib/ui/TimeSelect.svelte';
 	import { newWindow, windowProblem } from '#lib/ui/freehours.js';
-	import { shareAfter } from '#lib/ui/toast.svelte.js';
+	import { shareAfter, shareWithToast } from '#lib/ui/toast.svelte.js';
 
 	let s = $state<Settings | null>(null);
 	let note = $state('');
@@ -249,12 +252,20 @@
 		dataNote = '';
 		try {
 			await loadSample(sampleKey);
-			goto('/');
+			startTour();
+			goto('/map');
 		} catch {
 			dataNote = 'Couldn’t load the sample just now.';
 		} finally {
 			sampling = false;
 		}
+	}
+
+	// "Was this useful?" answers stay on this phone until the tester chooses to share them.
+	const useful = usefulAnswers();
+	const usefulLine = usefulSummary(useful);
+	async function shareUseful() {
+		await shareWithToast(usefulLine, 'a message to the Kizuna team');
 	}
 
 	async function exportAll() {
@@ -528,6 +539,10 @@
 			</li>
 		</ul>
 		{#if dataNote}<p class="note" role="alert">{dataNote}</p>{/if}
+		{#if usefulLine}
+			<p class="muted useful-line">{usefulLine} Only on this phone until you share it.</p>
+			<button class="btn line" type="button" onclick={shareUseful}>Share my answers</button>
+		{/if}
 	</section>
 
 	<section class="set-block about" id="about">

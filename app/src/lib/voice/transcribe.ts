@@ -1,4 +1,5 @@
 // Record-then-transcribe fallback: POST a WAV to the relay.
+import { markResting } from '../core/relay.ts';
 import type { TranscribeResponse } from '@kizuna/shared';
 
 export interface TranscribeOptions {
@@ -31,6 +32,9 @@ export async function transcribeBlob(blob: Blob, opts: TranscribeOptions = {}): 
 		body = await res.json();
 	} catch {
 		/* not JSON */
+	}
+	if (!res.ok && body.error === 'rate_limited' && (body as { detail?: string }).detail === 'daily_budget') {
+		markResting(Number(res.headers?.get?.('retry-after')) || 3600);
 	}
 	if (!res.ok || body.ok !== true || typeof body.text !== 'string') {
 		throw new Error(body.error ? `transcribe failed: ${body.error}` : `transcribe failed (${res.status})`);

@@ -53,7 +53,7 @@ export { suggestSlots, createInvite, googleCalendarLink, icsFile, checkCalendar,
 export { updatePerson, mergePeople, removePerson, updateThread, markReached } from './people.ts';
 export { loadSampleLife, loadSample, refreshSampleMembers, SAMPLES, type SampleKey } from './sample.ts';
 export { deleteEverything, exportNotes } from './data.ts';
-export { isOnline } from './relay.ts';
+export { isOnline, isResting, onResting } from './relay.ts';
 export { picksToday, closePick, checkInvites, type PickedLine } from './picks.ts';
 
 /** Call once when the app opens: understands notes left from before (and again when back online), then weaves if due. */
@@ -111,3 +111,5 @@ function askPersistentStorage(): void {
 		/* not supported */
 	}
 }
+export { askPersist, needsHomeScreenHint, dismissHomeScreenHint } from './storage.ts';
+export { recordUseful, usefulAnswers, usefulSummary, clearLocal, type UsefulAnswer, type UsefulEntry } from './local.ts';

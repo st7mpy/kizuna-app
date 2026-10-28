@@ -163,6 +163,16 @@ export interface WeekendCard {
 	reason: string;
 	occasion: string | null;
 	trace: string[];
+	/** "How Kizuna planned this": one plain line per planning step, in order. */
+	steps?: PlanStep[];
+	/** Who made the plan: Meta's Spark model, or the phone's own planner (offline or a sample run). */
+	by?: 'spark' | 'phone';
+}
+
+/** One step of the weekend planner, in words ("Looked at when 4 people are free this weekend."). */
+export interface PlanStep {
+	tool: string; // get_windows, get_occasions, get_local_time, get_reasons, finish
+	line: string;
 }
 
 /** The gift card on Today / the map (built on the phone, not stored). */

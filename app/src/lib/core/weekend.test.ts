@@ -305,3 +305,34 @@ describe('weekend drafts', () => {
 		expect((await draftForGroup(card)).line).toMatch(/everyone's free then/);
 	});
 });
+
+describe('how Kizuna planned this', () => {
+	it('turns the planner steps into plain lines, in order, ending with the pick', async () => {
+		const { planSteps } = await import('./weekend.ts');
+		const input: WeekendInput = {
+			request: '',
+			now: '2026-10-30T19:00:00-05:00',
+			timeZone: 'America/Chicago',
+			me: { name: 'Sam', windows: [], quietStart: '22:00', quietEnd: '08:00' },
+			people: [
+				{ id: 'leo', name: 'Leo', relation: 'child', timeZone: 'Australia/Melbourne', language: 'en', windows: [{ start: 'a', end: 'b' }], quietStart: '22:00', quietEnd: '08:00' },
+				{ id: 'mom', name: 'Mom', relation: 'parent', timeZone: 'America/Chicago', language: 'en', windows: [], quietStart: '22:00', quietEnd: '08:00' }
+			] as WeekendPerson[],
+			occasions: [{ day: '2026-11-01', name: "Dad's birthday", kind: 'birthday', personIds: [] }],
+			reasons: [{ personId: 'leo', text: 'exams next week' }],
+			minMinutes: 45
+		};
+		const steps = planSteps(input, {
+			slot: { start: '2026-11-01T11:00:00-06:00', end: '2026-11-01T12:00:00-06:00', label: '' },
+			personIds: ['mom'],
+			skipped: [{ personId: 'leo', why: 'asleep', alt: null }],
+			reason: '',
+			occasion: null,
+			tools_used: ['get_windows', 'get_reasons', 'get_windows', 'finish']
+		});
+		expect(steps.map((s) => s.tool)).toEqual(['get_windows', 'get_reasons', 'finish']);
+		expect(steps[0].line).toContain('2 people');
+		expect(steps[1].line).toContain('Leo');
+		expect(steps[2].line).toMatch(/^Picked .* when Mom is free, with a different time for Leo\.$/);
+	});
+});

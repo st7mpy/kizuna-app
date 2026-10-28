@@ -4,6 +4,7 @@
 	import { soft } from './motion.js';
 	import { shareWithToast } from './toast.svelte.js';
 	import { autogrow } from './autogrow.js';
+	import Useful from './Useful.svelte';
 
 	let {
 		load,
@@ -12,7 +13,8 @@
 		share = false,
 		tip = '',
 		onopened,
-		oncancel
+		oncancel,
+		what = 'line'
 	}: {
 		/**
 		 * Drafts the line; called once when the box appears. It may hand over a simple line at once
@@ -27,6 +29,8 @@
 		tip?: string;
 		onopened?: () => void;
 		oncancel?: () => void;
+		/** For the "was this useful?" answer. */
+		what?: 'line' | 'group' | 'gift';
 	} = $props();
 
 	let text = $state('');
@@ -88,6 +92,7 @@
 		{#if oncancel}<button class="btn quiet" type="button" onclick={oncancel}>Cancel</button>{/if}
 	</div>
 	{#if opened && tip}<p class="tiny tip" role="status" in:soft>{tip}</p>{/if}
+	{#if opened}<Useful {what} />{/if}
 </div>
 
 <style>

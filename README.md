@@ -8,9 +8,18 @@ You talk to it the way you think: in half sentences, in a rush. Kizuna remembers
 
 Built for the Meta Global AI Developer Hackathon 2026 (Indie track). All code in this repository was written during the event.
 
+## For judges: 60 seconds
+
+- **Live:** https://kizuna.siddharth77work.workers.dev (works in any phone or desktop browser, no sign-in)
+- **Video:** link added on submission day
+- **The path:** tap **Try it with a sample family**, follow the three soft hints: see who's free on the map, open this weekend's call, then send it to the family group. Open **How Kizuna planned this** on the weekend card to see Spark's tool calls.
+- **Then add your own note:** hold the mic on Talk and say something like "Leo has exams next week, I should call him Sunday". That note goes to Meta's models live.
+- **Meta models used:** see [Meta models](#meta-models) below.
+- **Start clean:** open `/?fresh` to clear the app on that browser and see the first screen again.
+
 ## Why
 
-Meta made it possible to reach anyone in the world. The close half is harder: the people one bus ride away who drift because life is loud. In-person time with friends fell from about 60 to 20 minutes a day between 2003 and 2020 (US Surgeon General, 2023). For people with ADHD traits or plain overload, "I'll call this weekend" quietly becomes five weeks.
+Meta made it possible to reach anyone in the world. The close half is harder: the people one bus ride away who drift because life is loud. In-person time with friends fell from about 60 to 20 minutes a day between 2003 and 2020 (US Surgeon General, 2023). For anyone whose week gets loud, "I'll call this weekend" quietly becomes five weeks.
 
 Kizuna is built for that close half.
 
@@ -21,7 +30,7 @@ Kizuna is built for that close half.
 | 1 | **Talk it out** | Hold the mic and talk. Words appear as you speak. Typing always works too. |
 | 2 | **Remembers for you** | Each note is turned into people, dates, plans and promises ("should call Jordan"). Dates are checked in code against the words you used. |
 | 3 | **Your circle builds itself** | A long-context pass over everything you've said suggests up to 8 people who matter, and merges nicknames (Mom, Mum, Ma). |
-| 4 | **Poke, no score** | One tap drafts a short line in your own language and tone, and opens WhatsApp with it ready. You edit and send. No counters, ever. |
+| 4 | **Poke, no score** | One tap drafts a short line in your own tone, and opens WhatsApp with it ready. You edit and send. No counters, ever. |
 | 5 | **Find us a time** | Two free slots from your free hours (and, if you add it, your private calendar link). Ask in plain words: "next weekend, not Sunday". The other person gets a pick-a-time page that needs no app. |
 | 6 | **Today** | Tap how much room you have (low, some, lots) and see 1, 3 or 5 things, people first. Empty is a good day. |
 

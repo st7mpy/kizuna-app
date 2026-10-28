@@ -70,6 +70,26 @@ async function baseUrl(): Promise<string> {
 	return (s.relayUrl ?? '').replace(/\/+$/, '');
 }
 
+// The day's model allowance is used up: Kizuna "rests" until the relay says it can read again.
+let restingUntil = 0;
+const restingListeners = new Set<(resting: boolean) => void>();
+
+export function markResting(seconds: number, now = Date.now()): void {
+	restingUntil = now + Math.min(Math.max(seconds, 60), 86_400) * 1000;
+	for (const f of restingListeners) f(true);
+}
+
+/** True while the relay's daily budget is spent (notes are kept and read later). */
+export function isResting(now = Date.now()): boolean {
+	return restingUntil > now;
+}
+
+/** Calls `f` when Kizuna starts resting. Returns the unsubscribe. */
+export function onResting(f: (resting: boolean) => void): () => void {
+	restingListeners.add(f);
+	return () => restingListeners.delete(f);
+}
+
 /** JSON request to the relay with a timeout. Throws RelayError. */
 export async function relayJson<T>(path: string, init: { method?: string; body?: unknown; timeoutMs?: number } = {}): Promise<T> {
 	if (!isOnline()) throw new RelayError('offline');
@@ -113,6 +133,9 @@ export async function relayJson<T>(path: string, init: { method?: string; body?:
 	}
 	if (!res.ok) {
 		const err = (data as { error?: string } | null)?.error;
+		if (err === 'rate_limited' && (data as { detail?: string } | null)?.detail === 'daily_budget') {
+			markResting(Number(res.headers.get('retry-after')) || 3600);
+		}
 		const known = ['bad_request', 'rate_limited', 'model_error', 'invalid_output', 'too_large'];
 		throw new RelayError(err && known.includes(err) ? (err as RelayErrorCode) : 'http', `status ${res.status}`);
 	}

@@ -15,6 +15,8 @@
 	import { cap } from './format.js';
 	import DraftBox from './DraftBox.svelte';
 	import Icon from './Icon.svelte';
+	import Hint from './Hint.svelte';
+	import { passTour, tour } from './tour.svelte.js';
 
 	let {
 		card,
@@ -111,7 +113,9 @@
 	}
 </script>
 
-<article class="weekend" aria-labelledby="wk-{uid}">
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+<article class="weekend" aria-labelledby="wk-{uid}" onclick={() => passTour(2)}>
+	{#if tour.step === 2}<Hint text="Here’s this weekend’s call" onpass={() => passTour(2)} />{/if}
 	<p class="label">This weekend</p>
 	<h2 id="wk-{uid}" class="when">
 		<span class="num">{when}</span> <span class="yours">{yourTime()}</span>
@@ -137,11 +141,24 @@
 		</ul>
 	{/if}
 
-	{#if trace}<p class="trace" aria-label="How Kizuna found this: {trace}">{trace}</p>{/if}
+	{#if c.steps?.length}
+		<details class="how">
+			<summary>How Kizuna planned this</summary>
+			<ol>
+				{#each c.steps as step, i (step.tool + i)}
+					<li><code>{step.tool}</code><span>{step.line}</span></li>
+				{/each}
+			</ol>
+			<p class="by">
+				{c.by === 'spark' ? 'Planned by Meta’s Spark model, then checked on your phone.' : 'Planned on your phone. Spark takes over when it answers.'}
+			</p>
+		</details>
+	{:else if trace}<p class="trace" aria-label="How Kizuna found this: {trace}">{trace}</p>{/if}
 
 	{#if drafting === 'group'}
 		<DraftBox
 			label="For the family group"
+			what="group"
 			share
 			load={(quick) => draftForGroup(c, quick)}
 			tip={WHATSAPP_SCHEDULE_TIP}
@@ -160,7 +177,8 @@
 	{/if}
 
 	{#if drafting !== 'group'}
-		<button class="btn primary big main" type="button" onclick={() => (drafting = 'group')}>
+		{#if tour.step === 3}<Hint text="Send it to the family" onpass={() => passTour(3)} />{/if}
+		<button class="btn primary big main" type="button" onclick={() => { passTour(3); drafting = 'group'; }}>
 			Draft for the family group
 		</button>
 	{/if}
@@ -261,6 +279,59 @@
 		letter-spacing: 0.02em;
 		color: var(--text-3);
 		padding: 2px 0 0;
+	}
+	.how {
+		font-size: var(--t-small);
+		color: var(--text-2);
+		margin-top: 4px;
+	}
+	.how summary {
+		cursor: pointer;
+		min-height: 32px;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--text-3);
+		list-style: none;
+	}
+	.how summary::-webkit-details-marker {
+		display: none;
+	}
+	.how summary::after {
+		content: '';
+		width: 6px;
+		height: 6px;
+		border-right: 1.5px solid currentColor;
+		border-bottom: 1.5px solid currentColor;
+		transform: rotate(45deg) translateY(-2px);
+		transition: transform 0.2s var(--ease, ease);
+	}
+	.how[open] summary::after {
+		transform: rotate(225deg) translateY(-1px);
+	}
+	.how ol {
+		list-style: none;
+		margin: 4px 0 0;
+		padding: 0 0 0 10px;
+		border-left: 1px solid var(--line, color-mix(in srgb, var(--text) 14%, transparent));
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.how li {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+	.how code {
+		font: 500 0.72rem/1.3 var(--sans);
+		letter-spacing: 0.02em;
+		color: var(--accent-ink);
+	}
+	.how .by {
+		margin-top: 6px;
+		font-size: 0.75rem;
+		color: var(--text-3);
 	}
 	.main {
 		margin-top: 10px;

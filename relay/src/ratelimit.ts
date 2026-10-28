@@ -112,7 +112,8 @@ export const limits = {
 	// Weave can cost about $0.50 a call: its own, much smaller bucket.
 	// Per phone; the per-IP ceiling is loose because a venue or office shares one address.
 	weave: new ClientLimiter({ capacity: 2, refillPerMinute: 0.1, daily: 10 }, 25),
-	voice: new VoiceLimiter(new ClientLimiter({ capacity: 6, refillPerMinute: 3, daily: 120 })),
+	// Per phone; the per-IP ceiling is loose so a room of judges on one Wi-Fi can all talk.
+	voice: new VoiceLimiter(new ClientLimiter({ capacity: 6, refillPerMinute: 3, daily: 120 }, 20)),
 	// One new invite a minute per phone; each is a KV write.
 	inviteCreate: new ClientLimiter({ capacity: 2, refillPerMinute: 1, daily: 20 }, 2),
 	// Picks (API and the pick page's form). Pickers have no device id, so this is per IP.

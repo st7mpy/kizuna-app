@@ -3,7 +3,8 @@
 	// Shown at "/" to a first-time visitor and always at /about. Hides the app's header and tabs.
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { loadSample, SAMPLES, type SampleKey } from '#lib/core/index.js';
+	import { askPersist, loadSample, SAMPLES, type SampleKey } from '#lib/core/index.js';
+	import { startTour } from '#lib/ui/tour.svelte.js';
 	import { chrome } from '#lib/ui/chrome.svelte.js';
 	import Mark from '#lib/ui/Mark.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
@@ -46,6 +47,8 @@
 		try {
 			await loadSample(key);
 			markEntered();
+			startTour();
+			void askPersist();
 			await goto('/map');
 		} catch {
 			failed = true;
@@ -148,6 +151,17 @@
 				<div class="hero-art fade" style="--d:300ms">
 					<FamilyTree />
 				</div>
+			</div>
+		</section>
+
+		<!-- the problem, with one number -->
+		<section class="impact" aria-label="Why it matters">
+			<div class="in impact-in" use:reveal>
+				<p class="impact-num"><span class="num">60</span><span class="arrow" aria-hidden="true"></span><span class="num">20</span></p>
+				<p class="impact-copy">
+					Minutes a day people in the US spent with friends in person, 2003 compared with 2020.
+					<span class="src">US Surgeon General, 2023</span>
+				</p>
 			</div>
 		</section>
 
@@ -560,6 +574,60 @@
 		line-height: 1.04;
 		letter-spacing: -0.04em;
 		text-wrap: balance;
+	}
+	.impact {
+		padding: clamp(28px, 5vw, 56px) 0;
+	}
+	.impact-in {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 12px 32px;
+		text-align: left;
+	}
+	.impact-num {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		font-size: clamp(2.75rem, 7vw, 4.5rem);
+		font-weight: 500;
+		letter-spacing: -0.04em;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+	}
+	.impact-num .num:last-child {
+		color: var(--accent-ink);
+	}
+	.impact-num .arrow {
+		width: clamp(28px, 5vw, 48px);
+		height: 1.5px;
+		background: linear-gradient(90deg, var(--text-3), var(--accent));
+		position: relative;
+	}
+	.impact-num .arrow::after {
+		content: '';
+		position: absolute;
+		right: 0;
+		top: -4px;
+		width: 8px;
+		height: 8px;
+		border-top: 1.5px solid var(--accent);
+		border-right: 1.5px solid var(--accent);
+		transform: rotate(45deg);
+	}
+	.impact-copy {
+		max-width: 22em;
+		color: var(--text-2);
+		font-size: clamp(1rem, 1.4vw, 1.125rem);
+		line-height: 1.45;
+		text-wrap: pretty;
+	}
+	.impact-copy .src {
+		display: block;
+		margin-top: 4px;
+		font-size: 0.8125rem;
+		color: var(--text-3);
 	}
 	.lede {
 		font-size: clamp(1.0625rem, 1.5vw, 1.25rem);

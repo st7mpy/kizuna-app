@@ -23,6 +23,8 @@
 	import { fold, soft } from '#lib/ui/motion.js';
 	import Constellation from '#lib/ui/Constellation.svelte';
 	import WeekendCard from '#lib/ui/WeekendCard.svelte';
+	import Hint from '#lib/ui/Hint.svelte';
+	import { passTour, tour } from '#lib/ui/tour.svelte.js';
 	import GiftCard from '#lib/ui/GiftCard.svelte';
 	import MemberList from '#lib/ui/MemberList.svelte';
 	import { hueOf } from '#lib/ui/hue.js';
@@ -205,7 +207,9 @@
 			</div>
 
 			{#if view.value}
-				<div class="stage">
+				{#if tour.step === 1 && view.value.people.length}<Hint text="See who’s free: glowing dots can talk now" onpass={() => passTour(1)} />{/if}
+				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+				<div class="stage" onclick={() => passTour(1)}>
 					<Constellation people={view.value.people} me={{ name: 'You', localTime: view.value.me.localTime }} {beat} {lit} />
 					{#if view.value.people.length}
 						<p class="legend tiny">

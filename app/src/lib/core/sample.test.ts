@@ -230,6 +230,33 @@ describe('sample life', () => {
 		expect(name(gift.withPersonId!)).toBe('Maya');
 	});
 
+	it('a sample family never waits on the model: the weekend card is the phone plan with its steps, then Spark replaces it', async () => {
+		vi.setSystemTime(new Date(Date.UTC(2026, 9, 27, 17, 0)));
+		await loadSampleLifeFrom(await fetchSampleLife('abroad'));
+		const { mockRelay } = await import('./testing.ts');
+		setOffline(false);
+		let release: () => void = () => {};
+		const gate = new Promise<void>((r) => (release = r));
+		let asked = 0;
+		mockRelay(async (task, input) => {
+			if (task !== 'weekend') throw new Error('unexpected ' + task);
+			asked++;
+			await gate;
+			const { bestWeekendSlot } = await import('@kizuna/shared');
+			return { ...bestWeekendSlot(input as never), tools_used: ['get_windows', 'get_occasions', 'get_local_time', 'get_reasons', 'finish'] };
+		});
+		const { weekendCard } = await import('./weekend.ts');
+		const card = (await weekendCard())!;
+		expect(card.by).toBe('phone');
+		expect(card.steps!.map((x) => x.tool)).toEqual(['get_windows', 'get_occasions', 'get_local_time', 'get_reasons', 'finish']);
+		expect(card.steps!.find((x) => x.tool === 'get_local_time')!.line).toContain('Melbourne');
+		expect(card.steps!.at(-1)!.line).toMatch(/^Picked /);
+		await vi.waitFor(() => expect(asked).toBe(1));
+		release();
+		await vi.waitFor(async () => expect((await db.settings.get('me'))!.weekendCache!.card!.by).toBe('spark'));
+		expect((await weekendCard())!.by).toBe('spark');
+	});
+
 	it('usa: eight relatives over six zones, one Sunday time that works for most', async () => {
 		vi.setSystemTime(new Date(2026, 9, 27, 12, 0)); // Tuesday
 		await loadSampleLifeFrom(await fetchSampleLife('usa'));

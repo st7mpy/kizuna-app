@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Useful from './Useful.svelte';
 	// Poke: a short drafted line the user edits and sends in WhatsApp. Kizuna never sends anything itself.
 	import type { Person } from '@kizuna/shared';
 	import {
@@ -142,6 +143,7 @@
 			<Seal size={84} />
 			<p class="calm">Over to <em>WhatsApp</em>.</p>
 			<p class="muted">Send it when it feels right.</p>
+			<Useful />
 			<button class="btn line block big" type="button" onclick={() => (open = false)}>Close</button>
 		</div>
 	{:else}

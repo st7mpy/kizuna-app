@@ -42,6 +42,7 @@
 
 	{#if drafting && sib}
 		<DraftBox
+			what="gift"
 			label="For {sib.name}"
 			phone={sib.phone}
 			load={(quick) => draftGiftLine(card, quick)}

@@ -40,3 +40,18 @@ describe('weave limit at a shared venue IP', () => {
 		expect(keys).toEqual(['1.2.3.4|abc']);
 	});
 });
+
+describe('voice at a shared venue IP', () => {
+	it('lets ten judges on one Wi-Fi each start several voice sessions, and still limits each phone', () => {
+		limits.voice.reset();
+		const t = Date.parse('2026-11-02T10:00:00Z');
+		let n = 0;
+		const req = (device: string) =>
+			new Request(`wss://k.test/api/asr?device=${device}&session=s${n++}`, { headers: { 'cf-connecting-ip': '1.2.3.4' } });
+		for (let i = 0; i < 10; i++) for (let j = 0; j < 4; j++) expect(limits.voice.allow(req(`judge-${i}`), t)).toBe(true);
+		// Each phone still has its own burst of 6.
+		expect(limits.voice.allow(req('judge-0'), t)).toBe(true);
+		expect(limits.voice.allow(req('judge-0'), t)).toBe(true);
+		expect(limits.voice.allow(req('judge-0'), t)).toBe(false);
+	});
+});

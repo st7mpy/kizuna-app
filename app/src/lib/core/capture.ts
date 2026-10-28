@@ -1,4 +1,5 @@
 // Talk -> Remember: save the note at once, understand it in the background.
+import { askPersist } from './storage.ts';
 import type { ExtractOutput, Fragment, GiftHint, KEvent, Person, Source, Thread } from '@kizuna/shared';
 import { guardDate } from '@kizuna/shared';
 import { db, newId, readSettings } from '../db.ts';
@@ -56,6 +57,7 @@ export async function saveFragment(text: string, source: Source): Promise<Fragme
 		tries: 0
 	};
 	await db.fragments.add(f);
+	void askPersist();
 	hookOnline();
 	void processPending().catch(() => {});
 	return f;
@@ -73,6 +75,7 @@ export async function noteThought(personId: string, text: string, source: Source
 		personIds: [personId]
 	};
 	await db.fragments.add(f);
+	void askPersist();
 	hookOnline();
 	void processPending().catch(() => {});
 	return f;

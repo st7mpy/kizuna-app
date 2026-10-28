@@ -9,7 +9,7 @@
 	import { soft } from '#lib/ui/motion.js';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { autogrow } from '#lib/ui/autogrow.js';
-	import { isOnline } from '#lib/core/index.js';
+	import { isOnline, isResting, onResting } from '#lib/core/index.js';
 
 	type Phase = 'idle' | 'starting' | 'listening' | 'stopping' | 'saving' | 'saved';
 	let phase = $state<Phase>('idle');
@@ -31,6 +31,11 @@
 	let revealTimer: ReturnType<typeof setTimeout> | undefined;
 	let reveal = $state(false);
 
+	// The day's model allowance is spent: notes are still kept, and read later.
+	let resting = $state(isResting());
+	const RESTING_LINE = 'Kizuna is resting. Your note is safe and will be read later.';
+	onDestroy(onResting(() => (resting = true)));
+
 	const live = $derived([heard, partial].filter(Boolean).join(' '));
 	const listening = $derived(phase === 'listening' || phase === 'starting');
 
@@ -51,7 +56,9 @@
 					partial = '';
 				},
 				onError: (m) => {
-					micNote = m || 'The words didn’t come through. Typing works too.';
+					micNote = isResting()
+						? 'Kizuna is resting, so voice is off for now. Type your note and it will be read later.'
+						: m || 'The words didn’t come through. Typing works too.';
 				},
 				onLevel: (l) => (level = l)
 			});
@@ -227,6 +234,8 @@
 						</button>
 					</p>
 					<p class="tiny">It’s kept safely, just as you said it.</p>
+				{:else if resting}
+					<p class="muted" role="status">{RESTING_LINE}</p>
 				{:else if slow}
 					{#if isOnline()}
 						<p class="retry muted">

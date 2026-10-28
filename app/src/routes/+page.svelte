@@ -8,6 +8,8 @@
 		answerLines,
 		closePick,
 		dismissAnswer,
+		dismissHomeScreenHint,
+		needsHomeScreenHint,
 		picksToday,
 		draftNudge,
 		followUps,
@@ -107,6 +109,22 @@
 
 	onMount(load);
 
+	// iPhone in a Safari tab: once, how to keep notes from being cleared after a week away.
+	let homeHint = $state(false);
+	onMount(() => {
+		homeHint = needsHomeScreenHint();
+	});
+	function closeHomeHint() {
+		homeHint = false;
+		dismissHomeScreenHint();
+	}
+
+	// A sample family's weekend card is the phone's plan at first; Spark's plan replaces it when it lands.
+	$effect(() => {
+		const cached = settings.value?.weekendCache?.card;
+		if (cached?.by === 'spark' && weekend?.by === 'phone') weekend = cached;
+	});
+
 	let lastPulse = '';
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
@@ -182,6 +200,12 @@
 
 		<div class="panes today">
 		<div class="main">
+		{#if homeHint && hasData.value}
+			<aside class="home-hint" aria-label="Keep your notes" out:fold>
+				<p><strong>Keep your notes on this iPhone.</strong> Safari clears sites you don’t open for a week. Tap Share, then Add to Home Screen, and Kizuna keeps them.</p>
+				<button class="btn quiet" type="button" onclick={closeHomeHint}>Got it</button>
+			</aside>
+		{/if}
 		<section class="room" aria-labelledby="room-q">
 			<h2 id="room-q" class="label">How much room today?</h2>
 			<Segmented
@@ -369,6 +393,25 @@
 />
 
 <style>
+	.home-hint {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 14px 16px 6px;
+		margin-bottom: 14px;
+		border-radius: var(--r-card);
+		background: var(--surface);
+		box-shadow: var(--card-shadow);
+		font-size: var(--t-small);
+		color: var(--text-2);
+	}
+	.home-hint strong {
+		color: var(--text);
+		font-weight: 600;
+	}
+	.home-hint .btn {
+		align-self: flex-end;
+	}
 	.room {
 		display: flex;
 		flex-direction: column;

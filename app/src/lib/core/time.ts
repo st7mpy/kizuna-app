@@ -110,7 +110,9 @@ export async function suggestSlots(request = ''): Promise<{ slots: Slot[]; note:
 	const timeZone = deviceTimeZone();
 	const busy = await busyTimes(s);
 	const now = new Date();
-	if (isOnline()) {
+	// A sample family never waits on the model for the plain "find a time"; a typed request still asks it.
+	const sample = s.circle?.id === 'sample' && !request.trim();
+	if (isOnline() && !sample) {
 		try {
 			const out: PlanOutput = await spark('plan', {
 				request: request.trim(),

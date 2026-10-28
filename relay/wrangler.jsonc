@@ -29,7 +29,7 @@
   "ratelimits": [
     { "name": "RL_SPARK", "namespace_id": "4101", "simple": { "limit": 40, "period": 60 } },
     { "name": "RL_WEAVE", "namespace_id": "4102", "simple": { "limit": 2, "period": 60 } },
-    { "name": "RL_VOICE", "namespace_id": "4103", "simple": { "limit": 20, "period": 60 } },
+    { "name": "RL_VOICE", "namespace_id": "4103", "simple": { "limit": 120, "period": 60 } },
     { "name": "RL_INVITE", "namespace_id": "4104", "simple": { "limit": 10, "period": 60 } }
   ],
   "vars": {

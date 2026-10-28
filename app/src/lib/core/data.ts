@@ -3,10 +3,12 @@ import { db } from '../db.ts';
 import { localDay, localTime } from './days.ts';
 import { clearDeviceId } from './relay.ts';
 import { clearAll } from './sample.ts';
+import { clearLocal } from './local.ts';
 
 export async function deleteEverything(): Promise<void> {
 	await clearAll();
 	clearDeviceId();
+	clearLocal();
 }
 
 /** Pure: notes as Markdown, grouped by day, oldest first. */
