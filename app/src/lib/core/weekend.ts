@@ -440,7 +440,12 @@ export async function weekendCard(now = new Date()): Promise<WeekendCard | null>
 	const ctx = await weekendContext(now, request);
 	if (!ctx) return null;
 	const key = cacheKey(ctx);
-	if (s.weekendCache?.day === today && s.weekendCache.key === key) return s.weekendCache.card;
+	if (s.weekendCache?.day === today && s.weekendCache.key === key) {
+		const cached = s.weekendCache.card;
+		// A sample's phone plan keeps asking Spark (at most once a minute) until Spark's plan lands.
+		if (cached?.by === 'phone' && s.circle?.id === SAMPLE_CIRCLE_ID && !request) void upgradeSample(ctx, today, key);
+		return cached;
+	}
 	// Sample family: never wait on the model. The phone's plan shows at once; Spark's plan, when it
 	// comes back, replaces it for the next look (unless something changed in between).
 	if (s.circle?.id === SAMPLE_CIRCLE_ID && !request) {
@@ -457,9 +462,12 @@ export async function weekendCard(now = new Date()): Promise<WeekendCard | null>
 }
 
 const upgrading = new Set<string>();
+const lastAsk = new Map<string, number>();
+const UPGRADE_GAP_MS = 60_000;
 async function upgradeSample(ctx: WeekendContext, day: string, key: string): Promise<void> {
-	if (upgrading.has(key)) return;
+	if (upgrading.has(key) || Date.now() - (lastAsk.get(key) ?? 0) < UPGRADE_GAP_MS) return;
 	upgrading.add(key);
+	lastAsk.set(key, Date.now());
 	try {
 		const better = await sparkPlan(ctx);
 		if (!better) return;

@@ -23,6 +23,8 @@ export async function load({ url }: { url: URL }) {
 	endTour();
 	try {
 		sessionStorage.clear();
+		// Every Kizuna key on this browser except the theme choice.
+		for (const k of Object.keys(localStorage)) if (k.startsWith('kizuna') && k !== 'kizuna-theme') localStorage.removeItem(k);
 	} catch {
 		/* nothing stored */
 	}
