@@ -131,8 +131,7 @@
 	.n {
 		font-size: 0.75rem;
 		font-weight: 500;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--accent-ink);
 	}
 	h3 {
@@ -162,8 +161,7 @@
 	.lbl {
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3);
 	}
 	.listen {

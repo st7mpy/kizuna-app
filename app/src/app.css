@@ -68,7 +68,7 @@
 	--t-lead: 1.1875rem; /* 19px */
 	--t-body: 1.0625rem; /* 17px */
 	--t-small: 0.9375rem; /* 15px */
-	--t-label: 0.6875rem; /* 11px tracked caps labels */
+	--t-label: 0.8125rem; /* 13px quiet labels, sentence case */
 
 	--r-card: 22px;
 	--r-field: 14px;
@@ -228,13 +228,13 @@ h2 {
 	font-weight: 500;
 	letter-spacing: -0.02em;
 }
+/* Labels are quiet sentence-case notes, never tracked capitals above a heading. */
 h3,
 .label {
 	font-size: var(--t-label);
 	line-height: 1.4;
 	font-weight: 500;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
+	letter-spacing: 0;
 	color: var(--text-3);
 }
 
@@ -263,6 +263,36 @@ a {
 	outline: 2px solid var(--accent);
 	outline-offset: 3px;
 	border-radius: 6px;
+}
+
+/* The parts the browser draws carry the palette too. */
+::selection {
+	background: color-mix(in srgb, var(--accent) 22%, transparent);
+	color: var(--text);
+}
+html {
+	caret-color: var(--accent);
+	accent-color: var(--accent);
+	scrollbar-color: color-mix(in srgb, var(--text) 22%, transparent) transparent;
+	scrollbar-width: thin;
+}
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--text) 20%, transparent);
+	border: 3px solid transparent;
+	border-radius: 999px;
+	background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+time,
+.num,
+input[type='time'] {
+	font-variant-numeric: tabular-nums;
 }
 
 .muted {
@@ -563,11 +593,9 @@ a {
 	gap: 8px;
 }
 .field > span:first-child {
-	font-size: var(--t-label);
+	font-size: var(--t-small);
 	font-weight: 500;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--text-3);
+	color: var(--text-2);
 }
 /* Fields are soft rounded wells on the paper. */
 input[type='text'],

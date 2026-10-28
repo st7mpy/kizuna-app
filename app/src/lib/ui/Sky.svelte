@@ -8,10 +8,10 @@
 
 	// Seeded, so the stars stay put between screens. Fewer lower down, as near a horizon.
 	const r = rng(11);
-	const specks = Array.from({ length: 44 }, () => ({
+	const specks = Array.from({ length: 30 }, () => ({
 		x: r() * 100,
 		y: Math.pow(r(), 1.6) * 92,
-		s: 1 + r() * 1.6,
+		s: 0.8 + r() * 1.3,
 		twinkle: r() < 0.35,
 		d: r() * 7
 	}));
@@ -90,11 +90,21 @@
 		--cloud-2: rgb(196 186 230 / 0.7);
 		--cloud-3: rgb(244 190 170 / 0.7);
 	}
+	/* Stars stay up in the sky: they fade out before the reading area, so no speck sits on the words. */
 	.stars {
 		position: absolute;
 		inset: 0;
 		overflow: visible;
 		opacity: 0.35;
+		-webkit-mask-image: linear-gradient(180deg, #000 0%, #000 10%, transparent 30%);
+		mask-image: linear-gradient(180deg, #000 0%, #000 10%, transparent 30%);
+	}
+	@media (min-width: 720px) {
+		/* beside the rail there's room at the sides: keep the stars off the centre column */
+		.stars {
+			-webkit-mask-image: radial-gradient(60% 70% at 50% 55%, transparent 55%, #000 100%);
+			mask-image: radial-gradient(60% 70% at 50% 55%, transparent 55%, #000 100%);
+		}
 	}
 	.stars circle {
 		fill: var(--star);

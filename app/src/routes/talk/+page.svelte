@@ -260,7 +260,6 @@
 		</section>
 	{:else}
 		<div class="head">
-			<p class="label">Talk</p>
 			<h1>What’s on <em>your</em> mind?</h1>
 			<p class="lede">People, plans, little things. Say it however it comes.</p>
 		</div>

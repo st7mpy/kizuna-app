@@ -101,8 +101,7 @@
 	tbody th {
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3);
 		padding-left: 0;
 		padding-top: 21px;
@@ -182,8 +181,7 @@
 	.mine .who {
 		font-weight: 600;
 		font-size: 0.75rem;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--accent-ink);
 	}
 	dl {

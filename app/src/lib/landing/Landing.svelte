@@ -136,7 +136,6 @@
 			</div>
 			<div class="in hero-grid">
 				<div class="hero-copy">
-					<p class="kicker fade" style="--d:80ms"><span>絆</span><span class="sep">·</span><span>the bonds between people</span></p>
 					<h1>
 						<span class="w" style="--i:0">Know when your people are free to talk.</span>
 						<span class="w soft" style="--i:1">Never where they are.</span>
@@ -179,7 +178,6 @@
 		<section class="scene" id="how">
 			<div class="in">
 				<div class="shead" use:reveal>
-					<p class="kicker"><span>How it works</span></p>
 					<h2>Say it once. Kizuna remembers.</h2>
 					<p class="lede">No contacts to type in, no reminders to set. Talk the way you think, half sentences and all, and let Kizuna find the right moment.</p>
 				</div>
@@ -191,7 +189,6 @@
 		<section class="scene tint" id="map">
 			<div class="in split">
 				<div class="copy">
-					<p class="kicker" use:reveal><span>The Kizuna map</span></p>
 					<h2 use:reveal={60}>Free, not found.</h2>
 					<p class="lede" use:reveal={120}>
 						Your people on one calm map: you in the middle, family close, friends further out. Each shows their local time,
@@ -213,7 +210,6 @@
 		<section class="scene" id="compare">
 			<div class="in">
 				<div class="shead" use:reveal>
-					<p class="kicker"><span>How it’s different</span></p>
 					<h2>Other apps watch, count or wait.</h2>
 					<p class="lede">
 						Trackers show where people are. Personal CRMs count the days. Group calendars wait for everyone to fill them in.
@@ -232,27 +228,22 @@
 		<section class="scene tint" id="privacy">
 			<div class="in">
 				<div class="shead" use:reveal>
-					<p class="kicker"><span>Yours</span></p>
 					<h2>Quiet by design.</h2>
 				</div>
 				<div class="facts">
 					<div class="fact" use:reveal={0}>
-						<span class="fn">On your phone</span>
 						<h3>Notes stay on your phone</h3>
 						<p>No account. Notes, people and threads live in your browser. Text is sent only to be understood, and isn’t stored.</p>
 					</div>
 					<div class="fact" use:reveal={80}>
-						<span class="fn">No location</span>
 						<h3>No location, ever</h3>
 						<p>The map shows local time and the free windows people choose to share. Never where anyone is.</p>
 					</div>
 					<div class="fact" use:reveal={160}>
-						<span class="fn">Sealed</span>
 						<h3>Sealed for family</h3>
 						<p>Map entries are locked on the device. The server only holds what it can’t read, and it’s gone after 8 days.</p>
 					</div>
 					<div class="fact" use:reveal={240}>
-						<span class="fn">No scores</span>
 						<h3>No streaks, no scores</h3>
 						<p>No counters, “days since” or red badges. “Not now” is a normal answer, and you send every message yourself.</p>
 					</div>
@@ -264,8 +255,7 @@
 		<section class="scene" id="built">
 			<div class="in">
 				<div class="shead" use:reveal>
-					<p class="kicker"><span>Built on Meta’s Muse models</span></p>
-					<h2>Two models, each doing one job well.</h2>
+					<h2>Built on two Meta Muse models, each doing one job well.</h2>
 				</div>
 				<div class="models">
 					<article use:reveal={0}>
@@ -507,8 +497,7 @@
 		margin-right: 4px;
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3);
 	}
 	.samples button {
@@ -542,23 +531,10 @@
 	}
 
 	/* type */
-	.kicker {
-		display: inline-flex;
-		gap: 0.6em;
-		align-items: center;
-		font-size: 0.75rem;
-		font-weight: 500;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
-		color: var(--accent-ink);
-	}
-	.kicker .sep {
-		opacity: 0.5;
-	}
 	h1 {
 		font-size: clamp(2.625rem, 5vw, 4.75rem);
 		line-height: 1.02;
-		letter-spacing: -0.045em;
+		letter-spacing: -0.04em;
 	}
 	h1 .w {
 		display: block;
@@ -904,14 +880,6 @@
 		padding: 26px 24px 30px;
 		background: var(--bg-2);
 	}
-	.fn {
-		font-size: 0.6875rem;
-		font-weight: 500;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
-		color: var(--text-3);
-		margin-bottom: 6px;
-	}
 	.fact h3 {
 		font-size: 1.1875rem;
 		font-weight: 500;
@@ -1031,7 +999,7 @@
 		gap: clamp(12px, 2vw, 22px);
 		font-size: clamp(3rem, 8vw, 6.5rem);
 		font-weight: 500;
-		letter-spacing: -0.05em;
+		letter-spacing: -0.04em;
 		line-height: 1;
 	}
 	.word :global(svg) {
@@ -1068,8 +1036,7 @@
 		margin: 0 0 14px;
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3);
 	}
 	.foot ul {

@@ -578,14 +578,13 @@
 	}
 	.me-name {
 		font-family: var(--sans);
-		font-size: 9.5px;
+		font-size: 10.5px;
 		font-weight: 500;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		fill: var(--text-3);
 	}
 	.me-time {
-		letter-spacing: 0.08em;
+		letter-spacing: 0;
 	}
 	.name {
 		font-family: var(--sans);
@@ -596,10 +595,9 @@
 	}
 	.sub {
 		font-family: var(--sans);
-		font-size: 9px;
+		font-size: 10px;
 		font-weight: 450;
-		letter-spacing: 0.07em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		fill: var(--text-3);
 		font-variant-numeric: tabular-nums;
 	}

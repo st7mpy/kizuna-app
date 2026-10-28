@@ -60,10 +60,9 @@
 		background: var(--bg);
 	}
 	.eyebrow {
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		font-weight: 500;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3);
 	}
 	.title {

@@ -450,18 +450,16 @@
 		color: var(--text, #141311);
 	}
 	.lab small {
-		font-size: 10.5px;
+		font-size: 11.5px;
 		font-weight: 450;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		font-variant-numeric: tabular-nums;
 		color: var(--text-3, #6b665b);
 	}
 	.lab.you b {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 500;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3, #6b665b);
 	}
 	.lab.night {
@@ -472,7 +470,7 @@
 			font-size: 13.5px;
 		}
 		.lab small {
-			font-size: 9.5px;
+			font-size: 10.5px;
 			letter-spacing: 0.07em;
 		}
 		.lab {

@@ -173,7 +173,6 @@
 	<div class="panes">
 		<div class="main">
 			<div class="head">
-				<p class="label">The Kizuna map</p>
 				<h1>Who’s <em>open</em> to a call</h1>
 			</div>
 
@@ -415,10 +414,9 @@
 		padding: 20px 0 6px;
 	}
 	.legend {
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		font-weight: 500;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3);
 	}
 	.cards {

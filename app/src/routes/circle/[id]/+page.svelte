@@ -475,7 +475,7 @@
 		hyphens: auto;
 		font-weight: 500;
 		line-height: 1;
-		letter-spacing: -0.045em;
+		letter-spacing: -0.04em;
 	}
 	.summary {
 		font-size: var(--t-lead);
@@ -507,12 +507,11 @@
 	.d {
 		font-size: 2.25rem;
 		font-weight: 500;
-		letter-spacing: -0.045em;
+		letter-spacing: -0.04em;
 	}
 	.m {
 		font-size: var(--t-label);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
+		letter-spacing: 0;
 		color: var(--text-3);
 		margin-top: 4px;
 	}

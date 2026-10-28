@@ -38,7 +38,6 @@
 <div class="page">
 	<a href="/" class="back"><Icon name="back" size={18} /> Today</a>
 	<div class="head">
-		<p class="label">Threads</p>
 		<h1>Your threads</h1>
 		<p class="lede">Things you said you’d like to do. <em>No rush.</em></p>
 	</div>
@@ -90,8 +89,7 @@
 	.when {
 		font-size: var(--t-label);
 		font-weight: 500;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0;
 		color: var(--text-3);
 		margin-top: 2px;
 	}

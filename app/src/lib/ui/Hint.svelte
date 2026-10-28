@@ -15,8 +15,8 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		min-height: 32px;
-		padding: 4px 12px 4px 10px;
+		min-height: 40px;
+		padding: 8px 14px 8px 12px;
 		border: 0;
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--accent) 14%, var(--surface-solid));

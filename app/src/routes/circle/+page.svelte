@@ -41,7 +41,6 @@
 
 <div class="page wide">
 	<div class="head">
-		<p class="label">Circle</p>
 		<h1>Your circle</h1>
 		<p class="lede">The people you want to keep <em>close</em>.</p>
 	</div>

@@ -287,7 +287,7 @@
 	}
 	.how summary {
 		cursor: pointer;
-		min-height: 32px;
+		min-height: 44px;
 		display: flex;
 		align-items: center;
 		gap: 6px;

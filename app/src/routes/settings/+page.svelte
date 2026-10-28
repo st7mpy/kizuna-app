@@ -316,7 +316,6 @@
 <div class="page">
 	{#if !screen.rail}<a href="/" class="back"><Icon name="back" size={18} /> Today</a>{/if}
 	<div class="head">
-		<p class="label">Settings</p>
 		<h1>Settings</h1>
 	</div>
 
