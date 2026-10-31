@@ -9,6 +9,7 @@ import { looksSensitive } from './poke.ts';
 import { giftHintsInText } from './gifts.ts';
 import { RelayError, isOnline, spark } from './relay.ts';
 import { runWeave, weaveDue } from './weave.ts';
+import { sameTitle } from './text.ts';
 
 export const MAX_TRIES = 3;
 /** A failed note is tried again (3 more tries) at most once a day, on app open. */
@@ -188,7 +189,7 @@ export async function applyExtract(f: Fragment, out: ExtractOutput, opts: ApplyO
 		const open = await db.threads.where('status').equals('open').toArray();
 		const upsertThread = async (title: string, kind: Thread['kind'], personIds: string[]) => {
 			if (!norm(title)) return;
-			const t = open.find((x) => norm(x.title) === norm(title));
+			const t = open.find((x) => norm(x.title) === norm(title) || sameTitle(x.title, title));
 			if (t) {
 				t.personIds = [...new Set([...t.personIds, ...personIds])];
 				t.fragmentIds = [...new Set([...t.fragmentIds, f.id])];

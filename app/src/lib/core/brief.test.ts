@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Fragment } from '@kizuna/shared';
 import { db } from '../db.ts';
-import { briefFor, briefInput, clearBriefCache, cleanBrief, localBrief, similar, type Brief } from './brief.ts';
+import { briefFor, briefInput, clearBriefCache, cleanBrief, localBrief, type Brief } from './brief.ts';
+import { sameTitle, similar } from './text.ts';
 import { mkEvent, mkPerson, mockRelay, resetDb, setOffline } from './testing.ts';
 
 const NOW = new Date(2026, 9, 26, 10, 0);
@@ -41,9 +42,16 @@ describe('brief helpers', () => {
 		expect(input.notes).toEqual([{ day: '2026-10-26', text: 'Leo has exams next week' }]);
 	});
 
+	it('prefers notes that name them, and keeps the first sentence', () => {
+		const dad = mkPerson({ id: 'dad', name: 'Dad', aliases: ['papa'], relation: 'parent' });
+		const input = briefInput(dad, [], [frag({ id: 'a', text: 'Leo sent a photo from the library.' }), frag({ id: 'b', text: 'Papa started golf. He loves it.' })], '2026-10-26');
+		expect(input.notes.map((n) => n.text)).toEqual(['Papa started golf. He loves it.']);
+		expect(localBrief(input).lines).toEqual(['Papa started golf.']);
+	});
+
 	it('builds a phone brief with a gentle ask, and nothing when there is nothing', () => {
 		const b = localBrief({ personName: 'Mom', relation: 'parent', today: '2026-10-26', context: ['has something personal going on (on Thursday); ask how they are, do not mention details', 'cousin wedding (on Saturday)'], notes: [] });
-		expect(b).toEqual({ lines: ['Cousin wedding (on Saturday)'], ask: 'How are you holding up?', fromModel: false });
+		expect(b).toEqual({ lines: ['Cousin wedding (on Saturday)'], ask: 'How have you been?', fromModel: false });
 		expect(localBrief({ personName: 'X', relation: 'friend', today: '2026-10-26', context: [], notes: [] }).lines).toEqual([]);
 	});
 
@@ -51,6 +59,8 @@ describe('brief helpers', () => {
 		expect(similar("Dad's 60th birthday (on 9 Nov)", 'Family dinner for Dad’s 60th')).toBe(true);
 		expect(similar('Birthday dinner for Dad (on 9 Nov)', "Dad's 60th birthday")).toBe(true);
 		expect(similar('Starts new job in LA', 'Grandma likes Sunday afternoons')).toBe(false);
+		expect(sameTitle('Call Leo before exams', 'Call Leo before his exams')).toBe(true);
+		expect(sameTitle('Call Leo', 'Call Leo about Thanksgiving')).toBe(false);
 		const b = localBrief({ personName: 'Dad', relation: 'parent', today: '2026-10-26', context: ["Dad's 60th birthday (on 9 Nov)", 'Birthday dinner for Dad (on 9 Nov)'], notes: [{ day: '2026-10-25', text: 'Dad started golf lessons' }] });
 		expect(b.lines).toEqual(["Dad's 60th birthday (on 9 Nov)", 'Dad started golf lessons']);
 	});

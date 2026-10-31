@@ -6,6 +6,7 @@ import { addDays, localDay } from './days.ts';
 import { buildContext, looksSensitive } from './poke.ts';
 import { isOnline, spark } from './relay.ts';
 import { MONEY } from './weekend.ts';
+import { similar } from './text.ts';
 
 export interface Brief {
 	lines: string[];
@@ -16,30 +17,19 @@ export interface Brief {
 
 const MAX_LINE = 90;
 const PERSONAL = /^has something personal going on/;
+const VAGUE = /\ba lot (on|going on)\b/i;
 
 function clip(text: string, max = MAX_LINE): string {
 	const t = text.replace(/\s+/g, ' ').trim();
 	return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t;
 }
 
+function firstSentence(text: string): string {
+	return text.split(/(?<=[.!?])\s+/)[0]?.trim() ?? text;
+}
+
 function capital(text: string): string {
 	return text ? text[0].toUpperCase() + text.slice(1) : text;
-}
-
-const SMALL = new Set(['a', 'an', 'the', 'for', 'of', 'on', 'in', 'to', 'and', 'with', 'at', 'his', 'her', 'their', 'my', 's']);
-function words(text: string): Set<string> {
-	const plain = text.toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ');
-	return new Set(plain.split(' ').filter((w) => w && !SMALL.has(w)));
-}
-
-/** Pure: true when two lines say much the same thing ("Dad's 60th birthday" and "Family dinner for Dad's 60th"). */
-export function similar(a: string, b: string): boolean {
-	const x = words(a);
-	const y = words(b);
-	if (!x.size || !y.size) return false;
-	let shared = 0;
-	for (const w of x) if (y.has(w)) shared++;
-	return shared / Math.min(x.size, y.size) >= 0.6;
 }
 
 function safe(text: string): boolean {
@@ -49,13 +39,19 @@ function safe(text: string): boolean {
 /** Pure: the input Spark sees. Only safe notes from the last 30 days, newest first. */
 export function briefInput(person: Person, context: string[], fragments: Fragment[], today: string): BriefInput {
 	const since = addDays(today, -30);
-	const notes = fragments
-		.filter((f) => !f.sensitive && safe(f.text))
+	// a note can mention several people; prefer the ones that name this person
+	const names = [person.name, ...(person.aliases ?? [])].map((n) => n.toLowerCase()).filter((n) => n.length > 1);
+	const mentions = (t: string) => names.some((n) => new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(t));
+	const usable = fragments.filter((f) => !f.sensitive && safe(f.text));
+	const about = usable.filter((f) => mentions(f.text));
+	const notes = (about.length ? about : usable)
 		.map((f) => ({ day: localDay(new Date(f.createdAt)), text: clip(f.text, 160) }))
 		.filter((n) => n.day >= since)
 		.sort((a, b) => b.day.localeCompare(a.day))
 		.slice(0, 6);
-	return { personName: person.name, relation: person.relation, today, context, notes };
+	// personal hints shape the phone's ask; Spark only gets what it may say
+	const sayable = context.filter((c) => !PERSONAL.test(c) && !VAGUE.test(c));
+	return { personName: person.name, relation: person.relation, today, context: sayable, notes };
 }
 
 /** Pure: the phone's own brief, with no model. */
@@ -65,19 +61,19 @@ export function localBrief(input: BriefInput, skip = ''): Brief {
 	let personal = false;
 	for (const c of input.context) {
 		if (PERSONAL.test(c)) personal = true;
-		else if (safe(c) && c.trim().toLowerCase() !== shown) lines.push(capital(clip(c)));
+		else if (safe(c) && !VAGUE.test(c) && c.trim().toLowerCase() !== shown) lines.push(capital(clip(c)));
 	}
-	for (const n of input.notes) lines.push(capital(clip(n.text)));
+	for (const n of input.notes) lines.push(capital(clip(firstSentence(n.text))));
 	const out: string[] = [];
 	for (const l of lines) if (out.length < 3 && !out.some((o) => similar(o, l))) out.push(l);
-	const ask = personal ? 'How are you holding up?' : out.length ? 'How has your week been?' : '';
+	const ask = personal ? 'How have you been?' : out.length ? 'How has your week been?' : '';
 	return { lines: out, ask, fromModel: false };
 }
 
 /** Pure: keep Spark's answer only if it is short, safe and non-empty. */
 export function cleanBrief(out: BriefOutput | null | undefined): Brief | null {
 	if (!out || !Array.isArray(out.lines)) return null;
-	const lines = out.lines.map((l) => clip(String(l ?? ''))).filter((l) => l && safe(l)).slice(0, 3);
+	const lines = out.lines.map((l) => clip(String(l ?? ''))).filter((l) => l && safe(l) && !VAGUE.test(l)).slice(0, 3);
 	if (!lines.length) return null;
 	const ask = typeof out.ask === 'string' && safe(out.ask) ? clip(out.ask) : '';
 	return { lines, ask, fromModel: true };

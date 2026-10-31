@@ -224,6 +224,18 @@
 	}
 </script>
 
+{#snippet briefBlock(b: Brief, where: 'narrow' | 'wide')}
+	<!-- next to the actions on a phone; at the top of the story on a wide screen, so the left column stays short -->
+	<section class="section brief {where}" aria-live={where === 'narrow' ? 'polite' : undefined}>
+		<h3>Before you call</h3>
+		<ul class="brief-lines">
+			{#each b.lines as line (line)}<li>{line}</li>{/each}
+		</ul>
+		{#if b.ask}<p class="brief-ask">Maybe ask: “{b.ask}”</p>{/if}
+		<p class="tiny">From your notes. Only you see this.</p>
+	</section>
+{/snippet}
+
 <svelte:head><title>{p.value?.name ?? 'Person'} · Kizuna</title></svelte:head>
 
 <div class="page">
@@ -253,16 +265,7 @@
 			{#if askNote}<p class="tiny ask-note" role="status">{askNote}</p>{/if}
 		</section>
 
-		{#if brief}
-			<section class="section brief" aria-live="polite">
-				<h3>Before you call</h3>
-				<ul class="brief-lines">
-					{#each brief.lines as line (line)}<li>{line}</li>{/each}
-				</ul>
-				{#if brief.ask}<p class="brief-ask">Maybe ask: “{brief.ask}”</p>{/if}
-				<p class="tiny">From your notes. Only you see this.</p>
-			</section>
-		{/if}
+		{#if brief}{@render briefBlock(brief, 'narrow')}{/if}
 
 		<section class="section">
 			<h3>Note a thought</h3>
@@ -286,6 +289,7 @@
 		</div>
 
 		<div class="rest">
+		{#if brief}{@render briefBlock(brief, 'wide')}{/if}
 		{#if onMap && (onMap.localTime || onMap.windows.length || onMap.occasion || openGift)}
 			<section class="section">
 				<h3>On the map</h3>
@@ -579,6 +583,17 @@
 	}
 	.thought {
 		gap: 6px;
+	}
+	.brief.wide {
+		display: none;
+	}
+	@media (min-width: 1100px) {
+		.brief.wide {
+			display: flex;
+		}
+		.brief.narrow {
+			display: none;
+		}
 	}
 	.brief-lines {
 		display: flex;

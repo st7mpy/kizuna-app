@@ -5,6 +5,7 @@ import { addDays, dayToDate, localDay } from './days.ts';
 import { matchPerson, mergePeople, normName, unionAliases, upsertPerson } from './people.ts';
 import { RelayError, isOnline, spark } from './relay.ts';
 import { updateSettings } from './settings.ts';
+import { sameTitle } from './text.ts';
 
 export const WEAVE_NOTE_DAYS = 60;
 export const WEAVE_NOTE_CAP = 200;
@@ -165,7 +166,7 @@ export async function applyWeave(out: WeaveOutput, noteId: (id: string) => strin
 				if (m && !personIds.includes(m.id)) personIds.push(m.id);
 			}
 			const fragmentIds = (wt.note_ids ?? []).map(noteId).filter((x): x is string => !!x);
-			const t = threads.find((x) => norm(x.title) === norm(wt.title));
+			const t = threads.find((x) => norm(x.title) === norm(wt.title) || sameTitle(x.title, wt.title));
 			if (t) {
 				t.personIds = [...new Set([...t.personIds, ...personIds])];
 				t.fragmentIds = [...new Set([...t.fragmentIds, ...fragmentIds])];

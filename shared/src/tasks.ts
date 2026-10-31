@@ -198,7 +198,8 @@ export const BRIEF_PROMPT = `You help someone get ready for a call with a person
 Rules
 - lines: up to 3 short lines, at most 90 characters each, most recent or most important first. Plain words, written to the user ("Leo has exams next week."). Only things the notes say; never invent.
 - Skip anything already in the past by more than two weeks unless it is still going on.
-- Never repeat health, money or conflict details; if something personal is going on, say only "Has a lot on right now."
+- Never repeat health, money or conflict details, and leave personal matters out of the lines altogether. No vague filler such as "Has a lot on right now."
+- Dates: name the day ("on Mon 9 Nov", "this Saturday"). Say "next week" only when it really falls in the next calendar week; never guess a distance.
 - ask: one warm, open question the user could ask, about the most current thing, at most 90 characters ("How did the first exam go?"). Empty if nothing fits.
 - Write in English. No emoji, no quotation marks.`;
 

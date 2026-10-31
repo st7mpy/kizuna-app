@@ -140,14 +140,14 @@
 						<span class="w" style="--i:0">Know when your people are free to talk.</span>
 						<span class="w soft" style="--i:1">Never where they are.</span>
 					</h1>
-					<p class="lede fade" style="--d:520ms">
+					<p class="lede fade" style="--d:300ms">
 						Tell Kizuna what’s on your mind, the way you’d say it to a friend. It remembers the people inside your notes,
 						and at a good moment hands you a ready WhatsApp line and a time that works.
 					</p>
-					<div class="fade" style="--d:680ms">{@render ctas('hero')}</div>
-					<p class="fine fade" style="--d:820ms"><span>Works in your browser</span><span>No account</span><span>Nothing for your family to install</span></p>
+					<div class="fade" style="--d:400ms">{@render ctas('hero')}</div>
+					<p class="fine fade" style="--d:500ms"><span>Works in your browser</span><span>No account</span><span>Nothing for your family to install</span></p>
 				</div>
-				<div class="hero-art fade" style="--d:300ms">
+				<div class="hero-art fade" style="--d:150ms">
 					<FamilyTree />
 				</div>
 			</div>
@@ -720,13 +720,13 @@
 		opacity: 0;
 		filter: blur(8px);
 		transform: translateY(0.2em);
-		animation: rise 1s var(--ease) forwards;
-		animation-delay: calc(120ms + var(--i) * 180ms);
+		animation: rise 700ms var(--ease) forwards;
+		animation-delay: calc(60ms + var(--i) * 120ms);
 	}
 	.fade {
 		opacity: 0;
 		transform: translateY(12px);
-		animation: rise 900ms var(--ease) forwards;
+		animation: rise 700ms var(--ease) forwards;
 		animation-delay: var(--d, 0ms);
 	}
 	@keyframes rise {

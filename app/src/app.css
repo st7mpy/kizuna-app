@@ -509,8 +509,10 @@ input[type='time'] {
 	transform: translateY(-1px);
 }
 .btn.primary:disabled {
-	/* Still the main action, just resting: the same blue, softer, so it reads as "wait", not broken. */
-	opacity: 0.5;
+	/* Still the main action, just resting: a soft blue with blue words, readable in both themes. */
+	opacity: 1;
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+	color: var(--accent-ink);
 	box-shadow: none;
 }
 /* An ink pill: a strong second action, or the main one where blue would shout. */
