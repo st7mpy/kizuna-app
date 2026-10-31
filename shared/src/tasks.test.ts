@@ -59,6 +59,13 @@ const inputs: { [T in TaskName]: TaskIO[T]['input'] } = {
 		occasions: [{ day: '2026-11-26', name: 'Thanksgiving', kind: 'festival', personIds: [], region: 'US' }],
 		reasons: [{ personId: 'p2', text: 'Jordan started a new job.' }],
 		minMinutes: 45
+	},
+	brief: {
+		personName: 'Leo',
+		relation: 'child',
+		today: '2026-11-02',
+		context: ['exams next week'],
+		notes: [{ day: '2026-10-30', text: 'Leo has exams next week' }]
 	}
 };
 
@@ -121,6 +128,14 @@ describe('buildTask', () => {
 		expect(user).toContain('Shortest call: 45 minutes');
 		// Notes and windows stay out of the prompt; the tools hand them over.
 		expect(user).not.toContain('new job');
+	});
+
+	it('brief gives the person, today and dated notes', () => {
+		const t = buildTask('brief', inputs.brief);
+		const user = String(t.messages.at(-1)?.content);
+		expect(user).toContain('Leo');
+		expect(user).toContain('2026-11-02');
+		expect(user).toContain('- 2026-10-30: Leo has exams next week');
 	});
 
 	it('weekend tools are named as agreed', () => {

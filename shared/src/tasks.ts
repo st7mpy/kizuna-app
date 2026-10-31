@@ -15,7 +15,7 @@
 // Weekend loop (run by the relay, stateless): tools get_windows / get_occasions / get_local_time /
 // get_reasons answer from WeekendInput only; the model may call several in one turn. get_windows
 // returns candidate slots with ids; `finish` (args WeekendFinishArgs) names one by id, or null.
-import type { DraftInput, ExtractInput, PlanInput, RankInput, TaskIO, TaskName, WeaveInput } from './api.ts';
+import type { BriefInput, DraftInput, ExtractInput, PlanInput, RankInput, TaskIO, TaskName, WeaveInput } from './api.ts';
 import type { WeekendInput, WindowsInput } from './circle.ts';
 import { SCHEMAS } from './schemas.ts';
 import { shiftDay, weekdayOfDay } from './dates.ts';
@@ -35,7 +35,7 @@ export interface BuiltTask {
 }
 
 export const TASK_MARKER = 'kizuna-task:';
-const TASK_NAMES: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend'];
+const TASK_NAMES: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend', 'brief'];
 
 /** Reads the task back from the marker on the first line of the system message. */
 export function taskFromMessages(messages: { role: string; content?: unknown }[]): TaskName | null {
@@ -190,6 +190,25 @@ export function draftProblems(line: string): string[] {
 	const emoji = line.match(/\p{Extended_Pictographic}/gu) ?? [];
 	if (emoji.length > 1) problems.push('emoji');
 	return problems;
+}
+
+// ---------------------------------------------------------------- brief
+export const BRIEF_PROMPT = `You help someone get ready for a call with a person they care about. From the user's own notes, write what is going on with that person right now, so the user can walk into the call remembering.
+
+Rules
+- lines: up to 3 short lines, at most 90 characters each, most recent or most important first. Plain words, written to the user ("Leo has exams next week."). Only things the notes say; never invent.
+- Skip anything already in the past by more than two weeks unless it is still going on.
+- Never repeat health, money or conflict details; if something personal is going on, say only "Has a lot on right now."
+- ask: one warm, open question the user could ask, about the most current thing, at most 90 characters ("How did the first exam go?"). Empty if nothing fits.
+- Write in English. No emoji, no quotation marks.`;
+
+function briefUser(i: BriefInput): string {
+	return `Today: ${i.today}
+Person: ${i.personName} (${i.relation})
+What's going on with them:
+${i.context.length ? i.context.map((c) => `- ${c}`).join('\n') : '- (nothing summarised)'}
+Recent notes that mention them (day: text):
+${i.notes.length ? i.notes.map((n) => `- ${n.day}: ${n.text}`).join('\n') : '- (none)'}`;
 }
 
 // ---------------------------------------------------------------- rank
@@ -505,6 +524,15 @@ export function buildTask<T extends TaskName>(task: T, input: TaskIO[T]['input']
 				max_tokens: 1000
 			};
 		}
+		case 'brief': {
+			const i = input as BriefInput;
+			return {
+				messages: [system('brief', BRIEF_PROMPT), { role: 'user', content: briefUser(i) }],
+				schema: { name: 'brief', schema: SCHEMAS.brief },
+				reasoning_effort: 'minimal',
+				max_tokens: 600
+			};
+		}
 		case 'rank': {
 			const i = input as RankInput;
 			return {
@@ -554,5 +582,6 @@ export const TASK_LIMITS: Record<TaskName, number> = {
 	plan: 64_000,
 	rank: 16_000,
 	windows: 4_000,
-	weekend: 48_000
+	weekend: 48_000,
+	brief: 16_000
 };

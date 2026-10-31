@@ -9,7 +9,7 @@ import { checkWindowsInput, guardWindows, schemaErrors } from './validate.ts';
 import { runPlan, PlanInputError } from './plan.ts';
 import { runWeekend, WeekendInputError } from './weekend.ts';
 
-export const TASKS: readonly TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend'];
+export const TASKS: readonly TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend', 'brief'];
 const MAX_BODY = Math.max(...Object.values(TASK_LIMITS)) + 1024;
 
 export async function handleSpark(req: Request, env: Env): Promise<Response> {

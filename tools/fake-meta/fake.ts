@@ -2,12 +2,12 @@
 // Pure functions so the relay tests can call them directly.
 
 type Msg = { role: string; content?: string | null; tool_calls?: any[]; tool_call_id?: string };
-export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank' | 'windows' | 'weekend';
+export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank' | 'windows' | 'weekend' | 'brief';
 
 export const CANNED_SENTENCE =
 	"Mom has a dentist appointment Thursday, Jordan started his new job, should call him, and Maya wants to do something for Dad's birthday.";
 
-const TASKS: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend'];
+const TASKS: TaskName[] = ['extract', 'weave', 'draft', 'plan', 'rank', 'windows', 'weekend', 'brief'];
 
 /** Task from the system marker, the schema name, or the presence of tools. */
 export function detectTask(body: any): TaskName | null {
@@ -287,6 +287,12 @@ export function fakeDraft(user: string): any {
 	return { line, language: 'en' };
 }
 
+export function fakeBrief(user: string): any {
+	const notes = [...user.matchAll(/^- \d{4}-\d{2}-\d{2}: (.+)$/gm)].map((m) => m[1]).slice(0, 3);
+	const lines = notes.map((n) => (n.length > 90 ? n.slice(0, 89) + '…' : n));
+	return { lines, ask: lines.length ? 'How is it all going?' : '' };
+}
+
 export function fakeRank(user: string): any {
 	const items = [...user.matchAll(/^- id=(\S+) \| (.*)$/gm)].map((m) => ({ id: m[1], text: m[2].toLowerCase() }));
 	const score = (t: string) => (/birthday|today|tomorrow/.test(t) ? 2 : /promise|said|should/.test(t) ? 1 : 0);
@@ -471,6 +477,7 @@ export function fakeCompletion(body: any): { status: number; json: any } {
 			task === 'weave' ? fakeWeave(user) :
 			task === 'draft' ? fakeDraft(user) :
 			task === 'windows' ? fakeWindows(user) :
+			task === 'brief' ? fakeBrief(user) :
 			fakeRank(user);
 		message = { role: 'assistant', content: JSON.stringify(out) };
 	}

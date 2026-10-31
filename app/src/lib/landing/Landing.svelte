@@ -221,6 +221,10 @@
 					<b>And WhatsApp?</b> It’s where the call happens. Kizuna is the part before it: noticing that Jordan started a new job,
 					that Dad’s birthday is next week, and that Jordan is free Saturday morning.
 				</p>
+				<p class="aside" use:reveal={200}>
+					<b>And AI group chats?</b> They help a group get things done. Kizuna helps you stay close to each person, one at a
+					time, and your notes stay on your phone.
+				</p>
 			</div>
 		</section>
 
@@ -265,7 +269,7 @@
 					</article>
 					<article use:reveal={100}>
 						<p class="mname">Muse Spark</p>
-						<p>Reads each note into people, dates and promises. Weaves your circle and merges nicknames. Plans the weekend call with tool calls, and drafts the line in your language.</p>
+						<p>Reads each note into people, dates and promises. Weaves your circle and merges nicknames. Plans the weekend call with tool calls, drafts the line in your language, and gives you three things to remember before you call.</p>
 						<ul class="chips"><li>structured output</li><li>long context</li><li>tool calling</li></ul>
 					</article>
 				</div>

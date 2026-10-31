@@ -62,7 +62,9 @@ export const TASK_TIMEOUTS: Record<TaskName, number> = {
 	plan: 30_000,
 	rank: 10_000,
 	windows: 15_000,
-	weekend: 45_000
+	weekend: 45_000,
+	// The phone's own brief is already on screen; Spark's replaces it when it comes.
+	brief: 15_000
 };
 
 async function baseUrl(): Promise<string> {

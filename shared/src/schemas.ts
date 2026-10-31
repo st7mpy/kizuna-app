@@ -79,6 +79,11 @@ const draft = obj({
 	language: strEnum(LANGUAGES)
 });
 
+const brief = obj({
+	lines: { type: 'array', maxItems: 3, items: str('one short line, at most 90 characters') },
+	ask: str('one warm open question, at most 90 characters, or empty')
+});
+
 const rank = obj({
 	order: arr(str())
 });
@@ -99,4 +104,4 @@ const windows = obj({
 
 /** Structured-output tasks (plan and weekend use tools instead). */
 export type SchemaTask = Exclude<TaskName, 'plan' | 'weekend'>;
-export const SCHEMAS: Record<SchemaTask, object> = { extract, weave, draft, rank, windows };
+export const SCHEMAS: Record<SchemaTask, object> = { extract, weave, draft, rank, windows, brief };

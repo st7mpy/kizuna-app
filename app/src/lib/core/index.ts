@@ -49,6 +49,7 @@ export {
 } from './answers.ts';
 export { shareText, shareLine, browserShareDeps, openBlankTab, hasShareSheet, type ShareResult } from './share.ts';
 export { draftPoke, templateLine, whatsappLink, type PokeDraft } from './poke.ts';
+export { briefFor, type Brief } from './brief.ts';
 export { suggestSlots, createInvite, googleCalendarLink, icsFile, checkCalendar, isCalendarLink, clearBusyCache } from './time.ts';
 export { updatePerson, mergePeople, removePerson, updateThread, markReached } from './people.ts';
 export { loadSampleLife, loadSample, refreshSampleMembers, SAMPLES, type SampleKey } from './sample.ts';

@@ -8,7 +8,7 @@ export const SPARK_MODEL = 'muse-spark-1.3';
 export const ASR_MODEL = 'muse-voice-transcribe-1.0';
 export const META_BASE_URL = 'https://api.meta.ai/v1';
 
-export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank' | 'windows' | 'weekend';
+export type TaskName = 'extract' | 'weave' | 'draft' | 'plan' | 'rank' | 'windows' | 'weekend' | 'brief';
 
 // ---------- extract: one note -> people, events, promises, threads ----------
 export interface ExtractInput {
@@ -94,6 +94,19 @@ export interface RankOutput {
 	order: string[]; // candidate ids, best first
 }
 
+// ---------- brief: "before you call", a few lines from the user's own notes ----------
+export interface BriefInput {
+	personName: string;
+	relation: Relation;
+	today: string; // 'YYYY-MM-DD'
+	context: string[]; // what's going on with them (sensitive details already removed)
+	notes: { day: string; text: string }[]; // up to 8 recent notes that mention them, private ones left out
+}
+export interface BriefOutput {
+	lines: string[]; // up to 3 short lines, newest first
+	ask: string; // one warm question to ask, or "" when nothing fits
+}
+
 export interface TaskIO {
 	extract: { input: ExtractInput; output: ExtractOutput };
 	weave: { input: WeaveInput; output: WeaveOutput };
@@ -102,6 +115,7 @@ export interface TaskIO {
 	rank: { input: RankInput; output: RankOutput };
 	windows: { input: WindowsInput; output: WindowsOutput };
 	weekend: { input: WeekendInput; output: WeekendOutput };
+	brief: { input: BriefInput; output: BriefOutput };
 }
 
 /** POST /api/spark body */

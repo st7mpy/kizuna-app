@@ -56,6 +56,7 @@ Kizuna is built for that close half.
 | **Muse Spark 1.3**, tool calling | `relay/src/plan.ts` | `plan`: turns "sometime next weekend, not Sunday" into calls to a `free_slots` tool and a `finish` tool. |
 | **Muse Spark 1.3**, tool calling | `relay/src/weekend.ts`, `shared/src/weekend.ts` | `weekend`: plans one call over the Kizuna map with parallel calls to `get_windows`, `get_occasions`, `get_local_time` and `get_reasons`, then `finish`. The tools run from what the app sends, so nothing is stored. The answer is checked in code (everyone really free, outside their quiet hours in their own time zone); a plain fallback gives the same kind of answer if the model fails. |
 | **Muse Spark 1.3** | `shared/src/tasks.ts` | `draft`: the poke line in your language; `rank`: orders cards when there are more than fit. |
+| **Muse Spark 1.3**, structured output | `shared/src/tasks.ts`, `app/src/lib/core/brief.ts` | `brief`: "Before you call" on each person: up to three short things to remember and one open question, only from safe notes of the last 30 days. The phone shows its own version at once; Spark's replaces it when it lands. |
 
 Every model output is checked against its schema and retried once if it fails. Drafts are screened for guilt, fake urgency and length. Kizuna only uses the standard models, never the `*-contributor` models.
 

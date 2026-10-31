@@ -3,10 +3,12 @@
 	import { page } from '$app/state';
 	import type { Fragment, GiftHint, KEvent, Person } from '@kizuna/shared';
 	import {
+		briefFor,
 		invitePersonLine,
 		linkMember,
 		markInvited,
 		mergePeople,
+		type Brief,
 		noteThought,
 		removePerson,
 		retryFragment,
@@ -69,6 +71,22 @@
 			asking = false;
 		}
 	}
+
+	// before you call: what to remember, from their notes; the phone's version first, Spark's when it lands
+	let brief = $state<Brief | null>(null);
+	$effect(() => {
+		const who = id;
+		const latest = notes.value[0]?.createdAt ?? '';
+		void notes.value.length;
+		void latest;
+		let live = true;
+		void briefFor(who, (b) => {
+			if (live) brief = b;
+		}).catch(() => {});
+		return () => {
+			live = false;
+		};
+	});
 
 	// note a thought: stays on this phone
 	let thought = $state('');
@@ -234,6 +252,17 @@
 			</button>
 			{#if askNote}<p class="tiny ask-note" role="status">{askNote}</p>{/if}
 		</section>
+
+		{#if brief}
+			<section class="section brief" aria-live="polite">
+				<h3>Before you call</h3>
+				<ul class="brief-lines">
+					{#each brief.lines as line (line)}<li>{line}</li>{/each}
+				</ul>
+				{#if brief.ask}<p class="brief-ask">Maybe ask: “{brief.ask}”</p>{/if}
+				<p class="tiny">From your notes. Only you see this.</p>
+			</section>
+		{/if}
 
 		<section class="section">
 			<h3>Note a thought</h3>
@@ -550,6 +579,21 @@
 	}
 	.thought {
 		gap: 6px;
+	}
+	.brief-lines {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 14px 0 0 18px;
+		list-style: disc;
+		color: var(--text);
+	}
+	.brief-lines li::marker {
+		color: var(--accent);
+	}
+	.brief-ask {
+		padding: 12px 0 6px;
+		color: var(--text-2);
 	}
 	.map-row {
 		display: flex;
