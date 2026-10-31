@@ -18,6 +18,8 @@ export interface Brief {
 const MAX_LINE = 90;
 const PERSONAL = /^has something personal going on/;
 const VAGUE = /\ba lot (on|going on)\b/i;
+// the ask is said to them: never give away a surprise
+const SURPRISE = /\b(gifts?|presents?|surprises?|cakes?|party|parties)\b/i;
 
 function clip(text: string, max = MAX_LINE): string {
 	const t = text.replace(/\s+/g, ' ').trim();
@@ -75,7 +77,7 @@ export function cleanBrief(out: BriefOutput | null | undefined): Brief | null {
 	if (!out || !Array.isArray(out.lines)) return null;
 	const lines = out.lines.map((l) => clip(String(l ?? ''))).filter((l) => l && safe(l) && !VAGUE.test(l)).slice(0, 3);
 	if (!lines.length) return null;
-	const ask = typeof out.ask === 'string' && safe(out.ask) ? clip(out.ask) : '';
+	const ask = typeof out.ask === 'string' && safe(out.ask) && !SURPRISE.test(out.ask) ? clip(out.ask) : '';
 	return { lines, ask, fromModel: true };
 }
 

@@ -68,6 +68,7 @@ describe('brief helpers', () => {
 	it('drops unsafe or empty model output', () => {
 		expect(cleanBrief({ lines: ['Her surgery is Thursday'], ask: '' })).toBeNull();
 		expect(cleanBrief(null)).toBeNull();
+		expect(cleanBrief({ lines: ['Turns 60 on Mon 9 Nov'], ask: 'How is the cake and gift planning going?' })!.ask).toBe('');
 		expect(cleanBrief({ lines: ['Exams start Monday', 'x'.repeat(200)], ask: 'Nervous about Monday?' })).toMatchObject({ ask: 'Nervous about Monday?', fromModel: true });
 		expect(cleanBrief({ lines: ['x'.repeat(200)], ask: '' })!.lines[0].length).toBe(90);
 	});
