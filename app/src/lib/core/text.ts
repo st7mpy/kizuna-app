@@ -1,7 +1,7 @@
 // Small text helpers shared by the brief and by thread merging.
 
 const SMALL = new Set(['a', 'an', 'the', 'for', 'of', 'on', 'in', 'to', 'and', 'with', 'at', 'his', 'her', 'their', 'my', 's']);
-function words(text: string): Set<string> {
+export function words(text: string): Set<string> {
 	const plain = text.toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ');
 	return new Set(plain.split(' ').filter((w) => w && !SMALL.has(w)));
 }

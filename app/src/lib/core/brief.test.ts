@@ -46,7 +46,7 @@ describe('brief helpers', () => {
 		const dad = mkPerson({ id: 'dad', name: 'Dad', aliases: ['papa'], relation: 'parent' });
 		const input = briefInput(dad, [], [frag({ id: 'a', text: 'Leo sent a photo from the library.' }), frag({ id: 'b', text: 'Papa started golf. He loves it.' })], '2026-10-26');
 		expect(input.notes.map((n) => n.text)).toEqual(['Papa started golf. He loves it.']);
-		expect(localBrief(input).lines).toEqual(['Papa started golf.']);
+		expect(localBrief({ ...input, personName: 'Papa' }).lines).toEqual(['Papa started golf.']);
 	});
 
 	it('builds a phone brief with a gentle ask, and nothing when there is nothing', () => {
@@ -61,13 +61,14 @@ describe('brief helpers', () => {
 		expect(similar('Starts new job in LA', 'Grandma likes Sunday afternoons')).toBe(false);
 		expect(sameTitle('Call Leo before exams', 'Call Leo before his exams')).toBe(true);
 		expect(sameTitle('Call Leo', 'Call Leo about Thanksgiving')).toBe(false);
-		const b = localBrief({ personName: 'Dad', relation: 'parent', today: '2026-10-26', context: ["Dad's 60th birthday (on 9 Nov)", 'Birthday dinner for Dad (on 9 Nov)'], notes: [{ day: '2026-10-25', text: 'Dad started golf lessons' }] });
+		const b = localBrief({ personName: 'Dad', relation: 'parent', today: '2026-10-26', context: ["Dad's 60th birthday (on 9 Nov)", 'Birthday dinner for Dad (on 9 Nov)'], notes: [{ day: '2026-10-25', text: 'Dad started golf lessons' }, { day: '2026-10-24', text: 'Leo called. Mom and Dad say hi.' }] });
 		expect(b.lines).toEqual(["Dad's 60th birthday (on 9 Nov)", 'Dad started golf lessons']);
 	});
 
 	it('drops unsafe or empty model output', () => {
 		expect(cleanBrief({ lines: ['Her surgery is Thursday'], ask: '' })).toBeNull();
 		expect(cleanBrief(null)).toBeNull();
+		expect(cleanBrief({ lines: ['Turns 60'], ask: 'How are your running shoes holding up?' }, ['running', 'shoes'])!.ask).toBe('');
 		expect(cleanBrief({ lines: ['Turns 60 on Mon 9 Nov'], ask: 'How is the cake and gift planning going?' })!.ask).toBe('');
 		expect(cleanBrief({ lines: ['Exams start Monday', 'x'.repeat(200)], ask: 'Nervous about Monday?' })).toMatchObject({ ask: 'Nervous about Monday?', fromModel: true });
 		expect(cleanBrief({ lines: ['x'.repeat(200)], ask: '' })!.lines[0].length).toBe(90);
@@ -110,6 +111,21 @@ describe('briefFor', () => {
 		const more: (Brief | null)[] = [];
 		await briefFor('leo', (b) => more.push(b));
 		expect(more).toHaveLength(1);
+	});
+
+	it('keeps gift-idea notes out and asks Spark once for two quick calls', async () => {
+		await db.fragments.add(frag({ id: 'g', text: 'Leo wants new headphones', personIds: ['leo'] }));
+		await db.gifts.add({ id: 'h', personId: 'leo', what: 'new headphones', fragmentId: 'g', createdAt: NOW.toISOString(), status: 'open' });
+		const relay = mockRelay((_t, input) => {
+			expect(JSON.stringify(input)).not.toMatch(/headphones/);
+			return { lines: ['Exams start Monday'], ask: 'Need new headphones for studying?' };
+		});
+		const a: (Brief | null)[] = [];
+		const b: (Brief | null)[] = [];
+		await Promise.all([briefFor('leo', (x) => a.push(x)), briefFor('leo', (x) => b.push(x))]);
+		expect(relay.tasks()).toEqual(['brief']);
+		expect(a.at(-1)).toEqual({ lines: ['Exams start Monday'], ask: '', fromModel: true });
+		expect(b.at(-1)).toEqual(a.at(-1));
 	});
 
 	it('says nothing for an unknown person', async () => {

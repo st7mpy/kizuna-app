@@ -532,7 +532,7 @@ export function buildTask<T extends TaskName>(task: T, input: TaskIO[T]['input']
 				messages: [system('brief', BRIEF_PROMPT), { role: 'user', content: briefUser(i) }],
 				schema: { name: 'brief', schema: SCHEMAS.brief },
 				reasoning_effort: 'minimal',
-				max_tokens: 600
+				max_tokens: 1500
 			};
 		}
 		case 'rank': {

@@ -6,7 +6,7 @@ import { addDays, localDay } from './days.ts';
 import { buildContext, looksSensitive } from './poke.ts';
 import { isOnline, spark } from './relay.ts';
 import { MONEY } from './weekend.ts';
-import { similar } from './text.ts';
+import { similar, words } from './text.ts';
 
 export interface Brief {
 	lines: string[];
@@ -65,7 +65,11 @@ export function localBrief(input: BriefInput, skip = ''): Brief {
 		if (PERSONAL.test(c)) personal = true;
 		else if (safe(c) && !VAGUE.test(c) && c.trim().toLowerCase() !== shown) lines.push(capital(clip(c)));
 	}
-	for (const n of input.notes) lines.push(capital(clip(firstSentence(n.text))));
+	const name = input.personName.toLowerCase();
+	for (const n of input.notes) {
+		const first = firstSentence(n.text);
+		if (first.toLowerCase().includes(name)) lines.push(capital(clip(first)));
+	}
 	const out: string[] = [];
 	for (const l of lines) if (out.length < 3 && !out.some((o) => similar(o, l))) out.push(l);
 	const ask = personal ? 'How have you been?' : out.length ? 'How has your week been?' : '';
@@ -73,33 +77,41 @@ export function localBrief(input: BriefInput, skip = ''): Brief {
 }
 
 /** Pure: keep Spark's answer only if it is short, safe and non-empty. */
-export function cleanBrief(out: BriefOutput | null | undefined): Brief | null {
+export function cleanBrief(out: BriefOutput | null | undefined, giftWords: string[] = []): Brief | null {
 	if (!out || !Array.isArray(out.lines)) return null;
 	const lines = out.lines.map((l) => clip(String(l ?? ''))).filter((l) => l && safe(l) && !VAGUE.test(l)).slice(0, 3);
 	if (!lines.length) return null;
-	const ask = typeof out.ask === 'string' && safe(out.ask) && !SURPRISE.test(out.ask) ? clip(out.ask) : '';
+	const ask = typeof out.ask === 'string' && safe(out.ask) && !SURPRISE.test(out.ask) && !giftWords.some((w) => new RegExp(`\\b${w}`, 'i').test(out.ask)) ? clip(out.ask) : '';
 	return { lines, ask, fromModel: true };
 }
 
 const cache = new Map<string, Brief>();
+const asking = new Map<string, Promise<Brief | null>>();
 
 /** For tests, and after a wipe. */
 export function clearBriefCache(): void {
 	cache.clear();
+	asking.clear();
 }
 
-async function gather(personId: string): Promise<{ input: BriefInput; key: string; summary: string } | null> {
+async function gather(personId: string): Promise<{ input: BriefInput; key: string; summary: string; giftWords: string[] } | null> {
 	const person = await db.people.get(personId);
 	if (!person) return null;
 	const today = localDay();
-	const [events, about] = await Promise.all([
+	const [events, all, gifts] = await Promise.all([
 		db.events.where('personIds').equals(personId).toArray(),
-		db.fragments.where('personIds').equals(personId).toArray()
+		db.fragments.where('personIds').equals(personId).toArray(),
+		db.gifts.where('personId').equals(personId).toArray()
 	]);
-	const latest = about.reduce((m, f) => (f.createdAt > m ? f.createdAt : m), '');
+	// a gift idea is a surprise: the notes behind it stay out of the brief, and the ask never touches it
+	const giftNotes = new Set(gifts.map((g) => g.fragmentId));
+	const about = all.filter((f) => !giftNotes.has(f.id));
+	const giftWords = [...new Set(gifts.flatMap((g) => [...words(g.what)]).filter((w) => w.length > 3))];
+	const latest = all.reduce((m, f) => (f.createdAt > m ? f.createdAt : m), '');
 	return {
 		input: briefInput(person, buildContext(person, events, about, today), about, today),
-		key: `${personId}|${today}|${about.length}|${latest}|${person.summary ?? ''}`,
+		key: `${personId}|${today}|${all.length}|${gifts.length}|${latest}|${person.summary ?? ''}`,
+		giftWords,
 		summary: person.summary ?? ''
 	};
 }
@@ -118,13 +130,18 @@ export async function briefFor(personId: string, show: (b: Brief | null) => void
 	if (!local.lines.length) return show(null);
 	show(local);
 	if (!isOnline() || !got.input.notes.length) return;
-	try {
-		const better = cleanBrief(await spark('brief', got.input));
-		if (better) {
-			cache.set(got.key, better);
-			show(better);
-		}
-	} catch {
-		/* the phone's brief stays */
+	// one request per brief, however often the page asks
+	let once = asking.get(got.key);
+	if (!once) {
+		once = spark('brief', got.input)
+			.then((out) => cleanBrief(out, got.giftWords))
+			.catch(() => null)
+			.finally(() => asking.delete(got.key));
+		asking.set(got.key, once);
+	}
+	const better = await once;
+	if (better) {
+		cache.set(got.key, better);
+		show(better);
 	}
 }
