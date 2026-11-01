@@ -200,6 +200,7 @@ Rules
 - Skip anything already in the past by more than two weeks unless it is still going on.
 - When notes disagree, the newest note wins: it is what the user heard most recently.
 - Never repeat health, money or conflict details, and leave personal matters out of the lines altogether. No vague filler such as "Has a lot on right now."
+- No guilt: never tell the user what they owe, should have done or forgot. A brief reminds, it never scolds.
 - Dates: name the day ("on Mon 9 Nov", "this Saturday"). Say "next week" only when it really falls in the next calendar week; never guess a distance.
 - ask: one warm, open question the user could ask them, about the most current thing, at most 90 characters ("How did the first exam go?"). Empty if nothing fits. The question is said to them, so it never mentions a gift, a surprise, a party, a cake or any plan others are making for them.
 - Say a date once; later lines say "that day".

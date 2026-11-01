@@ -6,6 +6,7 @@ import { deviceTimeZone } from './days.ts';
 import { updateSettings } from './settings.ts';
 import { mkPerson, mkPrompt, mkThread, mockRelay, resetDb, setOffline } from './testing.ts';
 import {
+	sentenceCase,
 	WHATSAPP_SCHEDULE_TIP,
 	answerWeekend,
 	checkPlan,
@@ -355,5 +356,12 @@ describe('how Kizuna planned this', () => {
 		expect(steps[0].line).toContain('2 people');
 		expect(steps[1].line).toContain('Leo');
 		expect(steps[2].line).toMatch(/^Picked .* when Mom is free, with a different time for Leo\.$/);
+	});
+});
+
+describe('sentenceCase', () => {
+	it('capitalises after a sentence end', () => {
+		expect(sentenceCase('Want to do a call on Sun 1 Nov, 14:00? everyone can bring a song.')).toBe('Want to do a call on Sun 1 Nov, 14:00? Everyone can bring a song.');
+		expect(sentenceCase('Call at 14:00, e.g. Sunday')).toBe('Call at 14:00, e.g. Sunday');
 	});
 });

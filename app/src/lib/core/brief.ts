@@ -18,6 +18,8 @@ export interface Brief {
 const MAX_LINE = 90;
 const PERSONAL = /^has something personal going on/;
 const VAGUE = /\ba lot (on|going on)\b/i;
+// a brief reminds, it never scolds
+const GUILT = /\b(you )?(still )?(owe|should have|haven'?t (called|talked|spoken)|forgot|neglect\w*)\b/i;
 // the ask is said to them: never give away a surprise
 const SURPRISE = /\b(gifts?|presents?|surprises?|cakes?|party|parties)\b/i;
 
@@ -81,7 +83,7 @@ export function localBrief(input: BriefInput, skip = ''): Brief {
 /** Pure: keep Spark's answer only if it is short, safe and non-empty. */
 export function cleanBrief(out: BriefOutput | null | undefined, giftWords: string[] = []): Brief | null {
 	if (!out || !Array.isArray(out.lines)) return null;
-	const lines = out.lines.map((l) => clip(String(l ?? ''))).filter((l) => l && safe(l) && !VAGUE.test(l)).slice(0, 3);
+	const lines = out.lines.map((l) => clip(String(l ?? ''))).filter((l) => l && safe(l) && !VAGUE.test(l) && !GUILT.test(l)).slice(0, 3);
 	if (!lines.length) return null;
 	const ask = typeof out.ask === 'string' && safe(out.ask) && !SURPRISE.test(out.ask) && !giftWords.some((w) => new RegExp(`\\b${w}`, 'i').test(out.ask)) ? clip(out.ask) : '';
 	return { lines, ask, fromModel: true };

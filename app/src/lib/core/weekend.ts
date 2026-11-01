@@ -535,11 +535,16 @@ export function lineOk(line: string): boolean {
 	return !!line.trim() && draftProblems(line).length === 0 && !looksSensitive(line) && !MONEY.test(line);
 }
 
+/** Pure: a capital letter after each sentence end ("14:00? everyone" → "14:00? Everyone"). */
+export function sentenceCase(line: string): string {
+	return line.replace(/^\s*\p{Ll}/u, (c) => c.toUpperCase()).replace(/([.!?]\s+)(\p{Ll})/gu, (_, end: string, c: string) => end + c.toUpperCase());
+}
+
 async function sparkLine(input: DraftInput): Promise<string | null> {
 	if (!isOnline()) return null;
 	try {
 		const out = await spark('draft', input);
-		const line = out.line?.trim().slice(0, 200);
+		const line = out.line ? sentenceCase(out.line.trim().slice(0, 200)) : '';
 		return line && lineOk(line) ? line : null;
 	} catch {
 		return null;

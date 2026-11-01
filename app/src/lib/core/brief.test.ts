@@ -140,3 +140,10 @@ describe('briefFor', () => {
 		expect(seen).toEqual([null]);
 	});
 });
+
+describe('cleanBrief guilt', () => {
+	it('drops a line that scolds the user', () => {
+		const b = cleanBrief({ lines: ['Leo has his first exam on Sat 14 Nov.', 'You still owe him a proper call before that day.'], ask: 'How is the prep?' });
+		expect(b?.lines).toEqual(['Leo has his first exam on Sat 14 Nov.']);
+	});
+});
