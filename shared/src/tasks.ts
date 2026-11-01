@@ -351,6 +351,7 @@ export interface WeekendFinishArgs {
 	skipped: { person_id: string; why: string; alt_slot_id: string | null }[];
 	reason: string;
 	occasion: string | null;
+	idea: string | null; // one thing to do together on the call
 }
 /** One candidate slot as get_windows returns it. */
 export interface WeekendToolSlot {
@@ -453,9 +454,10 @@ export const WEEKEND_TOOLS = [
 						}
 					},
 					reason: { type: 'string', description: 'one kind line, e.g. "It\'s Thanksgiving morning."' },
-					occasion: { type: ['string', 'null'], description: 'the occasion name if the plan is built around one, else null' }
+					occasion: { type: ['string', 'null'], description: 'the occasion name if the plan is built around one, else null' },
+					idea: { type: ['string', 'null'], description: 'one thing to do together on the call, at most 80 characters, or null' }
 				},
-				required: ['slot_id', 'person_ids', 'skipped', 'reason', 'occasion'],
+				required: ['slot_id', 'person_ids', 'skipped', 'reason', 'occasion', 'idea'],
 				additionalProperties: false
 			}
 		}
@@ -468,7 +470,7 @@ How to work
 1. In your first turn call, all at once: get_windows for everyone over the weekend, get_occasions for the next 10 days, and get_reasons for each person.
 2. Choose one slot from get_windows. Prefer, in order: the most people; what the user's request asks ("not Sunday, Dad has a game" means no Sunday slot); an occasion day ("Thanksgiving morning"); a time that is daytime for everyone; sooner.
 3. For a person who has windows but is not in that slot, you may call get_local_time to see why (asleep, late night). Offer them an alt slot id where they and the user are both free, or null.
-4. Call finish. slot_id is an id from get_windows, or null when nothing works. person_ids: the people free in that slot (never the user). reason: one short, kind line, e.g. "It's Thanksgiving morning." or "Jordan just started his new job." occasion: the occasion's name if the plan is built around it, else null.
+4. Call finish. slot_id is an id from get_windows, or null when nothing works. person_ids: the people free in that slot (never the user). reason: one short, kind line, e.g. "It's Thanksgiving morning." or "Jordan just started his new job." occasion: the occasion's name if the plan is built around it, else null. idea: one small thing to do together on the call, drawn from get_reasons or the occasion, at most 80 characters, e.g. "Each person brings a song for the family playlist." or "Everyone shares one photo from this month." Never a gift, a surprise, a party or a cake (someone on the call may not know), never health or money. null when nothing fits.
 
 Rules
 - Never make up ids or times. Use only what the tools return.

@@ -51,6 +51,7 @@ export {
 export { shareText, shareLine, browserShareDeps, openBlankTab, hasShareSheet, type ShareResult } from './share.ts';
 export { draftPoke, templateLine, whatsappLink, type PokeDraft } from './poke.ts';
 export { briefFor, type Brief } from './brief.ts';
+export { talkCheck, answerTalk, type TalkCheck } from './talked.ts';
 export {
 	reminderSupportHere,
 	reminderState,

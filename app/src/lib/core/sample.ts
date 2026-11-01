@@ -47,10 +47,12 @@ export interface SampleLife {
 	members?: SampleMember[];
 	/** Optional: people asked about this weekend who haven't answered yet (their entry is from before the ask). */
 	waiting?: string[];
+	/** Optional: someone the user opened a line to yesterday, so Today asks "Did you talk?". */
+	talkedTo?: string;
 }
 
 /** Goes up whenever the samples change, so a visitor with an older sample gets the current one. */
-export const SAMPLE_VERSION = 3;
+export const SAMPLE_VERSION = 4;
 /** The two oldest samples: 40 and 41 notes, written before samples carried a version. */
 const OLD_SAMPLE_MAX_NOTES = 41;
 
@@ -197,6 +199,9 @@ export async function loadSampleLifeFrom(data: SampleLife): Promise<void> {
 			const p = matchPerson(people, name);
 			if (p && p.circle !== 'in') Object.assign(p, { circle: 'suggested', why });
 		}
+		// "Did you talk?" has one to ask about: a line opened to them about 20 hours ago.
+		const talked = data.talkedTo ? matchPerson(people, data.talkedTo) : null;
+		if (talked) talked.lastReachedAt = new Date(Date.now() - 20 * 3_600_000).toISOString();
 		for (const p of people) await db.people.put(p);
 		// The map: members as if they had replied (no network), linked to their people.
 		const now = new Date();

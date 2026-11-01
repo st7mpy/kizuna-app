@@ -151,6 +151,8 @@ export interface WeekendOutput {
 	skipped: { personId: string; why: string; alt: Slot | null; tz?: string }[];
 	reason: string; // one kind line: "It's Thanksgiving morning."
 	occasion: string | null; // occasion name if the plan is built around one
+	/** One thing to do together on the call ("Each person brings a song for the family playlist"), or null. */
+	idea?: string | null;
 	tools_used: string[]; // tool names in call order, for the trace in the UI
 }
 
@@ -162,6 +164,8 @@ export interface WeekendCard {
 	skipped: WeekendOutput['skipped'];
 	reason: string;
 	occasion: string | null;
+	/** One thing to do together on the call, or absent. */
+	idea?: string | null;
 	trace: string[];
 	/** "How Kizuna planned this": one plain line per planning step, in order. */
 	steps?: PlanStep[];

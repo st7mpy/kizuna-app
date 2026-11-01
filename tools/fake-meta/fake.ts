@@ -445,7 +445,7 @@ export function fakeWeekendTurn(messages: Msg[]): { content: string | null; tool
 	const onOccasion = (s: { start: string }) => Number(occ.some((o) => o.day === s.start.slice(0, 10)));
 	const best = [...slots].sort((a, b) => b.person_ids.length - a.person_ids.length || onOccasion(b) - onOccasion(a) || a.start.localeCompare(b.start))[0];
 	if (!best) {
-		return { content: null, tool_calls: [toolCall('finish', { slot_id: null, person_ids: [], skipped: [], reason: 'Nothing lines up this weekend.', occasion: null })] };
+		return { content: null, tool_calls: [toolCall('finish', { slot_id: null, person_ids: [], skipped: [], reason: 'Nothing lines up this weekend.', occasion: null, idea: null })] };
 	}
 	const occasion = occ.find((o) => o.day === best.start.slice(0, 10)) ?? null;
 	const reasons = results.filter((r) => Array.isArray(r.reasons) && r.reasons.length && best.person_ids.includes(r.person_id));
@@ -456,7 +456,7 @@ export function fakeWeekendTurn(messages: Msg[]): { content: string | null; tool
 	const reason = occasion ? `It's ${occasion.name} that day.` : reasons[0]?.reasons[0] ?? "You're free together then.";
 	return {
 		content: null,
-		tool_calls: [toolCall('finish', { slot_id: best.id, person_ids: best.person_ids, skipped, reason, occasion: occasion?.name ?? null })]
+		tool_calls: [toolCall('finish', { slot_id: best.id, person_ids: best.person_ids, skipped, reason, occasion: occasion?.name ?? null, idea: /playlist|song/i.test(tools.map((t) => t.content ?? '').join(' ')) ? 'Each person brings a song for the family playlist.' : null })]
 	};
 }
 

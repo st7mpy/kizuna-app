@@ -38,6 +38,8 @@ export interface Person {
 	lastReachedAt?: string; // ISO, when user poked or met them (never shown as a counter)
 	invitedAt?: string; // ISO, when the user last shared the family-page link with them
 	nudgedAt?: string; // ISO, when the user last opened a follow-up line for that invite
+	/** The lastReachedAt that "Did you talk?" already asked about, so it asks once per reach. */
+	talkAskedFor?: string;
 	createdAt: string;
 }
 

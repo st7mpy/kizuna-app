@@ -4,6 +4,7 @@
 	import type { Card, GiftCard as Gift, Person, Room, Settings, WeekendCard as Weekend } from '@kizuna/shared';
 	import {
 		answerCard,
+		answerTalk,
 		answeredToday,
 		answerLines,
 		closePick,
@@ -17,7 +18,9 @@
 		setRoom,
 		todayCards,
 		todayExtras,
+		talkCheck,
 		type AnswerLine,
+		type TalkCheck,
 		type PickedLine,
 		type TodayExtras,
 		type FollowUp
@@ -65,6 +68,24 @@
 	// Someone picked a time on a shared pick-a-time link.
 	const picks = watch<PickedLine[]>(() => liveQuery(() => picksToday()), []);
 	let nudging = $state<string | null>(null);
+	// "Did you talk?" the day after a line was opened to someone
+	const talk = watch<TalkCheck | null>(() => liveQuery(() => talkCheck()), null);
+	let talkOpen = $state(false);
+	let talkNote = $state('');
+	let talkSaved = $state('');
+	async function talked(answer: 'yes' | 'not_yet' | 'skip') {
+		const t = talk.value;
+		if (!t) return;
+		if (answer === 'yes' && !talkOpen) {
+			talkOpen = true;
+			return;
+		}
+		const note = talkNote;
+		talkOpen = false;
+		talkNote = '';
+		await answerTalk(t.personId, answer, note).catch(() => {});
+		if (answer === 'yes' && note.trim()) talkSaved = `Kept for next time with ${t.name}.`;
+	}
 
 	let cards: Card[] = $state([]);
 	let weekend = $state<Weekend | null>(null);
@@ -220,8 +241,40 @@
 			/>
 		</section>
 
-		{#if answers.value.length || waiting.value.length || picks.value.length}
+		{#if answers.value.length || waiting.value.length || picks.value.length || talk.value || talkSaved}
 			<section class="loop" aria-label="Answers" aria-live="polite">
+				{#if talk.value}
+					<div class="loopline talk" out:fold in:soft>
+						<span class="dot" style="--hue:{hueFor(talk.value.personId)}" aria-hidden="true"></span>
+						<p class="said">You opened a line to <strong>{talk.value.name}</strong> {talk.value.when}. Did you talk?</p>
+					</div>
+					{#if talkOpen}
+						<form
+							class="talkbox"
+							onsubmit={(e) => {
+								e.preventDefault();
+								talked('yes');
+							}}
+						>
+							<label class="field">
+								<span>Anything worth remembering?</span>
+								<textarea rows="2" maxlength="1000" bind:value={talkNote} placeholder="What {talk.value.name} said, plans you made"></textarea>
+							</label>
+							<div class="spread">
+								<span class="tiny">Stays on this phone. It helps the next “Before you call”.</span>
+								<button class="btn line" type="submit">{talkNote.trim() ? 'Keep' : 'Done'}</button>
+							</div>
+						</form>
+					{:else}
+						<div class="talk-acts">
+							<button class="btn accent" type="button" onclick={() => talked('yes')}>Yes</button>
+							<button class="btn line" type="button" onclick={() => talked('not_yet')}>Not yet</button>
+							<button class="btn bare" type="button" onclick={() => talked('skip')}>Skip</button>
+						</div>
+					{/if}
+				{:else if talkSaved}
+					<p class="tiny talk-saved" role="status">{talkSaved}</p>
+				{/if}
 				{#each picks.value as p (p.id)}
 					<div class="loopline" out:fold in:soft>
 						<span class="dot" style="--hue:{hueFor(p.personId)}" aria-hidden="true"></span>
@@ -439,6 +492,21 @@
 		align-items: center;
 		gap: 12px;
 		min-height: 52px;
+	}
+	.talk-acts {
+		display: flex;
+		gap: 8px;
+		padding: 0 0 12px 22px;
+		flex-wrap: wrap;
+	}
+	.talkbox {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 0 0 14px 22px;
+	}
+	.talk-saved {
+		padding: 8px 0;
 	}
 	.loopline + .loopline {
 		border-top: 1px solid var(--line);

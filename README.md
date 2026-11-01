@@ -34,7 +34,9 @@ Kizuna is built for that close half.
 | 5 | **Find us a time** | Two free slots from your free hours (and, if you add it, your private calendar link). Ask in plain words: "next weekend, not Sunday". The other person gets a pick-a-time page that needs no app. |
 | 6 | **Today** | Tap how much room you have (low, some, lots) and see 1, 3 or 5 things, people first. Empty is a good day. |
 | 7 | **Before you call** | On each person's page: up to three things to remember from your own notes, and one question to ask. Gift ideas stay out. |
-| 8 | **Reminders** | Optional, from Settings: a notification when someone answers on your family page, when a time is picked, and on Friday evening when the weekend call is ready. On iPhone, add Kizuna to the Home Screen first. |
+| 8 | **Something to do** | The weekend plan comes with one idea for the call from your threads ("each person brings a song for the family playlist"). Never a gift or surprise, since someone on the call may not know. |
+| 9 | **Did you talk?** | The day after you open a line to someone, Today asks once. Anything you note goes into their next "Before you call". No counters. |
+| 10 | **Reminders** | Optional, from Settings: a notification when someone answers on your family page, when a time is picked, and on Friday evening when the weekend call is ready. On iPhone, add Kizuna to the Home Screen first. |
 
 **Try it without talking for three weeks first:** tap **Try it with a sample family** on the first screen. There are two: a busy working family whose youngest is studying in Melbourne, a day ahead, and one big family spread across the USA from New York to Honolulu. Pick the second under the main button, or switch in Settings.
 

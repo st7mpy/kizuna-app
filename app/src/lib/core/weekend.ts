@@ -159,6 +159,30 @@ export function weekendReason(input: WeekendInput, slotStart: number | null, per
 	return { reason: 'A good moment for a call.', occasion: null };
 }
 
+// Ideas never give away a surprise (someone on the call may not know), and never touch health or money.
+const NOT_FOR_IDEAS = /\b(gifts?|presents?|surprises?|cakes?|party|parties)\b/i;
+
+/** Pure: keeps a planner's idea only when it is short and safe to say to everyone on the call. */
+export function safeIdea(text: unknown): string | null {
+	if (typeof text !== 'string') return null;
+	const t = text.replace(/\s+/g, ' ').trim();
+	if (!t || t.length > 100 || looksSensitive(t) || MONEY.test(t) || NOT_FOR_IDEAS.test(t)) return null;
+	return capFirst(/[.!?]$/.test(t) ? t : `${t}.`);
+}
+
+/** Pure: the phone's own idea for the call, from the threads of the people on it. Null when nothing fits. */
+export function weekendIdea(input: WeekendInput, personIds: string[], occasion: string | null): string | null {
+	const texts = input.reasons.filter((r) => personIds.includes(r.personId)).map((r) => r.text);
+	const all = [...texts, ...input.reasons.map((r) => r.text)];
+	const has = (re: RegExp) => all.some((t) => re.test(t) && !NOT_FOR_IDEAS.test(t) && !looksSensitive(t));
+	if (has(/\b(playlist|songs?|music)\b/i)) return 'Each person brings a song for the family playlist.';
+	if (has(/\b(photos?|pictures?|album)\b/i)) return 'Everyone shares one photo from this month.';
+	if (has(/\b(visit|trip|flight|holiday)\b/i)) return 'Pick a date for the next visit together.';
+	if (has(/\b(recipe|cook\w*|bake)\b/i)) return 'Swap one recipe to try this week.';
+	if (occasion && MAJOR_FESTIVALS.has(occasion)) return `Everyone shares one ${occasion} plan.`;
+	return null;
+}
+
 /** Pure: the reason rule (an occasion within 10 days, or a note thread about someone). */
 export function hasReason(input: WeekendInput): boolean {
 	const today = zonedDay(Date.parse(input.now), input.timeZone);
@@ -182,7 +206,8 @@ export function localWeekendPlan(input: WeekendInput): WeekendOutput {
 			return { personId: p.id, why, alt: alt ? toSlot(alt, input.timeZone) : null };
 		});
 	const { reason, occasion } = weekendReason(input, pick.start, [...freeIds]);
-	return { slot: toSlot(pick, input.timeZone), personIds: [...freeIds], skipped, reason, occasion, tools_used: [] };
+	const idea = weekendIdea(input, [...freeIds], occasion);
+	return { slot: toSlot(pick, input.timeZone), personIds: [...freeIds], skipped, reason, occasion, idea, tools_used: [] };
 }
 
 /** Pure: checks the planner's answer against the windows and quiet hours. Null when it can't be used. */
@@ -213,6 +238,7 @@ export function checkPlan(out: WeekendOutput, input: WeekendInput, range: Pick<W
 		skipped,
 		reason: fits ? capFirst(reason) : fallback.reason,
 		occasion: out.occasion ?? fallback.occasion,
+		idea: safeIdea(out.idea) ?? weekendIdea(input, free, out.occasion ?? fallback.occasion),
 		tools_used: Array.isArray(out.tools_used) ? out.tools_used.slice(0, 20).map(String) : []
 	};
 }
@@ -359,7 +385,7 @@ export function planSteps(input: WeekendInput, out: WeekendOutput, tools: string
 		} else if (tool === 'finish' && out.slot) {
 			const free = list(out.personIds);
 			const missed = out.skipped.length ? `, with a different time for ${list(out.skipped.map((x) => x.personId))}` : '';
-			steps.push({ tool, line: `Picked ${zonedSlotLabel(Date.parse(out.slot.start), Date.parse(out.slot.end), input.timeZone)} when ${free} ${out.personIds.length === 1 ? 'is' : 'are'} free${missed}.` });
+			steps.push({ tool, line: `Picked ${zonedSlotLabel(Date.parse(out.slot.start), Date.parse(out.slot.end), input.timeZone)} when ${free} ${out.personIds.length === 1 ? 'is' : 'are'} free${missed}.${out.idea ? ` Took an idea for the call from your notes: ${out.idea[0].toLowerCase()}${out.idea.slice(1)}` : ''}` });
 		}
 	}
 	return steps;
@@ -373,6 +399,7 @@ function toCard(out: WeekendOutput, input: WeekendInput, by: 'spark' | 'phone'):
 		skipped: specificWhy(out.skipped, input, Date.parse(out.slot!.start)),
 		reason: out.reason,
 		occasion: out.occasion,
+		idea: out.idea ?? null,
 		trace: out.tools_used,
 		steps: planSteps(input, out),
 		by
@@ -531,7 +558,8 @@ function slotWords(slot: Slot, tz: string): { day: string; time: string; part: s
 export function groupTemplate(card: WeekendCard, _language: Language, tz: string): string {
 	const w = slotWords(card.slot, tz);
 	const lead = card.occasion ? `${card.occasion} video call?` : 'Family video call?';
-	return `${lead} ${w.day} at ${w.time}${w.time.includes(':') ? '' : ':00'}, everyone's free then.`;
+	const idea = card.idea ? ` Idea: ${card.idea[0].toLowerCase()}${card.idea.slice(1)}` : '';
+	return `${lead} ${w.day} at ${w.time}${w.time.includes(':') ? '' : ':00'}, everyone's free then.${idea}`;
 }
 
 /** A line for the family group (wa.me without a number, so the user picks the group). */
@@ -551,7 +579,7 @@ export async function draftForGroup(card: WeekendCard, quick?: (line: string) =>
 			personName: 'everyone',
 			relation: family ? 'family' : 'friend',
 			reason: `A group video call at this time; everyone named is free. ${looksSensitive(card.reason) ? '' : card.reason}`.trim(),
-			context: people.map((p) => `${p.name} is free then`).slice(0, 5),
+			context: [...people.map((p) => `${p.name} is free then`).slice(0, 5), ...(card.idea ? [`Suggest this for the call: ${card.idea}`] : [])],
 			myRecentLines: buildMyLines(mine),
 			language,
 			withTime: card.slot.label

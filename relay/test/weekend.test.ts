@@ -79,6 +79,7 @@ describe('weekend tool loop', () => {
 			skipped: [{ personId: 'kabir', why: "He's asleep then.", alt: { start: '2026-10-31T19:30:00+05:30', end: '2026-10-31T20:30:00+05:30', label: 'Sat 31 Oct, 19:30 to 20:30' } }],
 			reason: "It's Diwali morning.",
 			occasion: 'Diwali',
+			idea: null,
 			tools_used: ['get_windows', 'get_occasions', 'get_reasons', 'get_local_time', 'finish']
 		});
 		expect(usage).toEqual({ input_tokens: 30, output_tokens: 15 });

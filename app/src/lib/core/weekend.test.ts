@@ -16,7 +16,9 @@ import {
 	lineOk,
 	localWeekendPlan,
 	planWeekend,
+	safeIdea,
 	specificWhy,
+	weekendIdea,
 	weekendCard,
 	weekendRange
 } from './weekend.ts';
@@ -136,6 +138,25 @@ describe('drafts (pure)', () => {
 		expect(groupTemplate(card, 'mixed', IST)).toBe("Thanksgiving video call? Sunday at 10:30, everyone's free then.");
 		expect(groupTemplate({ ...card, occasion: null }, 'en', IST)).toBe("Family video call? Sunday at 10:30, everyone's free then.");
 		expect(lineOk(groupTemplate(card, 'mixed', IST))).toBe(true);
+	});
+	it('adds the idea for the call to the group line', () => {
+		expect(groupTemplate({ ...card, idea: 'Each person brings a song for the family playlist.' }, 'en', IST)).toBe(
+			"Thanksgiving video call? Sunday at 10:30, everyone's free then. Idea: each person brings a song for the family playlist."
+		);
+	});
+	it('keeps an idea only when it is short and safe to say to everyone', () => {
+		expect(safeIdea('Each person brings a song')).toBe('Each person brings a song.');
+		expect(safeIdea('Plan the surprise cake for Dad')).toBeNull();
+		expect(safeIdea('Chip in $50 each for a gift')).toBeNull();
+		expect(safeIdea('Ask how the surgery went')).toBeNull();
+		expect(safeIdea('x'.repeat(120))).toBeNull();
+		expect(safeIdea(null)).toBeNull();
+	});
+	it('the phone finds an idea in the threads of the people on the call', () => {
+		const input = { reasons: [{ personId: 'g', text: 'Family playlist' }, { personId: 'd', text: "Dad's surprise party" }] } as unknown as WeekendInput;
+		expect(weekendIdea(input, ['g'], null)).toBe('Each person brings a song for the family playlist.');
+		expect(weekendIdea({ reasons: [{ personId: 'd', text: "Dad's surprise party" }] } as unknown as WeekendInput, ['d'], null)).toBeNull();
+		expect(weekendIdea({ reasons: [] } as unknown as WeekendInput, [], 'Thanksgiving')).toBe('Everyone shares one Thanksgiving plan.');
 	});
 	it('screens drafts for money, health, guilt', () => {
 		expect(lineOk('The lamp costs Rs 2000, split it?')).toBe(false);

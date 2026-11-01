@@ -129,6 +129,7 @@
 		</p>
 	{/if}
 	{#if c.reason}<p class="reason">{cap(c.reason)}</p>{/if}
+	{#if c.idea}<p class="idea"><span class="idea-k">Something to do</span> {c.idea}</p>{/if}
 
 	{#if c.skipped.length}
 		<ul class="skipped">
@@ -262,6 +263,14 @@
 	}
 	.reason {
 		color: var(--text-2);
+	}
+	.idea {
+		color: var(--text);
+	}
+	.idea-k {
+		color: var(--accent-ink);
+		font-weight: 500;
+		margin-right: 4px;
 	}
 	.skipped {
 		list-style: none;

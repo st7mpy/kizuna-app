@@ -215,6 +215,8 @@ export function checkFinish(run: Run, args: any): Omit<WeekendOutput, 'tools_use
 	const reason = modelText(args?.reason, 160) ?? '';
 	const occasionName = modelText(args?.occasion, 60) ?? '';
 	const occasion = input.occasions.find((o) => o.name.toLowerCase() === occasionName.toLowerCase())?.name ?? null;
+	// the app checks the words again (privacy, surprises) before showing them
+	const idea = modelText(args?.idea, 100) || null;
 	const skippedIn: any[] = Array.isArray(args?.skipped) ? args.skipped : [];
 	const altFor = (personId: string, altId: unknown): Slot | null => {
 		const k = typeof altId === 'string' ? run.known.get(altId) : undefined;
@@ -227,7 +229,7 @@ export function checkFinish(run: Run, args: any): Omit<WeekendOutput, 'tools_use
 	if (args?.slot_id == null) {
 		// "Nothing fits" is a fine answer.
 		const skipped = dedupe(skippedIn.filter((s) => ids.has(s?.person_id)).map((s) => ({ personId: s.person_id as string, why: text(s.why, 120) || 'Not free then.', alt: altFor(s.person_id, s.alt_slot_id) })));
-		return { slot: null, personIds: [], skipped, reason: reason || 'Nothing lines up this weekend.', occasion };
+		return { slot: null, personIds: [], skipped, reason: reason || 'Nothing lines up this weekend.', occasion, idea: null };
 	}
 	const k = typeof args.slot_id === 'string' ? run.known.get(args.slot_id) : undefined;
 	if (!k) return null;
@@ -242,7 +244,7 @@ export function checkFinish(run: Run, args: any): Omit<WeekendOutput, 'tools_use
 			.map((s) => ({ personId: s.person_id as string, why: text(s.why, 120) || 'Not free then.', alt: altFor(s.person_id, s.alt_slot_id) })),
 		...dropped.map((id) => ({ personId: id, why: 'Not free then.', alt: null }))
 	]);
-	return { slot, personIds: check.personIds, skipped, reason: reason || "You're free together then.", occasion };
+	return { slot, personIds: check.personIds, skipped, reason: reason || "You're free together then.", occasion, idea };
 }
 
 function dedupe<T extends { personId: string }>(list: T[]): T[] {
