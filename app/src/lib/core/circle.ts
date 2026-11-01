@@ -148,6 +148,7 @@ export async function createCircle(): Promise<CircleSettings> {
 	};
 	await updateSettings({ circle });
 	await publishMyEntry({ force: true }).catch(() => {});
+	void import('./push.ts').then((m) => m.renewReminders());
 	return circle;
 }
 

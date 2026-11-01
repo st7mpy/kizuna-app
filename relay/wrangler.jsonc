@@ -3,6 +3,7 @@
 //   npx wrangler kv namespace create INVITES            -> put the id below
 //   npx wrangler kv namespace create INVITES --preview  -> put the preview_id below
 //   npx wrangler secret put MODEL_API_KEY
+//   npx wrangler secret put VAPID_PRIVATE_JWK   (optional: phone reminders; a P-256 private key as JWK JSON)
 // Spending: DAILY_BUDGET_USD is the day's ceiling for all model and voice calls (UTC day),
 // tallied in INVITES under budget:* keys. KV is eventually consistent, so it can overshoot by about a minute's spend.
 {
@@ -36,7 +37,10 @@
     "META_BASE_URL": "https://api.meta.ai/v1",
     "DAILY_BUDGET_USD": "5",
     "WEAVE_BUDGET_USD": "2",
-    "KV_WRITES_PER_DAY": "900"
+    "KV_WRITES_PER_DAY": "900",
+    "PUBLIC_ORIGIN": "https://kizuna.siddharth77work.workers.dev"
   },
+  // Hourly check for the Friday evening reminder (phone reminders need the VAPID_PRIVATE_JWK secret).
+  "triggers": { "crons": ["0 * * * *"] },
   "observability": { "enabled": true }
 }

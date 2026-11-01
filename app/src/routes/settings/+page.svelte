@@ -21,7 +21,13 @@
 		setSharing,
 		updateSettings,
 		usefulAnswers,
-		usefulSummary
+		usefulSummary,
+		reminderState,
+		reminderSupportHere,
+		turnOffReminders,
+		turnOnReminders,
+		type ReminderState,
+		type ReminderSupport
 	} from '#lib/core/index.js';
 	import { startTour } from '#lib/ui/tour.svelte.js';
 	import { hasAnyData, readSettings, settingsLive } from '#lib/db.js';
@@ -309,6 +315,34 @@
 		['notes', 'Your notes'],
 		['about', 'About Kizuna']
 	];
+
+	// reminders on this phone
+	let remindSupport = $state<ReminderSupport>('none');
+	let remind = $state<ReminderState>('off');
+	let remindBusy = $state(false);
+	let remindNote = $state('');
+	onMount(() => {
+		remindSupport = reminderSupportHere();
+		void reminderState().then((r) => (remind = r));
+	});
+	async function toggleReminders() {
+		remindBusy = true;
+		remindNote = '';
+		try {
+			if (remind === 'on') {
+				await turnOffReminders();
+				remind = 'off';
+			} else {
+				remind = await turnOnReminders();
+				if (remind === 'blocked') remindNote = 'Notifications are off for Kizuna. Turn them on in your phone’s Settings, then try again.';
+				else if (remind === 'on') remindNote = 'On. You’ll hear from Kizuna only for these three things.';
+			}
+		} catch {
+			remindNote = 'Couldn’t turn reminders on just now. Try again in a moment.';
+		} finally {
+			remindBusy = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Settings · Kizuna</title></svelte:head>
@@ -399,6 +433,29 @@
 				</label>
 			</div>
 		</section>
+
+		{#if remindSupport !== 'none'}
+			<section class="set-block" id="reminders">
+				<h2>Reminders on this phone</h2>
+				<p class="note">
+					When someone answers on your family page, when a time is picked, and on Friday evening when this
+					weekend’s call is ready. The words stay general; your notes never leave this phone.
+				</p>
+				{#if remindSupport === 'install'}
+					<p class="note">
+						On iPhone, add Kizuna to your Home Screen first: tap Share, then Add to Home Screen. Open Kizuna from
+						there and come back here.
+					</p>
+				{:else}
+					<div class="row">
+						<button class="btn line" type="button" onclick={toggleReminders} disabled={remindBusy}>
+							{remindBusy ? 'One moment…' : remind === 'on' ? 'Turn reminders off' : 'Turn on reminders'}
+						</button>
+					</div>
+				{/if}
+				{#if remindNote}<p class="note" role="status">{remindNote}</p>{/if}
+			</section>
+		{/if}
 
 		<section class="set-block" id="calendar">
 			<h2>Your calendar</h2>

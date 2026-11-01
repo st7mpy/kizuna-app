@@ -6,6 +6,7 @@ import { entrySignature, publishMyEntry, refreshCircle } from './circle.ts';
 import { liveQuery } from 'dexie';
 import { readSettings } from '../db.ts';
 import { refreshStaleSample } from './sample.ts';
+import { renewReminders } from './push.ts';
 
 export { saveFragment, processPending, retryFragment, noteThought } from './capture.ts';
 export { runWeave, onWeaveBuilding } from './weave.ts';
@@ -50,6 +51,15 @@ export {
 export { shareText, shareLine, browserShareDeps, openBlankTab, hasShareSheet, type ShareResult } from './share.ts';
 export { draftPoke, templateLine, whatsappLink, type PokeDraft } from './poke.ts';
 export { briefFor, type Brief } from './brief.ts';
+export {
+	reminderSupportHere,
+	reminderState,
+	turnOnReminders,
+	turnOffReminders,
+	renewReminders,
+	type ReminderState,
+	type ReminderSupport
+} from './push.ts';
 export { suggestSlots, createInvite, googleCalendarLink, icsFile, checkCalendar, isCalendarLink, clearBusyCache } from './time.ts';
 export { updatePerson, mergePeople, removePerson, updateThread, markReached } from './people.ts';
 export { loadSampleLife, loadSample, refreshSampleMembers, SAMPLES, type SampleKey } from './sample.ts';
@@ -69,6 +79,8 @@ export function startCore(): void {
 		.catch(() => {});
 	startCircleSync();
 	startPickPolling();
+	// keeps the server's watch list current (new family page, new pick-a-time links); never prompts
+	void renewReminders();
 }
 
 let syncing = false;

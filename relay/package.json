@@ -9,6 +9,16 @@
     "test": "vitest --run",
     "check": "tsc --noEmit -p ."
   },
-  "dependencies": { "@kizuna/shared": "*", "@cfworker/json-schema": "^4.1.1", "ical.js": "^2.2.1" },
-  "devDependencies": { "wrangler": "^4.153.0", "@cloudflare/workers-types": "^4.20260702.1", "typescript": "^6.0.3", "vitest": "^4.1.8" }
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@kizuna/shared": "*",
+    "ical.js": "^2.2.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "http_ece": "^1.2.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8",
+    "wrangler": "^4.153.0"
+  }
 }

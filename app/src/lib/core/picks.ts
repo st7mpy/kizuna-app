@@ -1,6 +1,7 @@
 // Pick-a-time links the user shared: look for the other person's pick (on open, then every
 // 60 s while the app is visible) and show it on Today, ready to add to the calendar.
 import type { InviteState, PickInvite, Slot } from '@kizuna/shared';
+import { renewReminders } from './push.ts';
 import { googleCalendarLink } from '@kizuna/shared';
 import { db, readSettings } from '../db.ts';
 import { RelayError, isOnline, relayJson } from './relay.ts';
@@ -29,6 +30,7 @@ export async function recordInvite(inv: Omit<PickInvite, 'createdAt' | 'expiresA
 		await db.settings.put({ ...s, pickInvites: [entry, ...kept].slice(0, KEEP) });
 	});
 	kick();
+	void renewReminders();
 }
 
 function stale(i: PickInvite, now: number): boolean {

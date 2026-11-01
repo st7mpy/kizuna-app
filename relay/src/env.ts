@@ -14,6 +14,10 @@ export interface Env {
 	RL_WEAVE?: RateLimit;
 	RL_VOICE?: RateLimit;
 	RL_INVITE?: RateLimit;
+	/** P-256 private key as JWK JSON for phone reminders (secret; reminders are off without it). */
+	VAPID_PRIVATE_JWK?: string;
+	/** The site's public address, for scheduled work that has no request to read it from. */
+	PUBLIC_ORIGIN?: string;
 }
 
 export function metaBase(env: Env): string {

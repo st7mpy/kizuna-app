@@ -9,6 +9,17 @@ import { handleIcal } from './ical.ts';
 import { handlePage } from './page.ts';
 import { createCircle, deleteMember, getCircle, putMember } from './circle.ts';
 import { handleFamilyPage } from './family-page.ts';
+import { fridayReminders, notifyAnswer, notifyPicked, pushKey, subscribe, unsubscribe } from './push.ts';
+import { publicOrigin } from './invite.ts';
+
+const SITE = 'https://kizuna.siddharth77work.workers.dev';
+
+/** Runs follow-up work after the response when the runtime allows it; never lets it fail the request. */
+async function later(ctx: ExecutionContext | undefined, work: Promise<unknown>): Promise<void> {
+	const safe = work.catch(() => console.error('push: follow-up failed'));
+	if (ctx) ctx.waitUntil(safe);
+	else await safe;
+}
 
 // The app's own pages (app/src/routes). Anything else that isn't a file gets the app shell
 // with a 404 status, so the app shows its "not found" page and crawlers see a real 404.
@@ -32,7 +43,7 @@ export async function serveApp(req: Request, env: Env): Promise<Response> {
 	return new Response(req.method === 'HEAD' ? null : shell.body, { status: isAppPath(path) ? 200 : 404, headers });
 }
 
-export async function route(req: Request, env: Env): Promise<Response> {
+export async function route(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
 	const url = new URL(req.url);
 	const path = url.pathname;
 	const m = req.method;
@@ -55,14 +66,26 @@ export async function route(req: Request, env: Env): Promise<Response> {
 	if (path === '/api/invite') return m === 'POST' ? createInvite(req, env) : fail('method_not_allowed');
 	const inv = /^\/api\/invite\/([^/]+)(\/pick)?$/.exec(path);
 	if (inv) {
-		if (inv[2]) return m === 'POST' ? pickInvite(req, env, inv[1]) : fail('method_not_allowed');
+		if (inv[2]) {
+			if (m !== 'POST') return fail('method_not_allowed');
+			const res = await pickInvite(req, env, inv[1]);
+			if (res.ok) await later(ctx, notifyPicked(env, inv[1], publicOrigin(req)));
+			return res;
+		}
 		return m === 'GET' ? getInvite(env, inv[1]) : fail('method_not_allowed');
 	}
+	if (path === '/api/push/key') return m === 'GET' ? pushKey(env) : fail('method_not_allowed');
+	if (path === '/api/push/sub') return m === 'POST' ? subscribe(req, env) : fail('method_not_allowed');
+	if (path === '/api/push/unsub') return m === 'POST' ? unsubscribe(req, env) : fail('method_not_allowed');
 	if (path === '/api/circle') return m === 'POST' ? createCircle(req, env) : fail('method_not_allowed');
 	const circle = /^\/api\/circle\/([^/]+)(?:\/m\/([^/]+))?$/.exec(path);
 	if (circle) {
 		if (circle[2]) {
-			if (m === 'PUT') return putMember(req, env, circle[1], circle[2]);
+			if (m === 'PUT') {
+				const res = await putMember(req, env, circle[1], circle[2]);
+				if (res.ok) await later(ctx, notifyAnswer(env, circle[1], circle[2], publicOrigin(req)));
+				return res;
+			}
 			if (m === 'DELETE') return deleteMember(req, env, circle[1], circle[2]);
 			return fail('method_not_allowed');
 		}
@@ -72,13 +95,17 @@ export async function route(req: Request, env: Env): Promise<Response> {
 }
 
 export default {
-	async fetch(req: Request, env: Env): Promise<Response> {
+	async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		try {
-			return await route(req, env);
+			return await route(req, env, ctx);
 		} catch (e) {
 			// Name only: messages can quote request data.
 			console.error(`relay error: ${e instanceof Error ? e.name : 'unknown'}`);
 			return fail('server_error');
 		}
+	},
+	/** Hourly: the Friday "this weekend's call" reminder, in each phone's own evening. */
+	async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+		ctx.waitUntil(fridayReminders(env, env.PUBLIC_ORIGIN || SITE).catch(() => console.error('push: friday run failed')));
 	}
 } satisfies ExportedHandler<Env>;

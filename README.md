@@ -33,6 +33,8 @@ Kizuna is built for that close half.
 | 4 | **Poke, no score** | One tap drafts a short line in your own tone, and opens WhatsApp with it ready. You edit and send. No counters, ever. |
 | 5 | **Find us a time** | Two free slots from your free hours (and, if you add it, your private calendar link). Ask in plain words: "next weekend, not Sunday". The other person gets a pick-a-time page that needs no app. |
 | 6 | **Today** | Tap how much room you have (low, some, lots) and see 1, 3 or 5 things, people first. Empty is a good day. |
+| 7 | **Before you call** | On each person's page: up to three things to remember from your own notes, and one question to ask. Gift ideas stay out. |
+| 8 | **Reminders** | Optional, from Settings: a notification when someone answers on your family page, when a time is picked, and on Friday evening when the weekend call is ready. On iPhone, add Kizuna to the Home Screen first. |
 
 **Try it without talking for three weeks first:** tap **Try it with a sample family** on the first screen. There are two: a busy working family whose youngest is studying in Melbourne, a day ahead, and one big family spread across the USA from New York to Honolulu. Pick the second under the main button, or switch in Settings.
 
@@ -122,6 +124,8 @@ cd relay
 npx wrangler kv namespace create INVITES            # copy the id into wrangler.jsonc
 npx wrangler kv namespace create INVITES --preview  # copy the preview_id
 npx wrangler secret put MODEL_API_KEY
+# optional, for reminders: a P-256 private key as JWK JSON
+node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(j=>process.stdout.write(JSON.stringify(j)))" | npx wrangler secret put VAPID_PRIVATE_JWK
 cd .. && npm run build -w @kizuna/app && npm run deploy -w @kizuna/relay
 ```
 
@@ -131,6 +135,7 @@ cd .. && npm run build -w @kizuna/app && npm run deploy -w @kizuna/relay
 - Note text and audio pass through the relay to Meta's API to be understood. The relay never logs request bodies and stores nothing.
 - A pick-a-time invite stores only your first name, a title and the time slots, and expires after 7 days.
 - The Kizuna map shares only what you choose: your first name, time zone, up to three free windows and an optional "free today" that ends within 12 hours. Each entry is sealed on the device with a key that lives only in the family link, so the server holds ciphertext it can't read. Entries expire after 8 days, and leaving deletes yours. No location, ever.
+- Reminders, if you turn them on, store only your browser's push address, your time zone, and which family page and pick-a-time links to watch, for 60 days. The words are general ("Someone answered on your family page"); no note text is ever sent.
 - A calendar link, if you add one, is read through the relay for busy times only. Neither the link nor your events are stored.
 - **Delete everything** in Settings clears it all.
 

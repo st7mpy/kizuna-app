@@ -65,3 +65,39 @@ sw.addEventListener('fetch', (event) => {
 		})()
 	);
 });
+
+// Reminders. The server sends general words only ("Someone answered on your family page.").
+sw.addEventListener('push', (event) => {
+	let msg: { title?: string; body?: string; url?: string; kind?: string } = {};
+	try {
+		msg = event.data?.json() ?? {};
+	} catch {
+		/* show the plain line */
+	}
+	event.waitUntil(
+		sw.registration.showNotification(msg.title || 'Kizuna', {
+			body: msg.body || 'Kizuna has something for you.',
+			icon: '/icon-192.png',
+			badge: '/icon-192.png',
+			tag: msg.kind || 'kizuna',
+			data: { url: typeof msg.url === 'string' && msg.url.startsWith('/') ? msg.url : '/' }
+		})
+	);
+});
+
+sw.addEventListener('notificationclick', (event) => {
+	event.notification.close();
+	const url = new URL((event.notification.data as { url?: string } | null)?.url ?? '/', sw.location.origin).href;
+	event.waitUntil(
+		(async () => {
+			const open = await sw.clients.matchAll({ type: 'window', includeUncontrolled: true });
+			for (const c of open) {
+				if ('focus' in c) {
+					await (c as WindowClient).navigate(url).catch(() => null);
+					return (c as WindowClient).focus();
+				}
+			}
+			return sw.clients.openWindow(url);
+		})()
+	);
+});

@@ -125,6 +125,8 @@ export const limits = {
 	circleWrite: new RateLimiter({ capacity: 6, refillPerMinute: 2, daily: 80 }),
 	// And per IP across circles, so one address can't fill many.
 	circleWriteIp: new RateLimiter({ capacity: 40, refillPerMinute: 12, daily: 600 }), // a venue shares one IP
+	// Reminder sign-ups: the app renews its one subscription when it opens.
+	push: new ClientLimiter({ capacity: 6, refillPerMinute: 2, daily: 60 }, 4),
 	// Reads: the app re-fetches every 60 s while the map is open.
 	circleRead: new RateLimiter({ capacity: 30, refillPerMinute: 6, daily: 3000 })
 };
