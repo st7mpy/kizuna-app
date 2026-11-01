@@ -49,6 +49,12 @@ describe('brief helpers', () => {
 		expect(localBrief({ ...input, personName: 'Papa' }).lines).toEqual(['Papa started golf.']);
 	});
 
+	it('keeps an unnamed note kept for them, like one after a call', () => {
+		const leo = mkPerson({ id: 'leo', name: 'Leo', relation: 'child' });
+		const input = briefInput(leo, [], [frag({ id: 'a', text: 'Leo has exams next week', personIds: ['leo'] }), frag({ id: 'b', text: 'First exam went well', personIds: ['leo'] }), frag({ id: 'c', text: 'Groceries', personIds: ['leo', 'mom'] })], '2026-10-26');
+		expect(input.notes.map((n) => n.text)).toEqual(['Leo has exams next week', 'Leo: First exam went well']);
+	});
+
 	it('builds a phone brief with a gentle ask, and nothing when there is nothing', () => {
 		const b = localBrief({ personName: 'Mom', relation: 'parent', today: '2026-10-26', context: ['has something personal going on (on Thursday); ask how they are, do not mention details', 'cousin wedding (on Saturday)'], notes: [] });
 		expect(b).toEqual({ lines: ['Cousin wedding (on Saturday)'], ask: 'How have you been?', fromModel: false });

@@ -45,11 +45,13 @@ export function briefInput(person: Person, context: string[], fragments: Fragmen
 	const names = [person.name, ...(person.aliases ?? [])].map((n) => n.toLowerCase()).filter((n) => n.length > 1);
 	const mentions = (t: string) => names.some((n) => new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(t));
 	const usable = fragments.filter((f) => !f.sensitive && safe(f.text));
-	const about = usable.filter((f) => mentions(f.text));
-	const notes = (about.length ? about : usable)
-		.map((f) => ({ day: localDay(new Date(f.createdAt)), text: clip(f.text, 160) }))
+	// a note kept from their page or after a call ("First exam went well") is about them even unnamed
+	const solo = (f: Fragment) => f.personIds?.length === 1 && f.personIds[0] === person.id;
+	const about = usable.filter((f) => mentions(f.text) || solo(f));
+	const notes = [...(about.length ? about : usable)]
+		.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+		.map((f) => ({ day: localDay(new Date(f.createdAt)), text: clip(mentions(f.text) ? f.text : `${person.name}: ${f.text}`, 160) }))
 		.filter((n) => n.day >= since)
-		.sort((a, b) => b.day.localeCompare(a.day))
 		.slice(0, 6);
 	// personal hints shape the phone's ask; Spark only gets what it may say
 	const sayable = context.filter((c) => !PERSONAL.test(c) && !VAGUE.test(c));

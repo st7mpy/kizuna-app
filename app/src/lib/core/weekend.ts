@@ -578,7 +578,8 @@ export async function draftForGroup(card: WeekendCard, quick?: (line: string) =>
 			// addressed to everyone, so the line opens like a group message
 			personName: 'everyone',
 			relation: family ? 'family' : 'friend',
-			reason: `A group video call at this time; everyone named is free. ${looksSensitive(card.reason) ? '' : card.reason}`.trim(),
+			// someone on the call may not know what is being planned for them
+			reason: `A group video call at this time; everyone named is free. ${looksSensitive(card.reason) ? '' : card.reason} Everyone named is in the group, so never mention plans made for one of them (a birthday dinner, a gift).`.replace(/\s+/g, ' ').trim(),
 			context: [...people.map((p) => `${p.name} is free then`).slice(0, 5), ...(card.idea ? [`Suggest this for the call: ${card.idea}`] : [])],
 			myRecentLines: buildMyLines(mine),
 			language,
