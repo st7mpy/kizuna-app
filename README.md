@@ -6,7 +6,7 @@ You talk to it the way you think: in half sentences, in a rush. Kizuna remembers
 
 *Kizuna* (絆) is Japanese for the bonds between people.
 
-Built for the Meta Global AI Developer Hackathon 2026 (Indie track). All code in this repository was written during the event.
+Built for the Meta Global AI Developer Hackathon 2026: Indie track, theme **Build for Your World**. Our world is the few people we love most, and Kizuna is built for keeping them close. All code in this repository was written during the event.
 
 ## For judges: 60 seconds
 
@@ -80,7 +80,7 @@ by the model                    /api/ical    (busy times only)
 
 | Route | What it does |
 | --- | --- |
-| `POST /api/spark` | Runs one named task: `extract`, `weave`, `draft`, `plan`, `rank`, `windows` or `weekend`. |
+| `POST /api/spark` | Runs one named task: `extract`, `weave`, `draft`, `plan`, `rank`, `windows`, `weekend` or `brief`. |
 | `WS /api/asr`, `POST /api/transcribe` | Speech to text, live or from a recording. |
 | `POST /api/ical` | Busy times from a private calendar link. |
 | `POST /api/invite`, `GET /api/invite/:id`, `POST /api/invite/:id/pick`, `GET /p/:id` | Pick-a-time invites and their page. |
