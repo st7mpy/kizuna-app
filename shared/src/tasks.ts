@@ -30,7 +30,7 @@ export interface BuiltTask {
 	schema?: { name: string; schema: object };
 	reasoning_effort: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 	max_tokens: number;
-	/** OpenAI-style tool definitions (plan only) */
+	/** Tool definitions (plan and weekend only) */
 	tools?: object[];
 }
 
