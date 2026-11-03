@@ -6,7 +6,7 @@ You talk to it the way you think: in half sentences, in a rush. Kizuna remembers
 
 *Kizuna* (絆) is Japanese for the bonds between people.
 
-Built for the Meta Global AI Developer Hackathon 2026: Indie track, theme **Build for Your World**. Our world is the few people we love most, and Kizuna is built for keeping them close. All code in this repository was written during the event.
+Built for the Meta Global AI Developer Hackathon 2026: Indie track, theme **Build for Your World**. Our world is the few people we love most, and Kizuna is built for keeping them close.
 
 ## For judges: 60 seconds
 
